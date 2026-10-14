@@ -17,6 +17,7 @@ export const state = {
   checkoutStep: 1,
   modal: '',
   galleryExperienceId: '',
+  reviewExperienceId: '',
   galleryIndex: 0,
   toast: '',
   search: '',

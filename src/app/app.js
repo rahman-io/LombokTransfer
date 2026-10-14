@@ -123,7 +123,7 @@ function clickAction(action, el) {
     case 'save-to-list': closeModal(); break;
     case 'dismiss-banner': el.closest('.info-banner')?.remove(); break;
     case 'list-menu': state.modalTitle = 'List options'; state.modalMessage = 'Your saved activities are available in this list.'; openModal('message'); break;
-    case 'reviews': openModal('reviews'); break;
+    case 'reviews': state.reviewExperienceId = id; openModal('reviews'); break;
     case 'gallery': state.galleryExperienceId = id; state.galleryIndex = Number(el.dataset.index) || 0; openModal('gallery'); break;
     case 'gallery-select': selectGalleryIndex(el.dataset.index); break;
     case 'gallery-prev': selectGalleryIndex(state.galleryIndex - 1); break;

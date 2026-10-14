@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.get('admin', false) == true; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function membership(orgId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid);
+    }
+    function isOrgManager(orgId) {
+      return signedIn() && exists(membership(orgId)) &&
+        get(membership(orgId)).data.active == true &&
+        get(membership(orgId)).data.roles.hasAny(['owner', 'manager']);
+    }
+
+    match /users/{uid} {
+      allow get: if isSelf(uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSelf(uid) &&
+        request.resource.data.keys().hasOnly(['displayName', 'currency', 'language', 'createdAt', 'updatedAt']) &&
+        request.resource.data.displayName is string &&
+        request.resource.data.createdAt == request.time;
+      allow update: if isSelf(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'currency', 'language', 'updatedAt']) &&
+        request.resource.data.displayName is string;
+      allow delete: if false;
+
+      match /wishlists/{experienceId} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow create: if isSelf(uid) &&
+          request.resource.data.keys().hasOnly(['experienceId', 'createdAt']) &&
+          request.resource.data.experienceId == experienceId &&
+          request.resource.data.createdAt == request.time;
+        allow delete: if isSelf(uid);
+        allow update: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /organizations/{orgId} {
+      allow read: if resource.data.status == 'published' || isOrgManager(orgId) || isAdmin();
+      allow write: if isAdmin();
+
+      match /members/{uid} {
+        allow get: if isSelf(uid) || isOrgManager(orgId) || isAdmin();
+        allow list: if isOrgManager(orgId) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /experiences/{experienceId} {
+      allow read: if resource.data.status == 'published' ||
+        isOrgManager(resource.data.organizationId) ||
+        (signedIn() && request.auth.uid in resource.data.guideIds) || isAdmin();
+      allow write: if isAdmin();
+
+      match /slots/{slotId} {
+        allow read: if get(/databases/$(database)/documents/experiences/$(experienceId)).data.status == 'published' || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isSelf(resource.data.userId) || isOrgManager(resource.data.organizationId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /guideAssignments/{assignmentId} {
+      allow read: if isSelf(resource.data.guideId) || isOrgManager(resource.data.organizationId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'approved' || isSelf(resource.data.userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /media/{mediaId} {
+      allow read: if resource.data.status == 'published' || isOrgManager(resource.data.organizationId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /destinations/{destinationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /attractions/{attractionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

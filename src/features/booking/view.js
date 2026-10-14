@@ -4,7 +4,7 @@ import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { formatDate, escapeHtml } from '../../utils/html.js';
-import { calculateDemoQuote, formatDemoPrice } from '../experiences/booking-demo.js';
+import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
 export function bookingView(id) {
   const item = getExperience(id);
   const dateText = state.date ? formatDate(state.date) : 'Select a date';
@@ -20,7 +20,7 @@ export function bookingView(id) {
       </div>
       <h2>1 option available</h2>
       <article class="option-card"><h3>${item.title}</h3><div class="option-fact">${icon('clock', 21)} Duration: ${item.duration}</div><div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div><button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
-        <hr /><h3>Starting time</h3><p>${dateText}</p><button class="time-button ${state.selectedTime === '6:00 PM' ? 'active' : ''}" data-action="select-time" data-value="6:00 PM">6:00 PM</button><button class="time-button ${state.selectedTime === '7:30 PM' ? 'active' : ''}" data-action="select-time" data-value="7:30 PM">7:30 PM</button>
+        <hr /><h3>Starting time</h3><p>${dateText}</p>${getDemoBooking(item).timeOptions.map((time) => `<button class="time-button ${state.selectedTime === time ? 'active' : ''}" data-action="select-time" data-value="${escapeHtml(time)}">${escapeHtml(time)}</button>`).join('')}
         <p class="urgency">${icon('info', 17)} Only 21 hours left to book</p><hr /><strong class="option-price">$${total}</strong><small>${state.adults} Adult × ${formatDemoPrice(quote.adultPrice)}${state.children ? `<br/>${state.children} Child × ${formatDemoPrice(quote.childPrice)}` : ''}<br/>Demo price · All taxes and fees included</small><a class="primary-button full" href="#/checkout/${item.id}">Continue</a>
       </article>
       <details><summary>Meeting point</summary><p>Your exact meeting point will be confirmed after booking.</p></details>

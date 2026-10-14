@@ -2,6 +2,7 @@ import { state } from '../app/store.js';
 import { icon } from './icons.js';
 import { escapeHtml } from '../utils/html.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
+import { getDemoReviews } from '../features/experiences/demo-engagement.js';
 
 function monthGrid(year, month) {
   const first = new Date(year, month, 1).getDay();
@@ -38,7 +39,7 @@ export function modalView() {
     body = `<label class="form-label">List name<input id="list-name" placeholder="My trip" maxlength="36" autofocus /></label><button class="primary-button full" data-action="create-list">Create list</button>`;
   } else if (state.modal === 'reviews') {
     title = 'Customer reviews';
-    body = `<div class="review-card"><div class="review-stars">★★★★★</div><strong>Kristy - United Kingdom</strong><small>Verified booking</small><p>Beautiful experience and a fantastic guide. Everything was easy to find and well organized.</p></div><div class="review-card"><div class="review-stars">★★★★★</div><strong>Rachel - New Zealand</strong><small>Verified booking</small><p>Absolutely amazing. We would recommend this to anyone visiting.</p></div>`;
+    body = getDemoReviews(getExperience(state.reviewExperienceId)).more.map((review) => `<div class="review-card"><div class="review-stars">★★★★★</div><strong>${escapeHtml(review.author)} - ${escapeHtml(review.country)}</strong><small>Verified booking</small><p>${escapeHtml(review.text)}</p></div>`).join('');
   } else if (state.modal === 'gallery') {
     title = 'Photos';
     const experience = getExperience(state.galleryExperienceId);

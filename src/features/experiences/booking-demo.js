@@ -1,16 +1,17 @@
 // Demo-only booking data. Replace these records with provider data when a backend is connected.
 const weekdayMultipliers = { 0: 1.12, 1: 1, 2: 1.03, 3: 1.05, 4: 1.08, 5: 1.1, 6: 1.15 };
+const demoTimeOptions = ['6:00 PM', '7:30 PM'];
 
 export const demoBookingData = {
-  colosseum: { childPrice: 39, weekdayMultipliers },
-  arena: { childPrice: 32, weekdayMultipliers },
-  vatican: { childPrice: 47, weekdayMultipliers },
-  basilica: { childPrice: 52, weekdayMultipliers },
-  pantheon: { childPrice: 6, weekdayMultipliers },
-  skydiving: { childPrice: 160, weekdayMultipliers, popularDays: [4, 6] },
-  kayaking: { childPrice: 37, weekdayMultipliers, popularDays: [4, 6] },
-  agafay: { childPrice: 43, weekdayMultipliers },
-  sumo: { childPrice: 25, weekdayMultipliers, popularDays: [5, 6] },
+  colosseum: { childPrice: 39, weekdayMultipliers, timeOptions: demoTimeOptions },
+  arena: { childPrice: 32, weekdayMultipliers, timeOptions: demoTimeOptions },
+  vatican: { childPrice: 47, weekdayMultipliers, timeOptions: demoTimeOptions },
+  basilica: { childPrice: 52, weekdayMultipliers, timeOptions: demoTimeOptions },
+  pantheon: { childPrice: 6, weekdayMultipliers, timeOptions: demoTimeOptions },
+  skydiving: { childPrice: 160, weekdayMultipliers, timeOptions: demoTimeOptions, popularDays: [4, 6] },
+  kayaking: { childPrice: 37, weekdayMultipliers, timeOptions: demoTimeOptions, popularDays: [4, 6] },
+  agafay: { childPrice: 43, weekdayMultipliers, timeOptions: demoTimeOptions },
+  sumo: { childPrice: 25, weekdayMultipliers, timeOptions: demoTimeOptions, popularDays: [5, 6] },
 };
 
 export function getDemoBooking(item) {

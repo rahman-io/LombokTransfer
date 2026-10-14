@@ -21,6 +21,8 @@ import skydivingThumbA from '../../assets/images/skydiving-thumb-a-clean.webp';
 import skydivingThumbB from '../../assets/images/skydiving-thumb-b-clean.webp';
 import kayakingThumbA from '../../assets/images/kayaking-thumb-a-clean.webp';
 import kayakingThumbB from '../../assets/images/kayaking-thumb-b-clean.webp';
+import { demoBookingData } from './booking-demo.js';
+import { toExperienceDocument, toMediaDocuments, toDestinationDocument, toTileMediaDocument } from './firebase-documents.js';
 
 export const images = { rome, paris, statue, vatican, wishlist, colosseum, arena, vaticanTour, basilica, pantheon, pantheonCard, skydiving, kayaking, mapCore, login, agafay, sumo, pantheonThumbA, pantheonThumbB, skydivingThumbA, skydivingThumbB, kayakingThumbA, kayakingThumbB };
 
@@ -116,3 +118,10 @@ export const getExperienceGallery = (item) => item.gallery?.length ? item.galler
 export const getFeaturedExperiences = () => experiences.filter((item) => item.featured);
 export const getPopularExperiences = () => experiences.filter((item) => item.popularSearch);
 export const getExperiencesByCity = (city) => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase());
+export const demoFirebaseDocuments = {
+  organizations: [{ id: 'demo-operator', schemaVersion: 1, name: 'Demo operator', status: 'draft' }],
+  experiences: experiences.map((item) => toExperienceDocument(item, demoBookingData[item.id])),
+  media: [...experiences.flatMap(toMediaDocuments), ...destinations.map((item) => toTileMediaDocument(item, 'destination')), ...attractions.map((item) => toTileMediaDocument(item, 'attraction'))],
+  destinations: destinations.map(toDestinationDocument),
+  attractions: attractions.map((item) => toDestinationDocument(item, 'attraction')),
+};
