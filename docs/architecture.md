@@ -30,7 +30,7 @@ This project uses HTML, CSS, and vanilla JavaScript ES modules. Vite produces st
 | `#/wishlist` and `#/wishlist/favourites` | Saved activities |
 | `#/bookings` | Bookings |
 | `#/profile` and `#/profile/:section` | Profile and settings |
-| `#/inbox` | Messages and updates |
+| `#/inbox` and `#/inbox/chat/:threadId` | Combined messages, travel updates, and private chat |
 
 ## State and backend integration
 

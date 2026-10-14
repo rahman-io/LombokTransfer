@@ -9,6 +9,8 @@ The GitHub Pages build remains a local-data prototype. These fixtures and rules 
 | `users/{uid}` | Non-sensitive profile preferences | Firebase Auth UID |
 | `users/{uid}/wishlists/{experienceId}` | Saved activity IDs | That user |
 | `users/{uid}/messages/{messageId}` | Private inbox | Server writes, user reads |
+| `conversations/{conversationId}` | Private conversation summary and participant IDs | Participants; server controls lifecycle |
+| `conversations/{conversationId}/messages/{messageId}` | Private chat messages and read receipts | Conversation participants |
 | `organizations/{orgId}` | Operator/provider profile | Admin-created |
 | `organizations/{orgId}/members/{uid}` | Organization membership and roles array | Admin/server-created |
 | `experiences/{experienceId}` | Public catalog and editable draft content | One `organizationId` |
@@ -65,3 +67,9 @@ The Community tab uses six fictional demo profiles and seeded posts/interactions
 `src/features/social/repository.js` exports `toSocialFirebaseFixture()`. Its output separates profiles, posts, likes, saves, comments, follows and reports into documents with stable IDs. Migrated posts are deliberately marked `draft`, and `media.storagePath` remains null: first upload media with rights/consent verified, then assign a user-owned Storage path and publish approved content. Never import fictional demo accounts as actual Firebase Auth users, and never label demo comments or engagement as real customer activity. The historical timestamps and relationship counts are synthetic.
 
 Production clients must use Firebase Auth UID as the actor, store photos at `public/social/{uid}/{fileName}`, and use Firestore subcollections/UID-scoped saves rather than keeping `likedBy`/`savedBy` arrays on each post. Admin moderation can read reports and change publication status; posts do not require admin preapproval. Add server-side rate limiting, spam/abuse detection, pagination, file scanning, usernames uniqueness, notification delivery, counters, and proper deletion/appeal workflows before public launch. Video/reels are not part of this image-post demo.
+
+## Inbox and chat demo
+
+The Discover Inbox now combines seeded travel updates with private demo conversations. Conversations are stored locally under `lombok-chat-demo-v1`; switching a demo social account changes which participant threads are visible. `src/features/messaging/repository.js` exports `toMessagingFirebaseFixture()`, separating conversation summaries from message documents so the local demo can be migrated without changing the UI data shape.
+
+When Firebase Auth is connected, read and write only conversations where the authenticated UID is in `participantIds`. The client may create a message only with its own `senderId`; server-side validation should enforce block/report state, rate limits, message length, notification delivery, and deletion/retention policy. Conversation summaries should be updated by a trusted service or a narrowly scoped participant update, while admin access remains for moderation and support.

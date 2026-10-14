@@ -1,5 +1,5 @@
-/* Community module: scoped styles, apart from the fifth main navigation slot. */
-.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* Community module: scoped styles. */
+.bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
 .nav-item{min-width:0}
 .social-main{background:#fff}
 .social-page{color:var(--navy);padding-bottom:20px}

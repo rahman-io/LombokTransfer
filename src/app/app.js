@@ -5,7 +5,7 @@ import { searchView, resultsView, mapView } from '../features/search/view.js';
 import { wishlistView, favouritesView } from '../features/wishlist/view.js';
 import { bookingsView } from '../features/bookings/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
-import { inboxView } from '../features/inbox/view.js';
+import { inboxView, chatView } from '../features/messaging/view.js';
 import { loginView } from '../features/authentication/view.js';
 import { splashView } from '../features/onboarding/view.js';
 import { installView } from '../features/onboarding/install-view.js';
@@ -14,8 +14,9 @@ import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
-import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialActivityView, socialDraft, clearSocialDraft } from '../features/social/view.js';
+import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave } from '../features/social/repository.js';
+import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -42,10 +43,11 @@ function currentView() {
   if (path === '/profile') return profileView();
   if (path.startsWith('/profile/')) return profileSectionView(path.split('/')[2]);
   if (path === '/inbox') return inboxView();
+  if (path.startsWith('/inbox/chat/')) return chatView(path.split('/')[3]);
   if (path === '/social') return socialFeedView(params.get('feed') === 'following');
   if (path === '/social/explore') return socialExploreView();
   if (path === '/social/saved') return socialSavedView();
-  if (path === '/social/activity') return socialActivityView();
+  if (path === '/social/activity') return inboxView();
   if (path === '/social/create') return socialCreateView();
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
@@ -168,6 +170,7 @@ function clickAction(action, el) {
     case 'sign-out': navigate('/login'); break;
     case 'booking-history': announce('No past bookings yet'); break;
     case 'inbox-more': announce('Inbox is up to date'); break;
+    case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
     case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;
     case 'social-like': toggleSocialLike(id); render(); break;
@@ -277,6 +280,12 @@ export function startApp() {
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
   root.addEventListener('submit', (event) => {
+    if (event.target.id === 'chat-message-form') {
+      event.preventDefault();
+      const threadId = route().path.split('/')[3];
+      const input = event.target.elements.message;
+      if (sendChatMessage(threadId, input?.value)) render();
+    }
     if (event.target.id === 'social-compose-form') {
       event.preventDefault();
       const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage });

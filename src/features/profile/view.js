@@ -12,6 +12,7 @@ export function profileView() {
   return mainLayout(`
     <div class="page-pad profile-page"><div class="profile-user"><h1>👋 Hi ${escapeHtml(greetingName.toLowerCase())}</h1><p>${escapeHtml(state.email)}</p></div>
       <a class="profile-link promo-link" href="#/profile/promos">${icon('tickets', 22)}<span>Your promos</span>${icon('chevron', 20)}</a>
+      <a class="profile-link wishlist-profile-link" href="#/wishlist">${icon('heart', 22)}<span>Wishlist</span>${icon('chevron', 20)}</a>
       ${groups.map(([heading, rows]) => `<section class="profile-group"><h2>${heading}</h2>${rows.map(([label, route]) => `<a class="profile-link" href="#/profile/${route}"><span>${label}</span><small>${route === 'currency' ? state.currency : route === 'language' ? state.language : route === 'appearance' ? 'System default' : ''}</small>${icon('chevron', 19)}</a>`).join('')}</section>`).join('')}
       <button class="text-link" data-action="sign-out">Log out</button>
     </div>

@@ -40,6 +40,8 @@ await env.withSecurityRulesDisabled(async (context) => {
     'socialProfiles/user-2': { username: 'traveler.two', displayName: 'Traveler Two', role: 'traveler' },
     'socialPosts/social-post-1': { authorId: 'user-1', status: 'published', caption: 'A day outside', media: { storagePath: 'public/social/user-1/photo.webp' } },
     'socialPosts/social-post-hidden': { authorId: 'user-1', status: 'hidden', caption: 'Hidden', media: { storagePath: 'public/social/user-1/hidden.webp' } },
+    'conversations/thread-1': { id: 'thread-1', schemaVersion: 1, participantIds: ['user-1', 'user-2'], context: null, status: 'active', createdAt: new Date(), updatedAt: new Date(), lastMessageAt: new Date(), lastMessagePreview: 'Hello from the trip.' },
+    'conversations/thread-1/messages/message-1': { id: 'message-1', conversationId: 'thread-1', senderId: 'user-1', text: 'Hello from the trip.', createdAt: new Date(), readBy: ['user-1'] },
   })) batch.set(db.doc(path), value);
   await batch.commit();
 });
@@ -144,6 +146,23 @@ test('social photo upload is limited to the signed-in owner', async () => {
   await assertFails(anotherUser.storage().ref(path).putString('photo', 'raw', { contentType: 'image/webp' }));
   await assertSucceeds(user.storage().ref(path).putString('photo', 'raw', { contentType: 'image/webp' }));
   await assertSucceeds(guest.storage().ref(path).getDownloadURL());
+});
+
+test('conversation access is limited to participants while messages stay actor-scoped', async () => {
+  await assertSucceeds(doc(user, 'conversations/thread-1').get());
+  await assertSucceeds(doc(anotherUser, 'conversations/thread-1').get());
+  await assertFails(doc(guide, 'conversations/thread-1').get());
+  await assertFails(doc(guest, 'conversations/thread-1').get());
+  await assertSucceeds(doc(user, 'conversations/thread-1/messages/message-1').get());
+  await assertFails(doc(guide, 'conversations/thread-1/messages/message-1').get());
+  await assertSucceeds(doc(anotherUser, 'conversations/thread-1/messages/message-2').set({
+    id: 'message-2', conversationId: 'thread-1', senderId: 'user-2', text: 'Nice!', createdAt: serverTimestamp(), readBy: ['user-2'],
+  }));
+  await assertFails(doc(user, 'conversations/thread-1/messages/message-3').set({
+    id: 'message-3', conversationId: 'thread-1', senderId: 'user-2', text: 'Spoofed sender', createdAt: serverTimestamp(), readBy: ['user-2'],
+  }));
+  await assertSucceeds(doc(anotherUser, 'conversations/thread-1/messages/message-1').update({ readBy: ['user-1', 'user-2'] }));
+  await assertFails(doc(guide, 'conversations/thread-1/messages/message-1').update({ readBy: ['guide-1'] }));
 });
 
 test.after(async () => {

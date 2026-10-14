@@ -9,7 +9,7 @@ export function wishlistView() {
   return mainLayout(`
     <div class="page-pad wishlist-overview"><div class="title-row"><h1>Wishlist</h1><button class="icon-button" data-action="new-list" aria-label="Create a list">${icon('plus')}</button></div>
     <a href="#/wishlist/favourites" class="wishlist-album"><img src="${cover?.cardImage || cover?.image || images.wishlist}" alt="" /><div><span><strong>${state.listName}</strong><small>${state.wishlist.length} ${state.wishlist.length === 1 ? 'activity' : 'activities'}</small></span>${icon('chevron', 21)}</div></a></div>
-  `, 'Wishlist');
+  `, 'Profile');
 }
 export function favouritesView() {
   const saved = state.wishlist.map((id) => experiences.find((item) => item.id === id)).filter(Boolean);
@@ -20,5 +20,5 @@ export function favouritesView() {
       <div class="info-banner">Add dates to check the price and availability of your wishlisted activities.<button data-action="dismiss-banner" aria-label="Dismiss">${icon('close', 17)}</button></div>
       ${saved.length ? saved.map((item) => experienceCard(item)).join('') : `<div class="empty-state">${icon('heart', 45)}<h2>Your list is empty</h2><p>Save activities you love and find them here.</p><a class="primary-button" href="#/">Explore activities</a></div>`}
     </div>
-  `, 'Wishlist');
+  `, 'Profile');
 }

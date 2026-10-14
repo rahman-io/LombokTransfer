@@ -188,5 +188,49 @@ service cloud.firestore {
         request.resource.data.createdAt == request.time;
       allow update, delete: if isAdmin();
     }
+
+    match /conversations/{conversationId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid in resource.data.participantIds);
+      allow create: if signedIn() &&
+        request.resource.data.keys().hasOnly(['id', 'schemaVersion', 'participantIds', 'context', 'status', 'createdAt', 'updatedAt', 'lastMessageAt', 'lastMessagePreview']) &&
+        request.resource.data.id == conversationId &&
+        request.resource.data.participantIds is list &&
+        request.resource.data.participantIds.size() >= 2 &&
+        request.auth.uid in request.resource.data.participantIds &&
+        request.resource.data.status == 'active' &&
+        request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() || (
+        signedIn() &&
+        request.auth.uid in resource.data.participantIds &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastMessageAt', 'lastMessagePreview'])
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function conversationParticipant() {
+          return signedIn() &&
+            request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+        }
+        allow read: if isAdmin() || conversationParticipant();
+        allow create: if isAdmin() || (
+          conversationParticipant() &&
+          request.resource.data.keys().hasOnly(['id', 'conversationId', 'senderId', 'text', 'createdAt', 'readBy']) &&
+          request.resource.data.id == messageId &&
+          request.resource.data.conversationId == conversationId &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0 &&
+          request.resource.data.text.size() <= 1000 &&
+          request.resource.data.createdAt == request.time &&
+          request.resource.data.readBy is list
+        );
+        allow update: if isAdmin() || (
+          conversationParticipant() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
+          request.resource.data.readBy is list
+        );
+        allow delete: if isAdmin();
+      }
+    }
   }
 }
