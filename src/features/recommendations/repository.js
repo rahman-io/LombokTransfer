@@ -31,7 +31,7 @@ function recentDuplicate(type, value) {
 }
 
 export function trackRecommendationEvent(type, value = '', metadata = {}) {
-  const validTypes = ['view', 'search', 'wishlist_add', 'wishlist_remove', 'social_like', 'social_save', 'social_comment', 'social_post'];
+  const validTypes = ['view', 'search', 'wishlist_add', 'wishlist_remove', 'social_like', 'social_save', 'social_comment', 'social_post', 'social_booking_open'];
   if (!validTypes.includes(type) || !value || recentDuplicate(type, value)) return false;
   const item = metadata.item;
   const event = {
@@ -50,6 +50,7 @@ export function trackSocialSignal(post, action) {
   if (!post?.experienceId || !['like', 'save', 'comment', 'post'].includes(action)) return false;
   return trackRecommendationEvent(`social_${action}`, post.id, { experienceId: post.experienceId });
 }
+export function trackSocialBookingOpen(experienceId, item) { return trackRecommendationEvent('social_booking_open', experienceId, { item }); }
 
 function reviewCount(value) { return Number(String(value || 0).replaceAll(',', '')) || 0; }
 function durationHours(value) {

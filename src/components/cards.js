@@ -12,6 +12,7 @@ export function experienceCard(item, type = 'list') {
       <h3>${escapeHtml(item.title)}</h3>
       ${type === 'list' ? `<div class="card-feature">${item.badge ? `<span class="card-badge">${escapeHtml(item.badge)}</span>` : ''} ${escapeHtml(item.label)}</div>` : `<p class="card-duration">${escapeHtml(item.duration)}</p>`}
       ${item.recommendationReason ? `<div class="recommendation-reason">${escapeHtml(item.recommendationReason)}</div>` : ''}
+      ${item.communityReason ? `<div class="community-reason">${escapeHtml(item.communityReason)}</div>` : ''}
       <div class="card-bottom"><span><b>${escapeHtml(item.rating)} ★</b> <span class="muted">(${escapeHtml(item.reviews)})</span></span><span class="price"><small>From ${item.oldPrice ? `<s>$${escapeHtml(item.oldPrice)}</s>` : ''}</small> <b>$${escapeHtml(item.price)}</b></span></div>
     </div>
     <button class="heart-button ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="${saved ? 'Remove from wishlist' : 'Save to wishlist'}">${icon('heart', 22)}</button>

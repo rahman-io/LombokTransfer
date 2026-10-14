@@ -4,6 +4,7 @@ import './styles/global.css';
 import './styles/social.css';
 import './styles/messaging.css';
 import './styles/recommendations.css';
+import './styles/trip-intelligence.css';
 import './styles/utilities.css';
 import { startApp } from './app/app.js';
 

@@ -79,6 +79,18 @@ export function trendingSocialTopics(posts) {
   return Object.entries(counts).sort(([, a], [, b]) => b - a).slice(0, 6).map(([topic, count]) => ({ topic, count }));
 }
 
+export function socialBookingSignals(posts) {
+  const signals = {};
+  for (const post of posts) {
+    if (!post.experienceId) continue;
+    const entry = signals[post.experienceId] ||= { experienceId: post.experienceId, posts: 0, engagement: 0, topics: [] };
+    entry.posts += 1;
+    entry.engagement += engagement(post);
+    entry.topics = unique([...entry.topics, ...socialTopics(post)]).slice(0, 4);
+  }
+  return Object.values(signals).map((signal) => ({ ...signal, score: signal.engagement + signal.posts * 4 })).sort((a, b) => b.score - a.score);
+}
+
 export function socialSafetyScore(post, reports = []) {
   const reportCount = reports.filter((report) => report.postId === post.id && report.status === 'open').length;
   const repeatedText = /free money|crypto|click here|urgent offer/i.test(post.caption || '');

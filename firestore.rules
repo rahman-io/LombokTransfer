@@ -46,7 +46,7 @@ service cloud.firestore {
           request.resource.data.keys().hasOnly(['id', 'userId', 'type', 'experienceId', 'city', 'label', 'price', 'duration', 'createdAt', 'schemaVersion']) &&
           request.resource.data.id == eventId &&
           request.resource.data.userId == uid &&
-          request.resource.data.type in ['view', 'search', 'wishlist_add', 'wishlist_remove', 'social_like', 'social_save', 'social_comment', 'social_post'] &&
+          request.resource.data.type in ['view', 'search', 'wishlist_add', 'wishlist_remove', 'social_like', 'social_save', 'social_comment', 'social_post', 'social_booking_open'] &&
           request.resource.data.createdAt == request.time;
         allow update, delete: if false;
       }

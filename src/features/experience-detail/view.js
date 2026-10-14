@@ -8,7 +8,8 @@ import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experien
 import { toExperienceDocument } from '../experiences/firebase-documents.js';
 import { getDemoReviews } from '../experiences/demo-engagement.js';
 import { socialImage } from '../social/media.js';
-import { socialPostsForExperience, socialUser } from '../social/repository.js';
+import { socialPostsForExperience, socialUser, visibleSocialPosts } from '../social/repository.js';
+import { socialBookingSignals } from '../social/intelligence.js';
 export function experienceView(id) {
   const item = getExperience(id);
   const saved = state.wishlist.includes(item.id);
@@ -20,6 +21,7 @@ export function experienceView(id) {
   const cancellation = document.cancellation;
   const reviews = getDemoReviews(item);
   const communityPosts = socialPostsForExperience(item.id).slice(0, 2);
+  const communitySignal = socialBookingSignals(visibleSocialPosts()).find((signal) => signal.experienceId === item.id);
   const dateText = state.date ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
   const quote = calculateDemoQuote(item, state);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -40,6 +42,7 @@ export function experienceView(id) {
       <h1>${escapeHtml(item.title)}</h1>
       <div class="detail-rating">${item.badge ? `<span class="red-badge">${escapeHtml(item.badge)}</span>` : ''}<span class="star-large">★</span> ${escapeHtml(item.rating)} <button data-action="reviews">${escapeHtml(item.reviews)} reviews</button></div>
       <p class="detail-intro">${escapeHtml(item.description)}</p>
+      ${communitySignal ? `<a class="detail-social-proof" href="#/social/explore?topic=${encodeURIComponent(communitySignal.topics[0] || item.city.toLowerCase())}">${icon('sparkle', 17)} Shared by ${communitySignal.posts} traveler${communitySignal.posts === 1 ? '' : 's'} on Vibes · See why it is trending</a>` : ''}
       <a class="detail-community-link" href="#/social/create?experience=${encodeURIComponent(item.id)}">${icon('community', 18)} Recommend this on Vibes</a>
       ${item.lovedByEnglishSpeakers ? `<div class="loved-card"><span>🏆</span><div><strong>Loved by English speakers</strong><small>91% of English-speaking travelers gave this activity a perfect score</small></div></div>` : ''}
       <div class="detail-facts">

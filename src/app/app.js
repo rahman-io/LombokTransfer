@@ -17,7 +17,8 @@ import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave } from '../features/social/repository.js';
 import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
-import { trackExperienceView, trackSearch, trackWishlistChange } from '../features/recommendations/repository.js';
+import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
+import { tripPlannerView } from '../features/trip-intelligence/view.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -42,6 +43,7 @@ function currentView() {
   if (path === '/wishlist/favourites') return favouritesView();
   if (path === '/bookings') return bookingsView();
   if (path === '/profile') return profileView();
+  if (path === '/trip-planner') return tripPlannerView(params.get('city') || '', Number(params.get('days') || 3), params.get('budget') || 'mid');
   if (path.startsWith('/profile/')) return profileSectionView(path.split('/')[2]);
   if (path === '/inbox') return inboxView();
   if (path.startsWith('/inbox/chat/')) return chatView(path.split('/')[3]);
@@ -53,7 +55,7 @@ function currentView() {
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
   if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
-  if (path.startsWith('/experience/')) { trackExperienceView(path.split('/')[2], getExperience(path.split('/')[2])); return experienceView(path.split('/')[2]); }
+  if (path.startsWith('/experience/')) { const experienceId = path.split('/')[2]; const experience = getExperience(experienceId); trackExperienceView(experienceId, experience); if (params.get('from') === 'vibes') trackSocialBookingOpen(experienceId, experience); return experienceView(experienceId); }
   if (path.startsWith('/booking/')) return bookingView(path.split('/')[2]);
   if (path.startsWith('/checkout/')) return checkoutView(path.split('/')[2]);
   if (path.startsWith('/card/')) return cardDetailsView(path.split('/')[2]);
