@@ -47,7 +47,7 @@
 .social-post-menu>div{position:absolute;right:0;top:35px;z-index:10;width:150px;padding:8px;background:#fff;border:1px solid #e4e8ec;border-radius:10px;box-shadow:0 8px 25px #10284a22}
 .social-post-menu button,.social-post-menu a{display:block;width:100%;padding:8px;font-size:13px;text-align:left}
 .social-post-carousel-wrap{position:relative;background:#edf1f4}
-.social-post-carousel{display:flex;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-inline:contain;touch-action:pan-y}
+.social-post-carousel{display:flex;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .social-post-carousel::-webkit-scrollbar{display:none}
 .social-post-media{display:block;flex:0 0 100%;width:100%;background:#edf1f4;cursor:pointer;scroll-snap-align:start;touch-action:pan-y}
 .social-post-media img{width:100%;aspect-ratio:1.13;object-fit:cover}

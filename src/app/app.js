@@ -379,8 +379,8 @@ export function startApp() {
     }
     if (socialCarouselDrag && socialCarouselDrag.pointerId === event.pointerId) {
       const distance = event.clientX - socialCarouselDrag.x;
-      if (Math.abs(distance) > 6 && !socialCarouselDrag.moved) { socialCarouselDrag.moved = true; socialCarouselDrag.track.setPointerCapture?.(event.pointerId); }
-      if (socialCarouselDrag.moved) socialCarouselDrag.track.scrollLeft = socialCarouselDrag.left - distance;
+      if (Math.abs(distance) > 6 && !socialCarouselDrag.moved) { socialCarouselDrag.moved = true; socialCarouselDrag.track.style.scrollSnapType = 'none'; socialCarouselDrag.track.setPointerCapture?.(event.pointerId); }
+      if (socialCarouselDrag.moved) { event.preventDefault(); socialCarouselDrag.track.scrollLeft = socialCarouselDrag.left - distance; }
     }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
     const distance = event.clientX - galleryDrag.x;
@@ -404,7 +404,13 @@ export function startApp() {
     socialPinchPointers.delete(event.pointerId);
     if (!socialPinchPointers.size) socialZoom.pinchStart = null;
     if (socialCarouselDrag?.pointerId === event.pointerId) {
-      if (socialCarouselDrag.moved) { suppressSocialMediaClick = true; setTimeout(() => { suppressSocialMediaClick = false; }, 0); }
+      if (socialCarouselDrag.moved) {
+        socialCarouselDrag.track.style.scrollSnapType = '';
+        const index = Math.max(0, Math.min(socialCarouselDrag.track.children.length - 1, Math.round(socialCarouselDrag.track.scrollLeft / socialCarouselDrag.track.clientWidth)));
+        socialCarouselDrag.track.scrollTo({ left: index * socialCarouselDrag.track.clientWidth, behavior: 'smooth' });
+        suppressSocialMediaClick = true;
+        setTimeout(() => { suppressSocialMediaClick = false; }, 180);
+      }
       socialCarouselDrag = null;
     }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
