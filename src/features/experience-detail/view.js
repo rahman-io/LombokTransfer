@@ -7,6 +7,8 @@ import { escapeHtml } from '../../utils/html.js';
 import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
 import { toExperienceDocument } from '../experiences/firebase-documents.js';
 import { getDemoReviews } from '../experiences/demo-engagement.js';
+import { socialImage } from '../social/media.js';
+import { socialPostsForExperience, socialUser } from '../social/repository.js';
 export function experienceView(id) {
   const item = getExperience(id);
   const saved = state.wishlist.includes(item.id);
@@ -17,6 +19,7 @@ export function experienceView(id) {
   const document = toExperienceDocument(item, booking);
   const cancellation = document.cancellation;
   const reviews = getDemoReviews(item);
+  const communityPosts = socialPostsForExperience(item.id).slice(0, 2);
   const dateText = state.date ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
   const quote = calculateDemoQuote(item, state);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -37,6 +40,7 @@ export function experienceView(id) {
       <h1>${escapeHtml(item.title)}</h1>
       <div class="detail-rating">${item.badge ? `<span class="red-badge">${escapeHtml(item.badge)}</span>` : ''}<span class="star-large">★</span> ${escapeHtml(item.rating)} <button data-action="reviews">${escapeHtml(item.reviews)} reviews</button></div>
       <p class="detail-intro">${escapeHtml(item.description)}</p>
+      <a class="detail-community-link" href="#/social/create?experience=${encodeURIComponent(item.id)}">${icon('community', 18)} Recommend this on Vibes</a>
       ${item.lovedByEnglishSpeakers ? `<div class="loved-card"><span>🏆</span><div><strong>Loved by English speakers</strong><small>91% of English-speaking travelers gave this activity a perfect score</small></div></div>` : ''}
       <div class="detail-facts">
         <div>${icon('calendar', 27)}<span><strong>${escapeHtml(cancellation.title)}</strong><small>${escapeHtml(cancellation.text)}</small></span></div>
@@ -57,6 +61,7 @@ export function experienceView(id) {
       <details class="detail-section detail-accordion" data-detail-section="meeting"><summary><h2>Meeting point</h2>${icon('down')}</summary><div class="meeting-map" style="background-image:url('${images.mapCore}')"><span>${icon('pin', 24)}</span></div><p>${escapeHtml(document.meetingPoint.description)}</p></details>
       <details class="detail-section detail-accordion" data-detail-section="important" open><summary><h2>Important information</h2>${icon('down')}</summary><h3>What to bring</h3><ul class="bullet-list">${document.content.whatToBring.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('')}</ul><h3>Not allowed</h3><ul class="bullet-list">${document.content.notAllowed.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('')}</ul><h3>Know before you go</h3><p>${escapeHtml(document.content.knowBeforeYouGo)}</p></details>
       <section class="detail-section"><h2>Customer reviews</h2><div class="rating-summary"><strong>${escapeHtml(item.rating)}</strong><span>★★★★★<small>Based on ${escapeHtml(item.reviews)} reviews</small></span></div><div class="review-card"><div class="review-stars">★★★★★</div><strong>${escapeHtml(reviews.summary.author)}</strong><small>Verified booking</small><p>${escapeHtml(reviews.summary.text)}</p></div><button class="outline-button" data-action="reviews">See all reviews</button></section>
+      ${communityPosts.length ? `<section class="detail-community-section"><div class="detail-community-heading"><h2>Travelers shared this</h2><a href="#/social/create?experience=${encodeURIComponent(item.id)}">Share yours</a></div><div class="detail-community-posts">${communityPosts.map((post) => { const author = socialUser(post.authorId); return `<a class="detail-community-post" href="#/social/post/${escapeHtml(post.id)}"><img src="${escapeHtml(socialImage(post))}" alt="" loading="lazy" /><span><strong>@${escapeHtml(author?.username || 'traveler')}</strong><small>${post.likedBy.length} likes · ${post.comments.length} comments</small><p>${escapeHtml(post.caption || 'Shared a travel moment')}</p></span></a>`; }).join('')}</div></section>` : ''}
       <section class="detail-section"><h2>${sameCity.length ? `Discover more for ${escapeHtml(item.city)}` : 'Discover more experiences'}</h2><div class="related-list">${similar.map((other) => experienceCard(other)).join('')}</div></section>
     </div>`;
   const footer = `<div class="detail-cta"><div><small>From</small><strong>$${escapeHtml(item.price)}</strong><small> per person</small></div><button class="primary-button" data-action="show-availability">Check availability</button></div>`;

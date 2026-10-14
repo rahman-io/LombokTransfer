@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createSeedRecommendationState, getRecommendedExperiences, toRecommendationFirebaseFixture, trackExperienceView, trackSearch } from '../src/features/recommendations/repository.js';
+import { createSeedRecommendationState, getRecommendedExperiences, toRecommendationFirebaseFixture, trackExperienceView, trackSearch, trackSocialSignal } from '../src/features/recommendations/repository.js';
 
 const store = new Map();
 globalThis.localStorage = { getItem: (key) => store.get(key) ?? null, setItem: (key, value) => store.set(key, value) };
@@ -14,6 +14,7 @@ test('recommendation engine ranks experiences from local behavior and exports Fi
   ];
   trackSearch('Rome');
   trackExperienceView('colosseum', catalog[0]);
+  trackSocialSignal({ id: 'post-1', experienceId: 'colosseum' }, 'like');
   const results = getRecommendedExperiences({ wishlist: ['vatican'] }, catalog);
   assert.ok(results.length > 0);
   assert.equal(results.some(({ experience }) => experience.id === 'vatican'), false);
@@ -21,4 +22,5 @@ test('recommendation engine ranks experiences from local behavior and exports Fi
   const fixture = toRecommendationFirebaseFixture();
   assert.equal(fixture.recommendationEvents[0].userId, 'demo-user');
   assert.equal(fixture.recommendationEvents[0].schemaVersion, 1);
+  assert.ok(fixture.recommendationEvents.some((event) => event.type === 'social_like' && event.experienceId === 'colosseum'));
 });

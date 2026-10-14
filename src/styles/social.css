@@ -92,7 +92,8 @@
 .social-compose-or{text-align:center;font-size:11px;color:#8793a2;margin:12px 0 8px}
 .social-photo-choices{display:flex;gap:7px;overflow-x:auto;padding:3px 1px 8px;scrollbar-width:none}.social-photo-choices button{flex:none;width:57px;height:57px;padding:2px;border:2px solid transparent;border-radius:8px}.social-photo-choices button.selected{border-color:var(--blue)}.social-photo-choices img{width:100%;height:100%;object-fit:cover;border-radius:5px}
 .social-compose>label:not(.social-upload-button){display:block;margin-top:16px;font-size:13px;font-weight:700}
-.social-compose textarea,.social-compose input:not([type=file]){display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #d5dde5;border-radius:10px;color:var(--navy);background:#fff;font-size:14px;resize:vertical}
+.social-compose textarea,.social-compose input:not([type=file]),.social-compose select{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #d5dde5;border-radius:10px;color:var(--navy);background:#fff;font-size:14px;resize:vertical}.social-compose select{height:44px}
+.social-post-experience{display:flex;align-items:center;gap:5px;margin-top:8px;color:#0867bd;font-size:11px;font-weight:800}
 .social-compose-note{margin:13px 2px;font-size:11px;color:#8893a2;text-align:center}
 .social-activity-list>a{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:1px solid #edf0f3;font-size:13px}.social-activity-list>a>span:nth-child(2){flex:1}.social-activity-list>a>img{width:45px;height:45px;object-fit:cover;border-radius:5px}
 @media(max-width:360px){.nav-item{font-size:10px}.nav-item .icon{height:23px}.social-profile-head{gap:12px}.social-profile-head>div{gap:5px}}

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   activeSocialUser, addSocialComment, createSeedSocialState, createSocialPost,
-  deleteSocialComment, deleteSocialPost, editSocialPost, isFollowing, reportSocialPost, socialPost, socialState,
+  deleteSocialComment, deleteSocialPost, editSocialPost, isFollowing, reportSocialPost, socialPost, socialPostsForExperience, socialState,
   switchSocialUser, toSocialFirebaseFixture, toggleSocialFollow, toggleSocialLike,
   toggleSocialSave,
 } from '../src/features/social/repository.js';
@@ -47,9 +47,10 @@ test('comments and posts keep author identity and self-only deletion', () => {
   assert.equal(socialPost('post-agafay').comments.at(-1).authorId, 'maya');
   const commentId = socialPost('post-agafay').comments.at(-1).id;
   assert.equal(deleteSocialComment('post-agafay', commentId), true);
-  const created = createSocialPost({ caption: '  One more adventure  ', location: 'Split', imageKey: 'kayaking' });
+  const created = createSocialPost({ caption: '  One more adventure  ', location: 'Split', imageKey: 'kayaking', experienceId: 'kayaking' });
   assert.equal(created.authorId, 'maya');
   assert.equal(created.caption, 'One more adventure');
+  assert.equal(socialPostsForExperience('kayaking').some((post) => post.id === created.id), true);
   assert.equal(editSocialPost(created.id, { caption: 'Updated caption', location: 'Croatia' }), true);
   assert.equal(socialPost(created.id).caption, 'Updated caption');
   const photoOnly = createSocialPost({ caption: '', location: 'Split', imageKey: 'kayaking' });

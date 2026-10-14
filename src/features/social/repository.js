@@ -1,4 +1,5 @@
 import { demoSocialFollows, demoSocialPosts, demoSocialUsers, socialDemoImageKeys } from './data.js';
+import { trackSocialSignal } from '../recommendations/repository.js';
 
 const STORAGE_KEY = 'lombok-social-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -38,6 +39,7 @@ export function activeSocialUser() { return socialState().users.find((user) => u
 export function socialUser(id) { return socialState().users.find((user) => user.id === id); }
 export function socialPost(id) { return socialState().posts.find((post) => post.id === id && post.status === 'published'); }
 export function visibleSocialPosts() { return [...socialState().posts].filter((post) => post.status === 'published').sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
+export function socialPostsForExperience(experienceId) { return visibleSocialPosts().filter((post) => post.experienceId === experienceId); }
 export function isFollowing(targetId) { return socialState().follows.some(([followerId, followingId]) => followerId === socialState().activeUserId && followingId === targetId); }
 export function socialFollowerCount(userId) { return socialState().follows.filter(([, targetId]) => targetId === userId).length; }
 export function socialFollowingCount(userId) { return socialState().follows.filter(([sourceId]) => sourceId === userId).length; }
@@ -52,7 +54,9 @@ export function toggleSocialLike(postId) {
   const post = socialPost(postId);
   if (!post) return false;
   const id = socialState().activeUserId;
-  post.likedBy = post.likedBy.includes(id) ? post.likedBy.filter((userId) => userId !== id) : [...post.likedBy, id];
+  const wasLiked = post.likedBy.includes(id);
+  post.likedBy = wasLiked ? post.likedBy.filter((userId) => userId !== id) : [...post.likedBy, id];
+  if (!wasLiked) trackSocialSignal(post, 'like');
   return persist();
 }
 
@@ -60,7 +64,9 @@ export function toggleSocialSave(postId) {
   const post = socialPost(postId);
   if (!post) return false;
   const id = socialState().activeUserId;
-  post.savedBy = post.savedBy.includes(id) ? post.savedBy.filter((userId) => userId !== id) : [...post.savedBy, id];
+  const wasSaved = post.savedBy.includes(id);
+  post.savedBy = wasSaved ? post.savedBy.filter((userId) => userId !== id) : [...post.savedBy, id];
+  if (!wasSaved) trackSocialSignal(post, 'save');
   return persist();
 }
 
@@ -77,6 +83,7 @@ export function addSocialComment(postId, text) {
   const clean = String(text || '').trim().slice(0, 500);
   if (!post || !clean) return false;
   post.comments.push({ id: `comment-${crypto.randomUUID()}`, authorId: socialState().activeUserId, text: clean, createdAt: now() });
+  trackSocialSignal(post, 'comment');
   return persist();
 }
 
@@ -88,7 +95,7 @@ export function deleteSocialComment(postId, commentId) {
   return persist();
 }
 
-export function createSocialPost({ caption, location, imageKey, localImage }) {
+export function createSocialPost({ caption, location, imageKey, localImage, experienceId = null }) {
   const cleanCaption = String(caption || '').trim().slice(0, 2200);
   const cleanLocation = String(location || '').trim().slice(0, 100);
   if (!socialDemoImageKeys.includes(imageKey) && !localImage) return null;
@@ -102,13 +109,14 @@ export function createSocialPost({ caption, location, imageKey, localImage }) {
     caption: cleanCaption,
     imageKey: localImage ? null : imageKey,
     localImage: localImage || null,
-    experienceId: null,
+    experienceId: experienceId || null,
     likedBy: [],
     savedBy: [],
     comments: [],
   };
   socialState().posts.unshift(post);
   if (!persist()) { socialState().posts.shift(); return null; }
+  if (post.experienceId) trackSocialSignal(post, 'post');
   return post;
 }
 

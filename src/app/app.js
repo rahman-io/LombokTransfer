@@ -49,7 +49,7 @@ function currentView() {
   if (path === '/social/explore') return socialExploreView();
   if (path === '/social/saved') return socialSavedView();
   if (path === '/social/activity') return inboxView();
-  if (path === '/social/create') return socialCreateView();
+  if (path === '/social/create') return socialCreateView(params.get('experience') || '');
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
   if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
@@ -142,6 +142,7 @@ function clickAction(action, el) {
     case 'gallery-prev': selectGalleryIndex(state.galleryIndex - 1); break;
     case 'gallery-next': selectGalleryIndex(state.galleryIndex + 1); break;
     case 'share': if (navigator.share) navigator.share({ title: document.title, url: location.href }).catch((error) => { if (error.name !== 'AbortError') openModal('share'); }); else openModal('share'); break;
+    case 'share-to-vibes': navigate(`/social/create?experience=${encodeURIComponent(id)}`); break;
     case 'install-app': requestInstallation().catch(() => announce('Instalasi belum tersedia di browser ini')); break;
     case 'preview-in-browser': if (import.meta.env.DEV) { devBrowserPreview = true; render(); } break;
     case 'copy-link': navigator.clipboard?.writeText(location.href).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link')); break;
@@ -277,6 +278,7 @@ export function startApp() {
     if (event.target.id === 'social-photo-input' && event.target.files?.[0]) {
       prepareSocialPhoto(event.target.files[0]).then((dataUrl) => { socialDraft.localImage = dataUrl; render(); }).catch((error) => announce(error.message));
     }
+    if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
@@ -289,7 +291,7 @@ export function startApp() {
     }
     if (event.target.id === 'social-compose-form') {
       event.preventDefault();
-      const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage });
+      const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage, experienceId: socialDraft.experienceId });
       if (!post) { announce('Could not save this post on this device'); return; }
       clearSocialDraft();
       navigate(`/social/post/${encodeURIComponent(post.id)}`);

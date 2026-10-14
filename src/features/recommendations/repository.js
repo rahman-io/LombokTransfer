@@ -31,11 +31,11 @@ function recentDuplicate(type, value) {
 }
 
 export function trackRecommendationEvent(type, value = '', metadata = {}) {
-  const validTypes = ['view', 'search', 'wishlist_add', 'wishlist_remove'];
+  const validTypes = ['view', 'search', 'wishlist_add', 'wishlist_remove', 'social_like', 'social_save', 'social_comment', 'social_post'];
   if (!validTypes.includes(type) || !value || recentDuplicate(type, value)) return false;
   const item = metadata.item;
   const event = {
-    id: makeId(type), type, experienceId: item?.id || null, city: item?.city || metadata.city || (type === 'search' ? value : null),
+    id: makeId(type), type, experienceId: metadata.experienceId || item?.id || null, city: item?.city || metadata.city || (type === 'search' ? value : null),
     label: item?.label || null, price: item?.price ?? null, duration: item?.duration || null,
     createdAt: now(), schemaVersion: 1,
   };
@@ -46,6 +46,10 @@ export function trackRecommendationEvent(type, value = '', metadata = {}) {
 export function trackExperienceView(experienceId, item) { return trackRecommendationEvent('view', experienceId, { item }); }
 export function trackSearch(city) { return trackRecommendationEvent('search', city); }
 export function trackWishlistChange(experienceId, action, item) { return trackRecommendationEvent(`wishlist_${action}`, experienceId, { item }); }
+export function trackSocialSignal(post, action) {
+  if (!post?.experienceId || !['like', 'save', 'comment', 'post'].includes(action)) return false;
+  return trackRecommendationEvent(`social_${action}`, post.id, { experienceId: post.experienceId });
+}
 
 function reviewCount(value) { return Number(String(value || 0).replaceAll(',', '')) || 0; }
 function durationHours(value) {
@@ -53,11 +57,12 @@ function durationHours(value) {
   return numbers.length ? Math.max(...numbers) : 0;
 }
 function recommendationProfile(source) {
-  const profile = { views: {}, wishlist: {}, cities: {}, labels: {}, prices: [], durations: [], searches: {} };
+  const profile = { views: {}, wishlist: {}, social: {}, cities: {}, labels: {}, prices: [], durations: [], searches: {} };
   for (const event of source.events) {
     if (event.experienceId) {
       profile.views[event.experienceId] = (profile.views[event.experienceId] || 0) + (event.type === 'view' ? 1 : 0);
       if (event.type === 'wishlist_add') profile.wishlist[event.experienceId] = (profile.wishlist[event.experienceId] || 0) + 1;
+      if (event.type.startsWith('social_')) profile.social[event.experienceId] = (profile.social[event.experienceId] || 0) + 1;
     }
     if (event.city) {
       const key = event.city.toLowerCase();
@@ -73,6 +78,7 @@ function recommendationProfile(source) {
 
 function reasonFor(item, profile, wishlist, catalog) {
   if (wishlist.some((id) => catalog.find((entry) => entry.id === id)?.city === item.city)) return `Because you saved ${item.city} experiences`;
+  if (profile.social[item.id]) return 'Because you engaged with this on Vibes';
   if (profile.searches[item.city.toLowerCase()]) return `Because you searched for ${item.city}`;
   if (profile.cities[item.city.toLowerCase()]) return `Because you explored ${item.city}`;
   if (profile.labels[item.label]) return `Because you like ${item.label.toLowerCase()}`;
@@ -95,6 +101,7 @@ export function getRecommendedExperiences(userState = {}, catalog = []) {
       if (profile.cities[cityKey]) score += Math.min(10, profile.cities[cityKey] * 4);
       if (profile.searches[cityKey]) score += Math.min(8, profile.searches[cityKey] * 5);
       if (profile.labels[item.label]) score += Math.min(7, profile.labels[item.label] * 3);
+      if (profile.social[item.id]) score += Math.min(6, profile.social[item.id] * 2);
       if (averagePrice !== null) score += Math.max(0, 4 - Math.abs(item.price - averagePrice) / Math.max(averagePrice, 1));
       if (averageDuration !== null) score += Math.max(0, 3 - Math.abs(durationHours(item.duration) - averageDuration));
       if (viewed.has(item.id)) score -= 2;

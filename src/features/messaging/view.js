@@ -4,7 +4,7 @@ import { icon } from '../../components/icons.js';
 import { getExperience } from '../experiences/data.js';
 import { demoMessages } from '../experiences/demo-engagement.js';
 import { escapeHtml } from '../../utils/html.js';
-import { activeSocialUser, socialUser } from '../social/repository.js';
+import { activeSocialUser, socialActivity, socialUser } from '../social/repository.js';
 import { chatMessages, chatParticipant, chatThread, markChatThreadRead, visibleChatThreads } from './repository.js';
 
 const esc = escapeHtml;
@@ -21,16 +21,24 @@ function updateRow(message) {
   const experience = getExperience(message.experienceId);
   return `<a class="inbox-message" href="#/experience/${encodeURIComponent(message.experienceId)}"><img src="${esc(experience.image)}" alt="" /><span><strong>${esc(message.title)}</strong><span>${esc(message.body)}</span></span><small>${esc(message.timeLabel)}</small></a>`;
 }
+function activityRow(event) {
+  const person = socialUser(event.actorId);
+  const label = event.kind === 'like' ? 'liked your Vibes post' : event.kind === 'comment' ? 'commented on your Vibes post' : 'started following you';
+  const href = event.post ? `/social/post/${encodeURIComponent(event.post.id)}` : `/social/user/${encodeURIComponent(person?.id || '')}`;
+  return `<a class="inbox-activity" href="#${href}">${avatar(person, 'small')}<span><strong>${esc(person?.displayName || 'Traveler')}</strong> ${label}<small>@${esc(person?.username || 'traveler')}</small></span>${event.post ? `<em>${event.post.likedBy.length} likes</em>` : ''}</a>`;
+}
 export function inboxView() {
   const threads = visibleChatThreads();
   const updates = demoMessages.filter((message) => state.inboxFilter === 'All' || message.type === state.inboxFilter);
+  const activity = socialActivity(activeSocialUser().id);
   const showMessages = state.inboxFilter === 'All' || state.inboxFilter === 'Messages';
   const showUpdates = state.inboxFilter === 'All' || state.inboxFilter === 'Updates';
-  const hasContent = (showMessages && threads.length) || (showUpdates && updates.length);
+  const showActivity = state.inboxFilter === 'All' || state.inboxFilter === 'Activity';
+  const hasContent = (showMessages && threads.length) || (showUpdates && updates.length) || (showActivity && activity.length);
   return mainLayout(`
     <div class="page-pad inbox-page"><div class="inbox-top"><button class="icon-button" data-action="back">${icon('arrow')}</button><button class="icon-button" data-action="inbox-more">${icon('more')}</button></div><h1>Inbox</h1>
-      <div class="chip-row">${['All', 'Messages', 'Updates', 'Archive'].map((filter) => `<button class="chip ${state.inboxFilter === filter ? 'selected' : ''}" data-action="inbox-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
-      ${hasContent ? `${showMessages && threads.length ? `<section class="inbox-section"><h2>Messages</h2>${threads.map(chatRow).join('')}</section>` : ''}${showUpdates && updates.length ? `<section class="inbox-section"><h2>Updates</h2>${updates.map(updateRow).join('')}</section>` : ''}` : `<div class="empty-state"><h2>No ${state.inboxFilter.toLowerCase()} yet</h2><p>Your messages and travel updates will appear here.</p></div>`}
+      <div class="chip-row">${['All', 'Messages', 'Updates', 'Activity', 'Archive'].map((filter) => `<button class="chip ${state.inboxFilter === filter ? 'selected' : ''}" data-action="inbox-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
+      ${hasContent ? `${showMessages && threads.length ? `<section class="inbox-section"><h2>Messages</h2>${threads.map(chatRow).join('')}</section>` : ''}${showUpdates && updates.length ? `<section class="inbox-section"><h2>Updates</h2>${updates.map(updateRow).join('')}</section>` : ''}${showActivity && activity.length ? `<section class="inbox-section"><h2>Vibes activity</h2>${activity.slice(0, 30).map(activityRow).join('')}</section>` : ''}` : `<div class="empty-state"><h2>No ${state.inboxFilter.toLowerCase()} yet</h2><p>Your messages and travel updates will appear here.</p></div>`}
     </div>
   `, 'Discover', { className: 'inbox-shell' });
 }
