@@ -1,0 +1,7 @@
+:root{
+  font-family:"Avenir Next",Avenir,"Nunito Sans","Segoe UI",Arial,sans-serif;
+  color:#192b4d;background:#fff;
+  --navy:#192b4d;--navy-2:#102340;--blue:#0078ed;--coral:#ff5533;
+  --red:#c71d3d;--muted:#647087;--line:#d9dfe7;--soft:#edf1f4;--pale-blue:#dff0ff;
+  --radius:16px;--gutter:20px;
+}

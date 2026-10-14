@@ -1,0 +1,29 @@
+const paths = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
+  heart: '<path d="M20.8 4.6a5.6 5.6 0 0 0-7.9 0L12 5.5l-.9-.9a5.6 5.6 0 0 0-7.9 7.9L12 21l8.8-8.5a5.6 5.6 0 0 0 0-7.9Z"/>',
+  tickets: '<path d="M4 3.5 10 5l4-1.5L20 5v15l-6-1.5-4 1.5L4 18.5Z"/><path d="M10 5v15m4-16.5v15"/>',
+  user: '<circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3H5Zm-2 0v-3a9 9 0 0 1 3-6.7M21 21v-3a9 9 0 0 0-3-6.7"/>',
+  arrow: '<path d="m14 4-8 8 8 8M6 12h15"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  down: '<path d="m5 9 7 7 7-7"/>',
+  close: '<path d="M5 5 19 19M19 5 5 19"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M8 15h8m-4-4v8"/>',
+  map: '<path d="M3 5 9 3l6 2 6-2v16l-6 2-6-2-6 2Z"/><path d="M9 3v16m6-14v16"/>',
+  sliders: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="white"/><circle cx="16" cy="12" r="2" fill="white"/><circle cx="8" cy="18" r="2" fill="white"/>',
+  share: '<circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/>',
+  inbox: '<path d="M4 5h16l2 12v3H2v-3Z"/><path d="M2 15h6l2 3h4l2-3h6"/>',
+  plus: '<path d="M12 3v18M3 12h18"/>',
+  check: '<path d="m4 12 5 5L20 6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
+  pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
+  star: '<path d="m12 2 3.1 6.6 7.1 1-5.1 5 .9 7-6-3.4-6 3.4.9-7-5.1-5 7.1-1Z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 10v6m0-10h.01"/>',
+  more: '<circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
+  credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+  location: '<path d="m21 3-9 18-2-7-7-2Z"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m4 18 5-5 3 3 3-4 5 6"/>',
+};
+export function icon(name, size = 24, extra = '') {
+  return `<svg class="icon ${extra}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.info}</svg>`;
+}

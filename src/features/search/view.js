@@ -1,0 +1,44 @@
+import { destinations, experiences, images, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
+import { experienceCard } from '../../components/cards.js';
+import { icon } from '../../components/icons.js';
+import { mainLayout } from '../../layouts/MainLayout.js';
+import { header } from '../../components/Header.js';
+import { escapeHtml } from '../../utils/html.js';
+import { state } from '../../app/store.js';
+
+const filters = ['Golf carts', 'Entry tickets', 'Nightlife', 'Cooking classes', 'Guided tours'];
+export function searchView() {
+  return mainLayout(`
+    ${header('Search')}
+    <div class="page-pad search-entry">
+      <label class="search-field">${icon('search', 21)}<input id="place-search" type="search" placeholder="Find places and things to do" autocomplete="off" value="${escapeHtml(state.search)}" autofocus /></label>
+      <div id="search-suggestions">
+        <h2>Top destinations</h2>
+        ${destinations.map((item) => `<a class="suggestion" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.count)}</small></span>${icon('chevron', 20)}</a>`).join('')}
+        <h2>Popular experiences</h2>
+        ${getPopularExperiences().map((item) => `<a class="suggestion" href="#/experience/${encodeURIComponent(item.id)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.city)}</small></span>${icon('chevron', 20)}</a>`).join('')}
+      </div>
+    </div>
+  `, 'Discover');
+}
+export function resultsView(city = 'Rome') {
+  const resultItems = getExperiencesByCity(city);
+  return mainLayout(`
+    <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
+      <div class="chip-row"><button class="chip round" data-action="filter-sheet">${icon('sliders', 20)}</button>${filters.map((filter) => `<button class="chip ${state.filter === filter ? 'selected' : ''}" data-action="set-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
+    </div>
+    <div class="result-count">${resultItems.length} ${resultItems.length === 1 ? 'result' : 'results'} ${icon('info', 16)}</div>
+    <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>No activities in ${escapeHtml(city)} yet</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
+    ${city.toLocaleLowerCase() === 'rome' && resultItems.length ? `<button class="floating-map" data-action="show-map">${icon('map', 21)} Open map</button>` : ''}
+  `, 'Discover', { className: 'results-page' });
+}
+export function mapView(city = 'Rome') {
+  return mainLayout(`
+    <div class="map-canvas" style="background-image:url('${images.mapCore}')">
+      <div class="map-toolbar"><button class="round-white" data-action="back">${icon('close')}</button><a href="#/search" class="map-search">${icon('search', 19)}<span>Search for a place or address</span></a></div>
+      <div class="chip-row map-chips"><button class="chip selected" data-action="filter-sheet">${icon('sliders', 19)} 1</button><button class="chip selected" data-action="set-filter" data-value="Guided tours">♧ Guided tours ×</button><button class="chip">♧ Entry tickets</button></div>
+      <button class="map-image-hitbox" data-action="map-marker" aria-label="View activity on map"></button>
+    </div>
+    <div class="map-results"><div class="sheet-handle"></div>${[experiences[4], experiences[0], experiences[2]].map((item) => experienceCard(item)).join('')}<a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
+  `, 'Discover', { className: 'map-page' });
+}
