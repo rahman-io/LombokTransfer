@@ -12,6 +12,7 @@ export const state = {
   children: saved.children || 0,
   selectedExperience: saved.selectedExperience || 'kayaking',
   selectedTime: saved.selectedTime || '6:00 PM',
+  availabilityChecked: false,
   paymentMethod: saved.paymentMethod || 'card',
   checkoutStep: 1,
   modal: '',

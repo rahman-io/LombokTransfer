@@ -52,8 +52,10 @@ export function render() {
     root.innerHTML = installView(getInstallState(), import.meta.env.DEV);
     return;
   }
-  if (path !== lastPath) state.galleryIndex = 0;
+  const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
+  if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
+  if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   selectGalleryIndex(state.galleryIndex, false);
   if (path !== lastPath) {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -105,6 +107,8 @@ function clickAction(action, el) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
     case 'heart': toggleWishlist(id); render(); break;
     case 'open-dates': openModal('dates'); break;
+    case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
+    case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
     case 'select-date': update({ date: value }); closeModal(); break;
     case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10) }); closeModal(); break; }
     case 'participants': openModal('participants'); break;

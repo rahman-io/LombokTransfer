@@ -49,7 +49,8 @@ p{line-height:1.5}.muted,small{color:var(--muted)}
 .experience-card{position:relative;color:var(--navy)}
 .experience-card .card-link{position:absolute;inset:0;z-index:1}
 .experience-card>img{object-fit:cover;flex:none}
-.experience-card .heart-button{position:absolute;z-index:2;top:5px;right:6px;display:grid;place-items:center;width:33px;height:33px;border-radius:50%;background:#fff}
+.experience-card .heart-button{position:absolute;z-index:2;top:8px;right:8px;display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border-radius:50%;background:#fff}
+.experience-card.list .heart-button{top:18px;right:8px}
 .experience-card.list{display:flex;gap:11px;padding:12px 0;border-bottom:1px solid #e7eaee;min-height:155px}
 .experience-card.list>img{width:32%;max-width:156px;height:min(30vw,156px);border-radius:15px}
 .experience-card.list .card-copy{padding:4px 0 0;flex:1;min-width:0;display:flex;flex-direction:column}
