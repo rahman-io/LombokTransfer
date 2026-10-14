@@ -86,6 +86,18 @@ test('wishlist writes are self-scoped', async () => {
   await assertSucceeds(wishlist.delete());
 });
 
+test('recommendation events are private and append-only per user', async () => {
+  const event = {
+    id: 'event-1', userId: 'user-1', type: 'view', experienceId: 'public-tour',
+    city: 'Rome', label: 'Guided tour', price: 55, duration: '2 hours',
+    createdAt: serverTimestamp(), schemaVersion: 1,
+  };
+  await assertSucceeds(doc(user, 'users/user-1/recommendationEvents/event-1').set(event));
+  await assertFails(doc(anotherUser, 'users/user-1/recommendationEvents/event-2').set({ ...event, id: 'event-2' }));
+  await assertFails(doc(user, 'users/user-1/recommendationEvents/event-1').update({ type: 'search' }));
+  await assertSucceeds(doc(admin, 'users/user-1/recommendationEvents/event-1').get());
+});
+
 test('only admins can upload approved image types to public storage', async () => {
   const imagePath = 'public/experiences/public-tour/test.webp';
   await assertFails(guest.storage().ref(imagePath).putString('image', 'raw', { contentType: 'image/webp' }));

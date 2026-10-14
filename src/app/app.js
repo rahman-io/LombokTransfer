@@ -12,11 +12,12 @@ import { installView } from '../features/onboarding/install-view.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
 import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
-import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
+import { experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave } from '../features/social/repository.js';
 import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
+import { trackExperienceView, trackSearch, trackWishlistChange } from '../features/recommendations/repository.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -35,7 +36,7 @@ function currentView() {
   if (path === '/login') return loginView();
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
-  if (path === '/results') return resultsView(params.get('city') || 'Rome');
+  if (path === '/results') { trackSearch(params.get('city') || 'Rome'); return resultsView(params.get('city') || 'Rome'); }
   if (path === '/map') return mapView(params.get('city') || 'Rome');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
@@ -52,7 +53,7 @@ function currentView() {
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
   if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
-  if (path.startsWith('/experience/')) return experienceView(path.split('/')[2]);
+  if (path.startsWith('/experience/')) { trackExperienceView(path.split('/')[2], getExperience(path.split('/')[2])); return experienceView(path.split('/')[2]); }
   if (path.startsWith('/booking/')) return bookingView(path.split('/')[2]);
   if (path.startsWith('/checkout/')) return checkoutView(path.split('/')[2]);
   if (path.startsWith('/card/')) return cardDetailsView(path.split('/')[2]);
@@ -117,7 +118,7 @@ function clickAction(action, el) {
   const value = el.dataset.value || '';
   switch (action) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
-    case 'heart': toggleWishlist(id); render(); break;
+    case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
     case 'open-dates': openModal('dates'); break;
     case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
