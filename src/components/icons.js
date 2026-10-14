@@ -23,6 +23,10 @@ const paths = {
   credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
   location: '<path d="m21 3-9 18-2-7-7-2Z"/>',
   image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m4 18 5-5 3 3 3-4 5 6"/>',
+  community: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2H3Z"/><path d="M17 11a3 3 0 1 0-1.2-5.75M17 14a5 5 0 0 1 4 5v1h-3"/>',
+  comment: '<path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-4.5a9 9 0 0 1-.9-4A8.5 8.5 0 0 1 12.5 4 7.5 7.5 0 0 1 20 11.5Z"/>',
+  bookmark: '<path d="M5 3.5h14v17l-7-4-7 4v-17Z"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
 };
 export function icon(name, size = 24, extra = '') {
   return `<svg class="icon ${extra}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.info}</svg>`;

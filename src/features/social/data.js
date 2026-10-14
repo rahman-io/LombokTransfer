@@ -1,0 +1,30 @@
+export const socialDemoImageKeys = ['kayaking', 'kayakingSunset', 'skydiving', 'skydivingFriends', 'pantheon', 'pantheonDetail', 'rome', 'paris', 'agafay', 'sumo', 'vatican', 'colosseum'];
+
+// Stable IDs and timestamps deliberately mirror future Firestore documents.
+export const demoSocialUsers = [
+  { id: 'rahman', username: 'rahman.travels', displayName: 'A Rahman', initials: 'AR', color: '#234e70', bio: 'Collecting little moments, one destination at a time 🌍', location: 'Lombok, Indonesia', role: 'traveler' },
+  { id: 'maya', username: 'mayagoesplaces', displayName: 'Maya Putri', initials: 'MP', color: '#bb724f', bio: 'Golden-hour chaser. Always saying yes to a new city.', location: 'Bali, Indonesia', role: 'traveler' },
+  { id: 'leo', username: 'leo.ontheroad', displayName: 'Leo Martin', initials: 'LM', color: '#566d65', bio: 'Slow travel, big stories, too many photos.', location: 'Paris, France', role: 'traveler' },
+  { id: 'nina', username: 'nina.explores', displayName: 'Nina Sato', initials: 'NS', color: '#8f6383', bio: 'Food, culture and a little adventure ✨', location: 'Tokyo, Japan', role: 'traveler' },
+  { id: 'dario', username: 'dario.roma', displayName: 'Dario Rossi', initials: 'DR', color: '#a05d50', bio: 'Local guide sharing the Rome I love.', location: 'Rome, Italy', role: 'guide' },
+  { id: 'sophie', username: 'sophie.outdoors', displayName: 'Sophie Walker', initials: 'SW', color: '#587f8c', bio: 'Outside is where I feel most at home.', location: 'Queenstown, New Zealand', role: 'traveler' },
+];
+
+const seedComment = (id, authorId, text, createdAt) => ({ id, authorId, text, createdAt });
+export const demoSocialPosts = [
+  { id: 'post-kayak-night', authorId: 'maya', createdAt: '2026-10-13T19:24:00Z', location: 'Split, Croatia', caption: 'Paddling through the city lights felt like floating inside a postcard. Still thinking about those colors. ✨🛶 #Split #Kayaking', imageKey: 'kayaking', experienceId: 'kayaking', likedBy: ['rahman', 'leo', 'nina', 'sophie'], savedBy: ['rahman', 'nina'], comments: [seedComment('comment-1', 'rahman', 'That water looks unreal 😍', '2026-10-13T20:12:00Z'), seedComment('comment-2', 'leo', 'Adding this to my next trip!', '2026-10-13T21:02:00Z')] },
+  { id: 'post-pantheon', authorId: 'dario', createdAt: '2026-10-12T09:18:00Z', location: 'Pantheon, Rome', caption: 'A quiet moment at the Pantheon before the city woke up. Every visit reveals a new detail in this incredible place. #Rome #Pantheon', imageKey: 'pantheon', experienceId: 'pantheon', likedBy: ['rahman', 'maya', 'leo', 'nina'], savedBy: ['maya', 'sophie'], comments: [seedComment('comment-3', 'maya', 'Your city is magic! ✨', '2026-10-12T10:04:00Z')] },
+  { id: 'post-skydive', authorId: 'sophie', createdAt: '2026-10-11T14:42:00Z', location: 'Queenstown, New Zealand', caption: 'I finally did it. Jumped out of a plane and somehow wanted to go again the moment I landed. 🪂 #Queenstown #Skydive', imageKey: 'skydiving', experienceId: 'skydiving', likedBy: ['rahman', 'maya', 'nina', 'leo', 'dario'], savedBy: ['rahman'], comments: [seedComment('comment-4', 'nina', 'You are so brave!', '2026-10-11T15:33:00Z'), seedComment('comment-5', 'rahman', 'This view is everything 🙌', '2026-10-11T16:10:00Z')] },
+  { id: 'post-sumo', authorId: 'nina', createdAt: '2026-10-10T11:25:00Z', location: 'Tokyo, Japan', caption: 'An unforgettable afternoon learning about sumo. The strength, focus and tradition were incredible to see up close. 🇯🇵 #Tokyo #Sumo', imageKey: 'sumo', experienceId: 'sumo', likedBy: ['maya', 'rahman', 'sophie'], savedBy: ['leo'], comments: [seedComment('comment-6', 'maya', 'I would love to see this!', '2026-10-10T13:06:00Z')] },
+  { id: 'post-paris', authorId: 'leo', createdAt: '2026-10-09T17:14:00Z', location: 'Paris, France', caption: 'One more walk by the Seine, one more reason to stay a little longer. 🗼 #Paris #SlowTravel', imageKey: 'paris', experienceId: null, likedBy: ['rahman', 'maya', 'nina'], savedBy: ['maya', 'dario'], comments: [seedComment('comment-7', 'rahman', 'Take me there next time!', '2026-10-09T18:20:00Z')] },
+  { id: 'post-agafay', authorId: 'rahman', createdAt: '2026-10-08T16:36:00Z', location: 'Agafay Desert, Morocco', caption: 'Dusty roads, warm air and a sunset I did not want to end. What a day. 🌅 #Agafay #Morocco', imageKey: 'agafay', experienceId: 'agafay', likedBy: ['maya', 'leo', 'sophie', 'nina'], savedBy: ['maya', 'leo'], comments: [seedComment('comment-8', 'sophie', 'The colors are amazing!', '2026-10-08T18:00:00Z')] },
+  { id: 'post-rome', authorId: 'dario', createdAt: '2026-10-07T07:50:00Z', location: 'Rome, Italy', caption: 'My favorite way to start a day: an early walk through Rome before the streets get busy. ☕ #Rome', imageKey: 'rome', experienceId: 'colosseum', likedBy: ['rahman', 'leo', 'sophie'], savedBy: ['rahman'], comments: [] },
+  { id: 'post-kayak-sunset', authorId: 'maya', createdAt: '2026-10-06T18:12:00Z', location: 'Split, Croatia', caption: 'Another angle from our sunset paddle. The best travel memories are the ones you almost forgot to photograph. 💙', imageKey: 'kayakingSunset', experienceId: 'kayaking', likedBy: ['rahman', 'dario', 'sophie'], savedBy: ['rahman'], comments: [] },
+];
+
+export const demoSocialFollows = [
+  ['rahman', 'maya'], ['rahman', 'dario'], ['rahman', 'sophie'],
+  ['maya', 'rahman'], ['maya', 'leo'], ['maya', 'nina'],
+  ['leo', 'maya'], ['leo', 'dario'], ['nina', 'maya'],
+  ['dario', 'rahman'], ['dario', 'leo'], ['sophie', 'rahman'], ['sophie', 'nina'],
+];

@@ -14,6 +14,8 @@ import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
+import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialActivityView, socialDraft, clearSocialDraft } from '../features/social/view.js';
+import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave } from '../features/social/repository.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -40,6 +42,14 @@ function currentView() {
   if (path === '/profile') return profileView();
   if (path.startsWith('/profile/')) return profileSectionView(path.split('/')[2]);
   if (path === '/inbox') return inboxView();
+  if (path === '/social') return socialFeedView(params.get('feed') === 'following');
+  if (path === '/social/explore') return socialExploreView();
+  if (path === '/social/saved') return socialSavedView();
+  if (path === '/social/activity') return socialActivityView();
+  if (path === '/social/create') return socialCreateView();
+  if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
+  if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
+  if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
   if (path.startsWith('/experience/')) return experienceView(path.split('/')[2]);
   if (path.startsWith('/booking/')) return bookingView(path.split('/')[2]);
   if (path.startsWith('/checkout/')) return checkoutView(path.split('/')[2]);
@@ -158,6 +168,23 @@ function clickAction(action, el) {
     case 'sign-out': navigate('/login'); break;
     case 'booking-history': announce('No past bookings yet'); break;
     case 'inbox-more': announce('Inbox is up to date'); break;
+    case 'social-back': back(); break;
+    case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;
+    case 'social-like': toggleSocialLike(id); render(); break;
+    case 'social-save': toggleSocialSave(id); render(); break;
+    case 'social-follow': toggleSocialFollow(id); render(); break;
+    case 'social-select-photo': socialDraft.imageKey = value; socialDraft.localImage = null; render(); break;
+    case 'social-delete': if (window.confirm('Delete this post from the local demo?') && deleteSocialPost(id)) navigate('/social'); break;
+    case 'social-delete-comment': if (deleteSocialComment(id, value)) render(); break;
+    case 'social-report': if (reportSocialPost(id)) announce('Report saved for admin review (demo)'); else announce('This post was already reported'); break;
+    case 'social-share': {
+      const post = socialPost(id);
+      if (!post) break;
+      const url = `${location.origin}${location.pathname}#/social/post/${encodeURIComponent(id)}`;
+      if (navigator.share) navigator.share({ title: 'Travel moment', url }).catch(() => {});
+      else navigator.clipboard?.writeText(url).then(() => announce('Post link copied')).catch(() => announce('Sharing unavailable'));
+      break;
+    }
     default: break;
   }
 }
@@ -210,6 +237,20 @@ export function startApp() {
   root.addEventListener('pointerup', endGalleryDrag);
   root.addEventListener('pointercancel', endGalleryDrag);
   root.addEventListener('input', (event) => {
+    if (event.target.closest('#social-compose-form')) {
+      if (event.target.name === 'caption') socialDraft.caption = event.target.value;
+      if (event.target.name === 'location') socialDraft.location = event.target.value;
+    }
+    if (event.target.id === 'social-search') {
+      const query = event.target.value.toLowerCase().trim();
+      let shown = 0;
+      root.querySelectorAll('#social-explore-grid [data-search-text]').forEach((post) => {
+        post.hidden = !post.dataset.searchText.includes(query);
+        if (!post.hidden) shown += 1;
+      });
+      const empty = root.querySelector('#social-search-empty');
+      if (empty) empty.hidden = shown !== 0;
+    }
     if (event.target.id !== 'place-search') return;
     state.search = event.target.value;
     document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = !item.textContent.toLowerCase().includes(state.search.toLowerCase()); });
@@ -229,8 +270,32 @@ export function startApp() {
     updateGalleryIndicators(index);
   }, true);
   root.addEventListener('change', (event) => {
+    if (event.target.id === 'social-photo-input' && event.target.files?.[0]) {
+      prepareSocialPhoto(event.target.files[0]).then((dataUrl) => { socialDraft.localImage = dataUrl; render(); }).catch((error) => announce(error.message));
+    }
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
+  });
+  root.addEventListener('submit', (event) => {
+    if (event.target.id === 'social-compose-form') {
+      event.preventDefault();
+      const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage });
+      if (!post) { announce('Could not save this post on this device'); return; }
+      clearSocialDraft();
+      navigate(`/social/post/${encodeURIComponent(post.id)}`);
+    }
+    if (event.target.id === 'social-comment-form') {
+      event.preventDefault();
+      const postId = route().path.split('/')[3];
+      const input = event.target.elements.comment;
+      if (addSocialComment(postId, input?.value)) render();
+    }
+    if (event.target.id === 'social-edit-form') {
+      event.preventDefault();
+      const postId = route().path.split('/')[3];
+      const { caption, location } = event.target.elements;
+      if (editSocialPost(postId, { caption: caption.value, location: location.value })) navigate(`/social/post/${encodeURIComponent(postId)}`);
+    }
   });
   document.addEventListener('contextmenu', (event) => { if (!event.target.closest('input,textarea')) event.preventDefault(); });
 }

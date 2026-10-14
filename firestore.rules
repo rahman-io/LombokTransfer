@@ -39,6 +39,16 @@ service cloud.firestore {
         allow read: if isSelf(uid) || isAdmin();
         allow write: if isAdmin();
       }
+
+      match /socialSaves/{postId} {
+        allow read: if isSelf(uid) || isAdmin();
+        allow create: if isSelf(uid) &&
+          request.resource.data.keys().hasOnly(['postId', 'createdAt']) &&
+          request.resource.data.postId == postId &&
+          request.resource.data.createdAt == request.time;
+        allow delete: if isSelf(uid);
+        allow update: if false;
+      }
     }
 
     match /organizations/{orgId} {
@@ -92,6 +102,91 @@ service cloud.firestore {
     match /attractions/{attractionId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /socialProfiles/{uid} {
+      allow read: if true;
+      allow create: if isSelf(uid) &&
+        request.resource.data.keys().hasOnly(['id', 'username', 'displayName', 'bio', 'location', 'initials', 'color', 'role', 'schemaVersion', 'createdAt', 'updatedAt']) &&
+        request.resource.data.id == uid &&
+        request.resource.data.role == 'traveler' &&
+        request.resource.data.username is string &&
+        request.resource.data.displayName is string &&
+        request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() || (isSelf(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'displayName', 'bio', 'location', 'initials', 'color', 'updatedAt']));
+      allow delete: if isAdmin();
+
+      match /followers/{followerId} {
+        allow read: if true;
+        allow create: if isSelf(followerId) && uid != followerId &&
+          request.resource.data.keys().hasOnly(['followerId', 'followingId', 'createdAt']) &&
+          request.resource.data.followerId == followerId &&
+          request.resource.data.followingId == uid &&
+          request.resource.data.createdAt == request.time;
+        allow delete: if isSelf(followerId);
+        allow update: if false;
+      }
+    }
+
+    match /socialPosts/{postId} {
+      allow read: if resource.data.status == 'published' || isSelf(resource.data.authorId) || isAdmin();
+      allow create: if signedIn() &&
+        request.resource.data.keys().hasOnly(['id', 'authorId', 'schemaVersion', 'status', 'caption', 'location', 'media', 'experienceId', 'createdAt', 'updatedAt']) &&
+        request.resource.data.id == postId &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.status == 'published' &&
+        request.resource.data.caption is string &&
+        request.resource.data.caption.size() <= 2200 &&
+        request.resource.data.media.storagePath is string &&
+        request.resource.data.media.storagePath.matches('public/social/' + request.auth.uid + '/[^/]+') &&
+        request.resource.data.media.needsUpload == false &&
+        request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() || (isSelf(resource.data.authorId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caption', 'location', 'updatedAt']) &&
+        request.resource.data.caption is string &&
+        request.resource.data.caption.size() <= 2200);
+      allow delete: if isSelf(resource.data.authorId) || isAdmin();
+
+      match /likes/{uid} {
+        allow read: if get(/databases/$(database)/documents/socialPosts/$(postId)).data.status == 'published';
+        allow create: if isSelf(uid) &&
+          get(/databases/$(database)/documents/socialPosts/$(postId)).data.status == 'published' &&
+          request.resource.data.keys().hasOnly(['userId', 'createdAt']) &&
+          request.resource.data.userId == uid &&
+          request.resource.data.createdAt == request.time;
+        allow delete: if isSelf(uid);
+        allow update: if false;
+      }
+
+      match /comments/{commentId} {
+        allow read: if get(/databases/$(database)/documents/socialPosts/$(postId)).data.status == 'published' || isAdmin();
+        allow create: if signedIn() &&
+          get(/databases/$(database)/documents/socialPosts/$(postId)).data.status == 'published' &&
+          request.resource.data.keys().hasOnly(['authorId', 'text', 'createdAt', 'updatedAt']) &&
+          request.resource.data.authorId == request.auth.uid &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0 &&
+          request.resource.data.text.size() <= 500 &&
+          request.resource.data.createdAt == request.time;
+        allow update: if isAdmin() || (isSelf(resource.data.authorId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt']) &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0 &&
+          request.resource.data.text.size() <= 500);
+        allow delete: if isSelf(resource.data.authorId) || isAdmin();
+      }
+    }
+
+    match /socialReports/{reportId} {
+      allow get: if isSelf(resource.data.reporterId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if signedIn() &&
+        request.resource.data.keys().hasOnly(['postId', 'reporterId', 'reason', 'status', 'createdAt']) &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.status == 'open' &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if isAdmin();
     }
   }
 }
