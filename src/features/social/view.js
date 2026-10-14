@@ -4,6 +4,7 @@ import { escapeHtml } from '../../utils/html.js';
 import { socialImages, socialImage } from './media.js';
 import { findChatThreadWith } from '../messaging/repository.js';
 import { experiences } from '../experiences/data.js';
+import { inboxBadge } from '../inbox/repository.js';
 import { rankSocialPosts, recommendedSocialUsers, relatedSocialPosts, socialTopics, trendingSocialTopics } from './intelligence.js';
 import {
   activeSocialUser, isFollowing, socialActivity, socialFollowerCount, socialFollowingCount,
@@ -20,7 +21,7 @@ function avatar(user, size = '') {
 
 function socialHeader(title = 'Travel moments', options = {}) {
   const self = activeSocialUser();
-  return `<header class="social-header"><div><span class="social-kicker">LOMBOKTRANSFER COMMUNITY</span><h1>${esc(title)}</h1></div><div class="social-header-actions">${options.back ? `<button class="social-icon-button" data-action="social-back" aria-label="Back">${icon('arrow', 23)}</button>` : `<a class="social-icon-button" href="#/inbox" aria-label="Inbox">${icon('bell', 23)}</a>`}<details class="social-switcher"><summary aria-label="Switch demo account">${avatar(self, 'small')}</summary><div class="social-switcher-menu"><strong>Demo accounts</strong><small>Switch to try interactions as another user.</small>${socialState().users.map((user) => `<button data-action="social-switch-user" data-id="${esc(user.id)}" aria-label="Switch to ${esc(user.displayName)}">${avatar(user, 'tiny')}<span>${esc(user.displayName)}<small>@${esc(user.username)}</small></span>${user.id === self.id ? icon('check', 17) : ''}</button>`).join('')}</div></details></div></header>`;
+  return `<header class="social-header"><div><span class="social-kicker">LOMBOKTRANSFER COMMUNITY</span><h1>${esc(title)}</h1></div><div class="social-header-actions">${options.back ? `<button class="social-icon-button" data-action="social-back" aria-label="Back">${icon('arrow', 23)}</button>` : `<a class="social-icon-button inbox-link" href="#/inbox" aria-label="Inbox">${icon('bell', 23)}${inboxBadge()}</a>`}<details class="social-switcher"><summary aria-label="Switch demo account">${avatar(self, 'small')}</summary><div class="social-switcher-menu"><strong>Demo accounts</strong><small>Switch to try interactions as another user.</small>${socialState().users.map((user) => `<button data-action="social-switch-user" data-id="${esc(user.id)}" aria-label="Switch to ${esc(user.displayName)}">${avatar(user, 'tiny')}<span>${esc(user.displayName)}<small>@${esc(user.username)}</small></span>${user.id === self.id ? icon('check', 17) : ''}</button>`).join('')}</div></details></div></header>`;
 }
 
 function socialSubnav(active) {

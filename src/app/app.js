@@ -19,6 +19,7 @@ import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPo
 import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
+import { markInboxItemRead } from '../features/inbox/repository.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -174,6 +175,7 @@ function clickAction(action, el) {
     case 'sign-out': navigate('/login'); break;
     case 'booking-history': announce('No past bookings yet'); break;
     case 'inbox-more': announce('Inbox is up to date'); break;
+    case 'inbox-read': markInboxItemRead(value); navigate(el.dataset.href || '/inbox'); break;
     case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
     case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;

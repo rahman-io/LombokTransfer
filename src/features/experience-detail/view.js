@@ -10,6 +10,7 @@ import { getDemoReviews } from '../experiences/demo-engagement.js';
 import { socialImage } from '../social/media.js';
 import { socialPostsForExperience, socialUser, visibleSocialPosts } from '../social/repository.js';
 import { socialBookingSignals } from '../social/intelligence.js';
+import { getBookingLikelihood, getPriceAvailabilityAlerts, getSmartBundle } from '../booking-intelligence/repository.js';
 export function experienceView(id) {
   const item = getExperience(id);
   const saved = state.wishlist.includes(item.id);
@@ -24,6 +25,9 @@ export function experienceView(id) {
   const communitySignal = socialBookingSignals(visibleSocialPosts()).find((signal) => signal.experienceId === item.id);
   const dateText = state.date ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
   const quote = calculateDemoQuote(item, state);
+  const bookingLikelihood = getBookingLikelihood(item, state);
+  const smartBundle = getSmartBundle(item, experiences, state);
+  const bookingAlerts = getPriceAvailabilityAlerts(item, booking);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const detail = `
     <header class="detail-sticky-header" data-detail-sticky-header>
@@ -50,6 +54,7 @@ export function experienceView(id) {
         <div>${icon('clock', 27)}<span><strong>${escapeHtml(item.validity || 'Duration ' + item.duration)}</strong><small>Check availability to see starting times</small></span></div>
         <div>${icon('tickets', 27)}<span><strong>Reserve now & pay later</strong><small>Keep your travel plans flexible</small></span></div>
       </div>
+      <section class="booking-intelligence"><div class="booking-intelligence-heading"><span>${icon('sparkle', 16)} Smart travel signals</span><small>Local AI demo</small></div><div class="booking-intelligence-grid"><article class="booking-signal-card"><small>Booking likelihood</small><strong>${bookingLikelihood.score}%</strong><b>${escapeHtml(bookingLikelihood.label)}</b><p>${escapeHtml(bookingLikelihood.timing)}</p><em>${escapeHtml(bookingLikelihood.reason)}</em></article><article class="booking-signal-card"><small>Price & availability alerts</small>${bookingAlerts.slice(0, 2).map((alert) => `<div class="booking-alert"><strong>${escapeHtml(alert.title)}</strong><p>${escapeHtml(alert.text)}</p></div>`).join('')}</article></div>${smartBundle.items.length ? `<article class="smart-bundle"><div><small>Smart bundle</small><strong>Smart bundle suggestions</strong><p>${escapeHtml(smartBundle.reason)} · Save about $${smartBundle.savings}</p></div><div class="smart-bundle-items">${smartBundle.items.map((bundleItem) => `<a href="#/experience/${escapeHtml(bundleItem.id)}"><img src="${escapeHtml(bundleItem.image)}" alt="" /><span>${escapeHtml(bundleItem.title)}</span></a>`).join('')}</div></article>` : ''}</section>
       <section class="detail-section"><h2>What travelers loved ${icon('info', 18)}</h2><div class="review-card"><div class="review-stars">★★★★★</div><strong>${escapeHtml(reviews.featured.author)} - ${escapeHtml(reviews.featured.country)}</strong><small>${escapeHtml(reviews.featured.dateLabel)} · Verified booking</small><p>${escapeHtml(reviews.featured.text)}</p></div><button class="outline-button" data-action="reviews">See more reviews</button></section>
       ${booking?.popularDays?.length ? `<section class="popular-days" aria-label="Most popular days"><h2>Most popular days <small>Demo data</small></h2><div class="popular-days-row">${dayNames.map((name, day) => `<span class="popular-day ${booking.popularDays.includes(day) ? 'active' : ''}" aria-label="${name}${booking.popularDays.includes(day) ? ', popular' : ''}">${name}</span>`).join('')}</div></section>` : ''}
       <details class="detail-section detail-accordion" data-detail-section="highlights" open><summary><h2>Highlights</h2>${icon('down')}</summary><ul class="bullet-list">${document.content.highlights.map((text) => `<li>${escapeHtml(text)}</li>`).join('')}</ul></details>
