@@ -1,5 +1,6 @@
 import { demoSocialFollows, demoSocialPosts, demoSocialUsers, socialDemoImageKeys } from './data.js';
 import { trackSocialSignal } from '../recommendations/repository.js';
+import { rankSocialActivity, socialModerationQueue } from './intelligence.js';
 
 const STORAGE_KEY = 'lombok-social-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -151,8 +152,10 @@ export function socialActivity(userId) {
     for (const comment of post.comments.filter((item) => item.authorId !== userId)) events.push({ id: comment.id, actorId: comment.authorId, kind: 'comment', post, createdAt: comment.createdAt });
   }
   for (const [actorId, targetId] of socialState().follows) if (targetId === userId) events.push({ id: `follow-${actorId}-${targetId}`, actorId, kind: 'follow', createdAt: '2026-10-12T12:00:00Z' });
-  return events.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return rankSocialActivity(events, socialState().follows, userId);
 }
+
+export function socialModerationItems() { return socialModerationQueue(socialState()); }
 
 // Exportable seed/current shape: relationship records become separate Firebase documents.
 export function toSocialFirebaseFixture(source = socialState()) {
@@ -170,6 +173,7 @@ export function toSocialFirebaseFixture(source = socialState()) {
     comments: publishedPosts.flatMap((post) => post.comments.map((comment) => ({ ...comment, postId: post.id }))),
     follows: source.follows.map(([followerId, followingId]) => ({ followerId, followingId, createdAt: '2026-10-01T00:00:00Z' })),
     reports: source.reports.map((report) => ({ ...report })),
+    moderationQueue: socialModerationQueue(source).map(({ post, safety }) => ({ postId: post.id, ...safety })),
   };
 }
 

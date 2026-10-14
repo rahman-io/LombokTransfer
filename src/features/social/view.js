@@ -4,6 +4,7 @@ import { escapeHtml } from '../../utils/html.js';
 import { socialImages, socialImage } from './media.js';
 import { findChatThreadWith } from '../messaging/repository.js';
 import { experiences } from '../experiences/data.js';
+import { rankSocialPosts, recommendedSocialUsers, relatedSocialPosts, socialTopics, trendingSocialTopics } from './intelligence.js';
 import {
   activeSocialUser, isFollowing, socialActivity, socialFollowerCount, socialFollowingCount,
   socialPost, socialState, socialUser, visibleSocialPosts,
@@ -30,7 +31,7 @@ function socialSubnav(active) {
   return `<nav class="social-subnav" aria-label="Community sections">${tabs.map(([id, label, path]) => `<a class="${active === id ? 'active' : ''}" href="#${path}" ${active === id ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
 
-function postCard(post) {
+function postCard(post, recommendationReason = '') {
   const author = socialUser(post.authorId);
   const selfId = activeSocialUser().id;
   const liked = post.likedBy.includes(selfId);
@@ -39,7 +40,7 @@ function postCard(post) {
     <div class="social-post-top"><a class="social-author" href="#/social/user/${esc(author.id)}">${avatar(author)}<span><strong>${esc(author.username)}</strong><small>${esc(post.location || author.location)} · ${new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></span></a><details class="social-post-menu"><summary aria-label="Post options">${icon('more', 22)}</summary><div>${post.authorId === selfId ? `<a href="#/social/edit/${esc(post.id)}">Edit post</a><button data-action="social-delete" data-id="${esc(post.id)}">Delete post</button>` : `<button data-action="social-report" data-id="${esc(post.id)}">Report post</button>`}</div></details></div>
     <a class="social-post-media" href="#/social/post/${esc(post.id)}" aria-label="View post by ${esc(author.username)}"><img src="${esc(socialImage(post))}" alt="${esc(post.location ? `Travel photo in ${post.location}` : `Travel photo by ${author.displayName}`)}" loading="lazy" /></a>
     <div class="social-post-actions"><div><button data-action="social-like" data-id="${esc(post.id)}" class="${liked ? 'is-liked' : ''}" aria-label="${liked ? 'Unlike' : 'Like'} post" aria-pressed="${liked}">${icon('heart', 27)}</button><a href="#/social/post/${esc(post.id)}" aria-label="View comments">${icon('comment', 27)}</a><button data-action="social-share" data-id="${esc(post.id)}" aria-label="Share post">${icon('share', 25)}</button></div><button data-action="social-save" data-id="${esc(post.id)}" class="${saved ? 'is-saved' : ''}" aria-label="${saved ? 'Remove saved post' : 'Save post'}" aria-pressed="${saved}">${icon('bookmark', 26)}</button></div>
-    <div class="social-post-copy"><strong>${post.likedBy.length} ${post.likedBy.length === 1 ? 'like' : 'likes'}</strong><p><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${post.caption ? ` ${esc(post.caption)}` : ''}</p>${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}">${icon('tickets', 16)} Explore this experience</a>` : ''}<a class="social-comments-link" href="#/social/post/${esc(post.id)}">${post.comments.length ? `View all ${post.comments.length} comments` : 'Add a comment'}</a></div>
+    <div class="social-post-copy">${recommendationReason ? `<small class="social-ai-reason">${icon('sparkle', 13)} ${esc(recommendationReason)}</small>` : ''}<strong>${post.likedBy.length} ${post.likedBy.length === 1 ? 'like' : 'likes'}</strong><p><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${post.caption ? ` ${esc(post.caption)}` : ''}</p>${socialTopics(post).slice(0, 3).map((topic) => `<a class="social-topic-tag" href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)}</a>`).join('')}${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}">${icon('tickets', 16)} Explore this experience</a>` : ''}<a class="social-comments-link" href="#/social/post/${esc(post.id)}">${post.comments.length ? `View all ${post.comments.length} comments` : 'Add a comment'}</a></div>
   </article>`;
 }
 
@@ -47,16 +48,33 @@ function emptyState(title, message) {
   return `<div class="social-empty">${icon('image', 38)}<h2>${esc(title)}</h2><p>${esc(message)}</p></div>`;
 }
 
-export function socialFeedView(followingOnly = false) {
-  const self = activeSocialUser();
-  const posts = visibleSocialPosts().filter((post) => !followingOnly || post.authorId === self.id || isFollowing(post.authorId));
-  const stories = [self, ...socialState().users.filter((user) => user.id !== self.id)].slice(0, 6);
-  return mainLayout(`<div class="social-page">${socialHeader()}${socialSubnav('feed')}<div class="social-demo-note">Demo community · Interactions are saved on this device</div><div class="social-stories">${stories.map((user) => `<a href="#/social/user/${esc(user.id)}">${avatar(user, 'story')}<span>${user.id === self.id ? 'Your profile' : esc(user.displayName.split(' ')[0])}</span></a>`).join('')}</div><div class="social-feed-heading"><div class="social-feed-switch"><a href="#/social" class="${!followingOnly ? 'active' : ''}">For you</a><a href="#/social?feed=following" class="${followingOnly ? 'active' : ''}">Following</a></div><a class="social-create-link" href="#/social/create">${icon('plus', 18)} Post</a></div>${posts.length ? posts.map(postCard).join('') : emptyState('Nothing here yet', 'Follow travelers to see their posts here.')}</div>`, 'Community', { className: 'social-main' });
+function topicRow(topics, title = 'Trending now') {
+  if (!topics.length) return '';
+  return `<section class="social-topics"><div class="social-section-heading"><h2>${esc(title)}</h2><span>${icon('sparkle', 15)} Vibes Intelligence</span></div><div class="social-topic-row">${topics.map(({ topic, count }) => `<a href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)} <small>${count}</small></a>`).join('')}</div></section>`;
 }
 
-export function socialExploreView() {
-  const posts = visibleSocialPosts();
-  return mainLayout(`<div class="social-page">${socialHeader('Explore')}${socialSubnav('explore')}<div class="social-explore-intro"><h2>Where to next?</h2><p>Travel inspiration from our demo community.</p><label class="social-search">${icon('search', 19)}<input id="social-search" type="search" placeholder="Search places, people or posts" autocomplete="off" /></label></div><div class="social-explore-grid" id="social-explore-grid">${posts.map((post) => `<a href="#/social/post/${esc(post.id)}" data-search-text="${esc(`${post.caption} ${post.location} ${socialUser(post.authorId)?.username}`.toLowerCase())}" aria-label="Post from ${esc(post.location)}"><img src="${esc(socialImage(post))}" alt="${esc(post.location)}" loading="lazy" /><span>${icon('heart', 15)} ${post.likedBy.length}</span></a>`).join('')}</div><p class="social-search-empty" id="social-search-empty" hidden>No matching posts.</p></div>`, 'Community', { className: 'social-main' });
+function peopleToFollow(users) {
+  if (!users.length) return '';
+  return `<section class="social-people"><div class="social-section-heading"><h2>People to follow</h2><span>${icon('sparkle', 15)} For you</span></div><div class="social-people-row">${users.map(({ user, reason }) => `<article class="social-person-card">${avatar(user, 'small')}<strong>${esc(user.displayName)}</strong><small>@${esc(user.username)}</small><em>${esc(reason)}</em><button data-action="social-follow" data-id="${esc(user.id)}">Follow</button></article>`).join('')}</div></section>`;
+}
+
+export function socialFeedView(followingOnly = false) {
+  const self = activeSocialUser();
+  const allPosts = visibleSocialPosts();
+  const ranked = rankSocialPosts(allPosts, self.id, socialState().follows);
+  const rankedReasons = new Map(ranked.map(({ post, reason }) => [post.id, reason]));
+  const posts = (followingOnly ? allPosts.filter((post) => post.authorId === self.id || isFollowing(post.authorId)) : ranked.map(({ post }) => post));
+  const stories = [self, ...socialState().users.filter((user) => user.id !== self.id)].slice(0, 6);
+  const suggestions = recommendedSocialUsers(socialState().users, allPosts, socialState().follows, self.id);
+  return mainLayout(`<div class="social-page">${socialHeader()}${socialSubnav('feed')}<div class="social-demo-note">Demo community · Interactions are saved on this device</div><div class="social-intelligence-banner">${icon('sparkle', 18)}<span><strong>Vibes Intelligence</strong><small>${followingOnly ? 'Your followed travelers, in one place.' : 'A For you feed tuned to your travel taste.'}</small></span></div><div class="social-stories">${stories.map((user) => `<a href="#/social/user/${esc(user.id)}">${avatar(user, 'story')}<span>${user.id === self.id ? 'Your profile' : esc(user.displayName.split(' ')[0])}</span></a>`).join('')}</div>${followingOnly ? '' : topicRow(trendingSocialTopics(allPosts))}${followingOnly ? '' : peopleToFollow(suggestions)}<div class="social-feed-heading"><div class="social-feed-switch"><a href="#/social" class="${!followingOnly ? 'active' : ''}">For you</a><a href="#/social?feed=following" class="${followingOnly ? 'active' : ''}">Following</a></div><a class="social-create-link" href="#/social/create">${icon('plus', 18)} Post</a></div>${posts.length ? posts.map((post) => postCard(post, followingOnly ? '' : rankedReasons.get(post.id))).join('') : emptyState('Nothing here yet', 'Follow travelers to see their posts here.')}</div>`, 'Community', { className: 'social-main' });
+}
+
+export function socialExploreView(topic = '') {
+  const self = activeSocialUser();
+  const allPosts = visibleSocialPosts();
+  const posts = rankSocialPosts(allPosts.filter((post) => !topic || socialTopics(post).includes(topic)), self.id, socialState().follows).map(({ post }) => post);
+  const suggestions = recommendedSocialUsers(socialState().users, allPosts, socialState().follows, self.id);
+  return mainLayout(`<div class="social-page">${socialHeader('Explore')}${socialSubnav('explore')}${topicRow(trendingSocialTopics(allPosts), topic ? `Explore #${topic}` : 'Trending travel')}${peopleToFollow(suggestions)}<div class="social-explore-intro"><h2>Where to next?</h2><p>Travel inspiration from our demo community.</p><label class="social-search">${icon('search', 19)}<input id="social-search" type="search" placeholder="Search places, people or posts" autocomplete="off" /></label></div><div class="social-explore-grid" id="social-explore-grid">${posts.map((post) => `<a href="#/social/post/${esc(post.id)}" data-search-text="${esc(`${post.caption} ${post.location} ${socialUser(post.authorId)?.username}`.toLowerCase())}" aria-label="Post from ${esc(post.location)}"><img src="${esc(socialImage(post))}" alt="${esc(post.location)}" loading="lazy" /><span>${icon('heart', 15)} ${post.likedBy.length}</span></a>`).join('')}</div><p class="social-search-empty" id="social-search-empty" hidden>No matching posts.</p></div>`, 'Community', { className: 'social-main' });
 }
 
 export function socialSavedView() {
@@ -76,7 +94,8 @@ export function socialProfileView(userId) {
 export function socialPostView(postId) {
   const post = socialPost(postId);
   if (!post) return mainLayout(`<div class="social-page">${socialHeader('Post', { back: true })}${emptyState('Post unavailable', 'This post may have been deleted.')}</div>`, 'Community', { className: 'social-main' });
-  return mainLayout(`<div class="social-page">${socialHeader('Post', { back: true })}${postCard(post)}<section class="social-comment-section"><h2>Comments</h2>${post.comments.length ? post.comments.map((comment) => { const author = socialUser(comment.authorId); return `<div class="social-comment">${avatar(author, 'small')}<p><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a> ${esc(comment.text)}<small>${new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></p>${comment.authorId === activeSocialUser().id ? `<button data-action="social-delete-comment" data-id="${esc(post.id)}" data-value="${esc(comment.id)}" aria-label="Delete your comment">${icon('close', 17)}</button>` : ''}</div>`; }).join('') : '<p class="muted">Be the first to comment.</p>'}<form class="social-comment-form" id="social-comment-form"><input name="comment" type="text" maxlength="500" placeholder="Add a comment..." aria-label="Add a comment" required /><button type="submit" aria-label="Post comment">Post</button></form></section>${post.experienceId ? `<a class="social-tour-link" href="#/experience/${esc(post.experienceId)}">Explore this experience ${icon('chevron', 18)}</a>` : ''}</div>`, 'Community', { className: 'social-main' });
+  const related = relatedSocialPosts(post, visibleSocialPosts());
+  return mainLayout(`<div class="social-page">${socialHeader('Post', { back: true })}${postCard(post)}<section class="social-comment-section"><h2>Comments</h2>${post.comments.length ? post.comments.map((comment) => { const author = socialUser(comment.authorId); return `<div class="social-comment">${avatar(author, 'small')}<p><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a> ${esc(comment.text)}<small>${new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></p>${comment.authorId === activeSocialUser().id ? `<button data-action="social-delete-comment" data-id="${esc(post.id)}" data-value="${esc(comment.id)}" aria-label="Delete your comment">${icon('close', 17)}</button>` : ''}</div>`; }).join('') : '<p class="muted">Be the first to comment.</p>'}<form class="social-comment-form" id="social-comment-form"><input name="comment" type="text" maxlength="500" placeholder="Add a comment..." aria-label="Add a comment" required /><button type="submit" aria-label="Post comment">Post</button></form></section>${post.experienceId ? `<a class="social-tour-link" href="#/experience/${esc(post.experienceId)}">Explore this experience ${icon('chevron', 18)}</a>` : ''}${related.length ? `<section class="social-related"><div class="social-section-heading"><h2>More like this</h2><span>${icon('sparkle', 15)} AI picks</span></div><div class="social-related-grid">${related.map(({ post: item }) => `<a href="#/social/post/${esc(item.id)}"><img src="${esc(socialImage(item))}" alt="${esc(item.location)}" loading="lazy" /><strong>${esc(item.location || 'Travel moment')}</strong><small>${item.likedBy.length} likes</small></a>`).join('')}</div></section>` : ''}</div>`, 'Community', { className: 'social-main' });
 }
 
 export function socialCreateView(experienceId = '') {

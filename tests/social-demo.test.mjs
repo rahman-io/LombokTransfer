@@ -6,6 +6,7 @@ import {
   switchSocialUser, toSocialFirebaseFixture, toggleSocialFollow, toggleSocialLike,
   toggleSocialSave,
 } from '../src/features/social/repository.js';
+import { rankSocialPosts, relatedSocialPosts, recommendedSocialUsers, socialSafetyScore, trendingSocialTopics } from '../src/features/social/intelligence.js';
 
 const store = new Map();
 globalThis.localStorage = {
@@ -75,4 +76,15 @@ test('Firebase export separates relationships and keeps photos/posts unpublished
   assert.equal('likedBy' in exported.socialPosts[0], false);
   assert.equal('localImage' in exported.socialPosts[0], false);
   assert.equal(exported.reports[0].reporterId, 'rahman');
+});
+
+test('Vibes Intelligence ranks content, matches people, finds related travel and flags safety signals', () => {
+  const seed = createSeedSocialState();
+  const ranked = rankSocialPosts(seed.posts, seed.activeUserId, seed.follows);
+  assert.equal(ranked.length, seed.posts.length);
+  assert.ok(ranked.some(({ reason }) => reason.includes('follow') || reason.includes('like') || reason.includes('Popular')));
+  assert.ok(recommendedSocialUsers(seed.users, seed.posts, seed.follows, seed.activeUserId).every(({ user }) => user.id !== seed.activeUserId));
+  assert.ok(relatedSocialPosts(seed.posts[0], seed.posts).some(({ post }) => post.id === 'post-kayak-sunset'));
+  assert.ok(trendingSocialTopics(seed.posts).some(({ topic }) => topic === 'kayaking'));
+  assert.equal(socialSafetyScore(seed.posts[0], [{ postId: seed.posts[0].id, status: 'open' }, { postId: seed.posts[0].id, status: 'open' }]).label, 'Needs review');
 });

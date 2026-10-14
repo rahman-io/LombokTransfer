@@ -46,7 +46,7 @@ function currentView() {
   if (path === '/inbox') return inboxView();
   if (path.startsWith('/inbox/chat/')) return chatView(path.split('/')[3]);
   if (path === '/social') return socialFeedView(params.get('feed') === 'following');
-  if (path === '/social/explore') return socialExploreView();
+  if (path === '/social/explore') return socialExploreView(params.get('topic') || '');
   if (path === '/social/saved') return socialSavedView();
   if (path === '/social/activity') return inboxView();
   if (path === '/social/create') return socialCreateView(params.get('experience') || '');

@@ -17,6 +17,7 @@ const paths = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
   pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
   star: '<path d="m12 2 3.1 6.6 7.1 1-5.1 5 .9 7-6-3.4-6 3.4.9-7-5.1-5 7.1-1Z"/>',
+  sparkle: '<path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Zm7 11 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/>',
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 10v6m0-10h.01"/>',
   more: '<circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
