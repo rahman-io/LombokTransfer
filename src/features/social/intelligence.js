@@ -42,11 +42,14 @@ export function scoreSocialPost(post, { userId, follows = [], posts = [], now = 
 }
 
 export function rankSocialPosts(posts, userId, follows = []) {
+  const now = Date.now();
+  const freshnessWindow = 24 * 36e5;
   return posts.map((post) => {
-    const ranking = scoreSocialPost(post, { userId, follows, posts });
-    const reason = ranking.sharedTopics.length ? `Because you like ${ranking.sharedTopics[0]}` : follows.some(([from, to]) => from === userId && to === post.authorId) ? 'From someone you follow' : 'Popular with travelers';
-    return { post, score: ranking.score, reason };
-  }).sort((a, b) => b.score - a.score);
+    const ranking = scoreSocialPost(post, { userId, follows, posts, now });
+    const isFresh = now - new Date(post.createdAt).getTime() <= freshnessWindow;
+    const reason = isFresh ? 'Just posted' : ranking.sharedTopics.length ? `Because you like ${ranking.sharedTopics[0]}` : follows.some(([from, to]) => from === userId && to === post.authorId) ? 'From someone you follow' : 'Popular with travelers';
+    return { post, score: ranking.score, reason, isFresh };
+  }).sort((a, b) => Number(b.isFresh) - Number(a.isFresh) || (a.isFresh ? b.post.createdAt.localeCompare(a.post.createdAt) : b.score - a.score || b.post.createdAt.localeCompare(a.post.createdAt)));
 }
 
 export function recommendedSocialUsers(users, posts, follows, userId) {

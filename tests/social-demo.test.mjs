@@ -88,3 +88,12 @@ test('Vibes Intelligence ranks content, matches people, finds related travel and
   assert.ok(trendingSocialTopics(seed.posts).some(({ topic }) => topic === 'kayaking'));
   assert.equal(socialSafetyScore(seed.posts[0], [{ postId: seed.posts[0].id, status: 'open' }, { postId: seed.posts[0].id, status: 'open' }]).label, 'Needs review');
 });
+
+test('fresh posts stay above older viral posts while AI still ranks the older feed', () => {
+  const seed = createSeedSocialState();
+  const fresh = { ...seed.posts[0], id: 'post-fresh', createdAt: new Date().toISOString(), likedBy: [], savedBy: [], comments: [] };
+  const ranked = rankSocialPosts([...seed.posts, fresh], seed.activeUserId, seed.follows);
+  assert.equal(ranked[0].post.id, 'post-fresh');
+  assert.equal(ranked[0].reason, 'Just posted');
+  assert.ok(ranked.some(({ post }) => post.id === 'post-kayak-night'));
+});
