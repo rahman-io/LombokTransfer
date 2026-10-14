@@ -76,7 +76,10 @@ export function sendChatMessage(threadId, text, attachment = null) {
   const senderId = activeSocialUser().id;
   const clean = String(text || '').trim().slice(0, 1000);
   if (!thread || !thread.participantIds.includes(senderId) || !clean) return false;
-  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(attachment?.type && attachment?.postId ? { attachment: { type: attachment.type, postId: attachment.postId } } : {}) };
+  const attachmentId = attachment?.id || attachment?.postId;
+  const allowedAttachment = ['social-post', 'experience', 'destination', 'attraction'].includes(attachment?.type) && attachmentId;
+  const normalizedAttachment = allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
+  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
   messagingState().messages.push(message);
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;

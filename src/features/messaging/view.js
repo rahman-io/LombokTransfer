@@ -1,7 +1,7 @@
 import { state } from '../../app/store.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { icon } from '../../components/icons.js';
-import { getExperience } from '../experiences/data.js';
+import { attractions, destinations, getExperience } from '../experiences/data.js';
 import { demoMessages } from '../experiences/demo-engagement.js';
 import { escapeHtml } from '../../utils/html.js';
 import { activeSocialUser, socialActivity, socialPost, socialUser } from '../social/repository.js';
@@ -15,10 +15,17 @@ const esc = escapeHtml;
 function avatar(user, size = '') { return `<span class="chat-avatar ${size}" style="--avatar-color:${esc(user?.color || '#566d65')}" aria-hidden="true">${esc(user?.initials || '?')}</span>`; }
 function timeLabel(value) { return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
 function lastMessage(thread) { return chatMessages(thread.id).at(-1); }
-function sharedSocialPost(attachment) {
+function sharedAttachment(attachment) {
   const post = attachment?.type === 'social-post' ? socialPost(attachment.postId) : null;
-  if (!post) return '';
-  return `<a class="chat-shared-post" href="#/social/post/${encodeURIComponent(post.id)}"><img src="${esc(socialImage(post))}" alt="" /><span><strong>Vibes post</strong><small>${esc(post.location || 'Travel moment')}</small></span>${icon('chevron', 17)}</a>`;
+  if (post) return `<a class="chat-shared-post" href="#/social/post/${encodeURIComponent(post.id)}"><img src="${esc(socialImage(post))}" alt="" /><span><strong>Vibes post</strong><small>${esc(post.location || 'Travel moment')}</small></span>${icon('chevron', 17)}</a>`;
+  if (attachment?.type === 'experience') {
+    const experience = getExperience(attachment.id);
+    return `<a class="chat-shared-post" href="#/experience/${encodeURIComponent(experience.id)}"><img src="${esc(experience.cardImage || experience.image)}" alt="" /><span><strong>Discover experience</strong><small>${esc(experience.title)}</small></span>${icon('chevron', 17)}</a>`;
+  }
+  const places = attachment?.type === 'destination' ? destinations : attachment?.type === 'attraction' ? attractions : [];
+  const place = places.find((item) => item.name === attachment?.id);
+  if (!place) return '';
+  return `<a class="chat-shared-post" href="#/results?city=${encodeURIComponent(place.city || place.name)}"><img src="${esc(place.image)}" alt="" /><span><strong>${attachment.type === 'destination' ? 'Destination' : 'Place to visit'}</strong><small>${esc(place.name)}</small></span>${icon('chevron', 17)}</a>`;
 }
 function chatRow(thread) {
   const person = chatParticipant(thread.id);
@@ -66,7 +73,7 @@ export function chatView(threadId) {
   return mainLayout(`
     <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(person.displayName)}</strong><small>@${esc(person.username)}</small></span><a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a></header>
       ${thread.context ? `<a class="chat-context" href="#/experience/${esc(thread.context.experienceId)}">${esc(thread.context.label)}${icon('chevron', 18)}</a>` : ''}
-      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}"><div>${esc(message.text)}${sharedSocialPost(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
+      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}"><div>${esc(message.text)}${sharedAttachment(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
       <form class="chat-composer" id="chat-message-form"><input name="message" type="text" maxlength="1000" placeholder="Message ${esc(person.displayName.split(' ')[0])}..." autocomplete="off" required /><button type="submit" aria-label="Send message">${icon('send', 21)}</button></form>
     </div>
   `, 'Discover', { className: 'inbox-shell' });

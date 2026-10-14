@@ -12,7 +12,7 @@ import { installView } from '../features/onboarding/install-view.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
 import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
-import { experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
+import { attractions, destinations, experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
@@ -55,6 +55,32 @@ function mainNavigationTransition(path) {
   const previousIndex = mainNavigationPaths.indexOf(path);
   if (currentIndex < 0 || previousIndex < 0 || currentIndex === previousIndex) return '';
   return currentIndex > previousIndex ? 'next' : 'previous';
+}
+function appShareUrl(path) { return `${location.origin}${location.pathname}#${path}`; }
+function experienceShareTarget(item) { return { kind: 'experience', id: item.id, title: item.title, subtitle: `${item.city} · ${item.duration}`, text: item.description, image: item.cardImage || item.image, url: appShareUrl(`/experience/${encodeURIComponent(item.id)}`), attachmentType: 'experience', attachmentId: item.id }; }
+function placeShareTarget(kind, name) {
+  const items = kind === 'destination' ? destinations : attractions;
+  const item = items.find((entry) => entry.name === name);
+  if (!item) return null;
+  const city = item.city || item.name;
+  return { kind, id: item.name, title: item.name, subtitle: item.count || city, text: `${item.name}${item.city ? `, ${item.city}` : ''}`, image: item.image, url: appShareUrl(`/results?city=${encodeURIComponent(city)}`), attachmentType: kind, attachmentId: item.name };
+}
+function socialPostShareTarget(post) { return post ? { kind: 'social-post', id: post.id, title: post.location || 'Travel moment', subtitle: post.caption || 'Shared on Vibes', text: post.caption || 'A travel moment from Vibes', url: appShareUrl(`/social/post/${encodeURIComponent(post.id)}`), attachmentType: 'social-post', attachmentId: post.id } : null; }
+function shareTargetForRoute() {
+  const { path } = route();
+  if (path.startsWith('/experience/') || path.startsWith('/booking/') || path.startsWith('/checkout/')) return experienceShareTarget(getExperience(path.split('/')[2]));
+  return null;
+}
+function shareOutside(target) {
+  const url = target?.url || location.href;
+  const payload = { title: target?.title || document.title, text: target?.text || '', url };
+  if (navigator.share) {
+    const sharing = navigator.share(payload);
+    closeModal();
+    sharing.catch((error) => { if (error.name !== 'AbortError') announce('Unable to share this link'); });
+    return;
+  }
+  navigator.clipboard?.writeText(url).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link'));
 }
 function syncDetailHeader() {
   const header = root.querySelector('[data-detail-sticky-header]');
@@ -192,11 +218,13 @@ function clickAction(action, el) {
     case 'gallery-select': selectGalleryIndex(el.dataset.index); break;
     case 'gallery-prev': selectGalleryIndex(state.galleryIndex - 1); break;
     case 'gallery-next': selectGalleryIndex(state.galleryIndex + 1); break;
-    case 'share': if (navigator.share) navigator.share({ title: document.title, url: location.href }).catch((error) => { if (error.name !== 'AbortError') openModal('share'); }); else openModal('share'); break;
+    case 'share': state.shareTarget = shareTargetForRoute(); openModal('share'); break;
+    case 'share-destination': state.shareTarget = placeShareTarget(el.dataset.kind || 'destination', el.dataset.id || ''); if (state.shareTarget) openModal('share'); break;
     case 'share-to-vibes': navigate(`/social/create?experience=${encodeURIComponent(id)}`); break;
     case 'install-app': requestInstallation().catch(() => announce('Instalasi belum tersedia di browser ini')); break;
     case 'preview-in-browser': if (import.meta.env.DEV) { devBrowserPreview = true; render(); } break;
-    case 'copy-link': navigator.clipboard?.writeText(location.href).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link')); break;
+    case 'copy-link': navigator.clipboard?.writeText(state.shareTarget?.url || location.href).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link')); break;
+    case 'share-external': shareOutside(state.shareTarget); break;
     case 'close-modal': closeModal(); break;
     case 'select-time': update({ selectedTime: value }); render(); break;
     case 'meeting': state.modalTitle = 'Meeting point'; state.modalMessage = 'Your exact meeting point will be confirmed after booking.'; openModal('message'); break;
@@ -258,6 +286,18 @@ function clickAction(action, el) {
       if (!post) break;
       state.socialSharePostId = post.id;
       openModal('social-share');
+      break;
+    }
+    case 'social-share-external': shareOutside(socialPostShareTarget(socialPost(state.socialSharePostId))); break;
+    case 'share-to-chat': {
+      const target = state.shareTarget;
+      const recipient = socialUser(value);
+      if (!target || !recipient) break;
+      const threadId = getOrCreateChatThread(recipient.id);
+      if (!threadId || !sendChatMessage(threadId, `Shared ${target.kind === 'experience' ? 'an experience' : 'a place'} with you`, { type: target.attachmentType, id: target.attachmentId })) { announce('Could not send this link'); break; }
+      state.shareTarget = null;
+      state.modal = '';
+      navigate(`/inbox/chat/${encodeURIComponent(threadId)}`);
       break;
     }
     case 'social-share-to-chat': {

@@ -14,7 +14,7 @@ function greetingName() {
 }
 
 function destinationTile(item) {
-  return `<a class="tile destination-tile" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" /><span class="destination-tile-copy"><strong>${escapeHtml(item.name)}</strong>${item.count ? `<small>${escapeHtml(item.count)}</small>` : ''}</span></a>`;
+  return `<div class="tile destination-tile"><a class="tile-link" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" /><span class="destination-tile-copy"><strong>${escapeHtml(item.name)}</strong>${item.count ? `<small>${escapeHtml(item.count)}</small>` : ''}</span></a><button class="destination-share-button" data-action="share-destination" data-kind="destination" data-id="${escapeHtml(item.name)}" aria-label="Share ${escapeHtml(item.name)}">${icon('share', 18)}</button></div>`;
 }
 
 export function homeView() {

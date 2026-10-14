@@ -40,7 +40,7 @@ p{line-height:1.5}.muted,small{color:var(--muted)}
 .home-section{padding:12px 0 12px var(--gutter)}
 .home-section h2{font-size:18px;margin:10px 0 15px}
 .tile-row{display:flex;gap:16px;overflow-x:auto;padding-right:var(--gutter);scrollbar-width:none}
-.tile{flex:0 0 45%;min-width:160px}
+.tile{flex:0 0 45%;min-width:160px}.tile-link{display:block;color:inherit}.place-tile{position:relative}.destination-share-button,.place-share-button{position:absolute;z-index:3;top:9px;right:9px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#fff;color:var(--navy);box-shadow:0 3px 12px #10284a33}
 .tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
 .tile strong{display:block;margin-top:6px;font-size:16px;line-height:1.2}
 .tile small{font-size:13px}

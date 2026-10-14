@@ -18,6 +18,6 @@ export function experienceCard(item, type = 'list') {
     <button class="heart-button ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="${saved ? 'Remove from wishlist' : 'Save to wishlist'}">${icon('heart', 22)}</button>
   </article>`;
 }
-export function horizontalTile(item, route) {
-  return `<a class="tile" href="#${escapeHtml(route)}"><img src="${escapeHtml(item.image)}" alt="" loading="lazy" /><strong>${escapeHtml(item.name)}</strong>${item.count ? `<small>${escapeHtml(item.count)}</small>` : ''}</a>`;
+export function horizontalTile(item, route, kind = 'attraction') {
+  return `<div class="tile place-tile"><a class="tile-link" href="#${escapeHtml(route)}"><img src="${escapeHtml(item.image)}" alt="" loading="lazy" /><strong>${escapeHtml(item.name)}</strong>${item.count ? `<small>${escapeHtml(item.count)}</small>` : ''}</a><button class="place-share-button" data-action="share-destination" data-kind="${escapeHtml(kind)}" data-id="${escapeHtml(item.name)}" aria-label="Share ${escapeHtml(item.name)}">${icon('share', 18)}</button></div>`;
 }
