@@ -11,7 +11,7 @@ export function createSeedSocialState() {
     schemaVersion: 1,
     activeUserId: 'rahman',
     users: clone(demoSocialUsers),
-    posts: clone(demoSocialPosts).map((post) => ({ ...post, schemaVersion: 1, status: 'published', localImage: null })),
+    posts: clone(demoSocialPosts).map((post) => ({ ...post, schemaVersion: 1, status: 'published', localImage: null, media: Array.isArray(post.media) && post.media.length ? post.media : [{ id: `${post.id}-media-1`, imageKey: post.imageKey, localImage: null, storagePath: null }], shares: Array.isArray(post.shares) ? post.shares : [] })),
     follows: clone(demoSocialFollows),
     reports: [],
   };
@@ -20,7 +20,15 @@ export function createSeedSocialState() {
 function readState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved?.schemaVersion === 1 && Array.isArray(saved.users) && Array.isArray(saved.posts) && Array.isArray(saved.follows) && Array.isArray(saved.reports) && saved.users.some((user) => user.id === saved.activeUserId)) return saved;
+    if (saved?.schemaVersion === 1 && Array.isArray(saved.users) && Array.isArray(saved.posts) && Array.isArray(saved.follows) && Array.isArray(saved.reports) && saved.users.some((user) => user.id === saved.activeUserId)) {
+      const seeds = new Map(demoSocialPosts.map((post) => [post.id, post]));
+      saved.posts = saved.posts.map((post) => {
+        const seed = seeds.get(post.id);
+        const media = Array.isArray(post.media) && post.media.length ? post.media : seed?.media || [{ id: `${post.id}-media-1`, imageKey: post.imageKey, localImage: post.localImage || null, storagePath: null }];
+        return { ...post, media, shares: Array.isArray(post.shares) ? post.shares : [], shareCount: post.shareCount ?? seed?.shareCount ?? 0 };
+      });
+      return saved;
+    }
   } catch { /* Demo data remains available when storage is blocked. */ }
   return createSeedSocialState();
 }
@@ -71,6 +79,18 @@ export function toggleSocialSave(postId) {
   return persist();
 }
 
+export function socialShareCount(post) { return Array.isArray(post?.shares) && post.shares.length ? post.shares.length : Number(post?.shareCount || 0); }
+
+export function recordSocialShare(postId, recipientId = null) {
+  const post = socialPost(postId);
+  const senderId = socialState().activeUserId;
+  if (!post || !recipientId || !socialUser(recipientId) || recipientId === senderId) return false;
+  post.shares ||= [];
+  post.shares.push({ id: `share-${crypto.randomUUID()}`, userId: senderId, recipientId, createdAt: now(), channel: 'chat' });
+  post.shareCount = post.shares.length;
+  return persist();
+}
+
 export function toggleSocialFollow(targetId) {
   const actor = socialState().activeUserId;
   if (!socialUser(targetId) || targetId === actor) return false;
@@ -79,11 +99,12 @@ export function toggleSocialFollow(targetId) {
   return persist();
 }
 
-export function addSocialComment(postId, text) {
+export function addSocialComment(postId, text, parentId = null) {
   const post = socialPost(postId);
   const clean = String(text || '').trim().slice(0, 500);
-  if (!post || !clean) return false;
-  post.comments.push({ id: `comment-${crypto.randomUUID()}`, authorId: socialState().activeUserId, text: clean, createdAt: now() });
+  const parent = parentId ? post?.comments.find((comment) => comment.id === parentId) : null;
+  if (!post || !clean || (parentId && !parent)) return false;
+  post.comments.push({ id: `comment-${crypto.randomUUID()}`, authorId: socialState().activeUserId, text: clean, createdAt: now(), parentId: parent?.id || null });
   trackSocialSignal(post, 'comment');
   return persist();
 }
@@ -96,10 +117,12 @@ export function deleteSocialComment(postId, commentId) {
   return persist();
 }
 
-export function createSocialPost({ caption, location, imageKey, localImage, experienceId = null }) {
+export function createSocialPost({ caption, location, imageKey, localImage, media = [], experienceId = null }) {
   const cleanCaption = String(caption || '').trim().slice(0, 2200);
   const cleanLocation = String(location || '').trim().slice(0, 100);
-  if (!socialDemoImageKeys.includes(imageKey) && !localImage) return null;
+  const selectedMedia = Array.isArray(media) ? media.filter((item) => item?.imageKey || item?.localImage).slice(0, 10) : [];
+  if (!selectedMedia.length && !socialDemoImageKeys.includes(imageKey) && !localImage) return null;
+  const normalizedMedia = selectedMedia.length ? selectedMedia.map((item, index) => ({ id: item.id || `media-${crypto.randomUUID()}-${index}`, imageKey: item.localImage ? null : item.imageKey, localImage: item.localImage || null, storagePath: null })) : [{ id: `media-${crypto.randomUUID()}-1`, imageKey: localImage ? null : imageKey, localImage: localImage || null, storagePath: null }];
   const post = {
     id: `post-${crypto.randomUUID()}`,
     schemaVersion: 1,
@@ -110,9 +133,12 @@ export function createSocialPost({ caption, location, imageKey, localImage, expe
     caption: cleanCaption,
     imageKey: localImage ? null : imageKey,
     localImage: localImage || null,
+    media: normalizedMedia,
     experienceId: experienceId || null,
     likedBy: [],
     savedBy: [],
+    shares: [],
+    shareCount: 0,
     comments: [],
   };
   socialState().posts.unshift(post);
@@ -166,11 +192,12 @@ export function toSocialFirebaseFixture(source = socialState()) {
       id: post.id, schemaVersion: 1, authorId: post.authorId, status: 'draft',
       caption: post.caption, location: post.location, experienceId: post.experienceId,
       createdAt: post.createdAt, updatedAt: null,
-      media: { assetKey: post.imageKey, storagePath: null, needsUpload: true },
+      media: (Array.isArray(post.media) && post.media.length ? post.media : [{ imageKey: post.imageKey, localImage: post.localImage }]).map((item) => ({ assetKey: item.imageKey || null, storagePath: item.storagePath || null, needsUpload: true })),
     })),
     likes: publishedPosts.flatMap((post) => post.likedBy.map((userId) => ({ postId: post.id, userId, createdAt: post.createdAt }))),
     saves: publishedPosts.flatMap((post) => post.savedBy.map((userId) => ({ postId: post.id, userId, createdAt: post.createdAt }))),
     comments: publishedPosts.flatMap((post) => post.comments.map((comment) => ({ ...comment, postId: post.id }))),
+    shares: publishedPosts.flatMap((post) => (post.shares || []).map((share) => ({ ...share, postId: post.id }))),
     follows: source.follows.map(([followerId, followingId]) => ({ followerId, followingId, createdAt: '2026-10-01T00:00:00Z' })),
     reports: source.reports.map((report) => ({ ...report })),
     moderationQueue: socialModerationQueue(source).map(({ post, safety }) => ({ postId: post.id, ...safety })),

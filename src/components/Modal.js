@@ -3,6 +3,8 @@ import { icon } from './icons.js';
 import { escapeHtml } from '../utils/html.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { getDemoReviews } from '../features/experiences/demo-engagement.js';
+import { activeSocialUser, socialPost, socialState } from '../features/social/repository.js';
+import { socialImage, socialImagesForPost } from '../features/social/media.js';
 
 function monthGrid(year, month) {
   const first = new Date(year, month, 1).getDay();
@@ -49,6 +51,17 @@ export function modalView() {
   } else if (state.modal === 'share') {
     title = 'Share this experience';
     body = `<p>Copy the link to share this activity.</p><button class="primary-button full" data-action="copy-link">Copy link</button>`;
+  } else if (state.modal === 'social-share') {
+    const post = socialPost(state.socialSharePostId);
+    const people = socialState().users.filter((user) => user.id !== activeSocialUser().id);
+    title = 'Send to chat';
+    body = `<p class="social-share-intro">Share this Vibes post with someone.</p>${post ? `<div class="social-share-preview"><img src="${escapeHtml(socialImage(post))}" alt="" /><span><strong>${escapeHtml(post.location || 'Travel moment')}</strong><small>${escapeHtml(post.caption || 'Travel moment')}</small></span></div>` : ''}<div class="social-share-people">${people.map((user) => `<button data-action="social-share-to-chat" data-value="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
+  } else if (state.modal === 'social-gallery') {
+    const post = socialPost(state.socialGalleryPostId);
+    const photos = post ? socialImagesForPost(post) : [];
+    const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.socialGalleryIndex));
+    title = 'Travel photos';
+    body = post && photos.length ? `<div class="social-lightbox"><div class="social-lightbox-stage" data-social-zoom-stage aria-label="Travel photo ${current + 1} of ${photos.length}"><img data-social-zoom-image src="${escapeHtml(photos[current])}" alt="Travel photo ${current + 1} of ${photos.length}" draggable="false" /></div><div class="social-lightbox-controls"><button data-action="social-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span>${current + 1} / ${photos.length}</span><button data-action="social-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="social-lightbox-hint">Pinch or double tap to zoom · drag to explore</small></div>` : '<p>Photo unavailable.</p>';
   } else if (state.modal === 'promo') {
     title = 'Promo or gift code';
     body = `<label class="form-label">Enter code<input id="promo-code" placeholder="Promo code" /></label><button class="primary-button full" data-action="apply-promo">Apply</button>`;
@@ -59,5 +72,5 @@ export function modalView() {
     title = state.modalTitle || 'Information';
     body = `<p>${escapeHtml(state.modalMessage || '')}</p><button class="primary-button full" data-action="close-modal">OK</button>`;
   }
-  return `<div class="modal-backdrop" data-action="close-modal"><section class="bottom-sheet" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
+  return `<div class="modal-backdrop" data-action="close-modal"><section class="bottom-sheet ${state.modal === 'social-gallery' ? 'social-gallery-modal' : ''}" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
 }

@@ -15,4 +15,17 @@ export const socialImages = {
   colosseum: images.colosseum,
 };
 
-export function socialImage(post) { return post.localImage || socialImages[post.imageKey] || socialImages.kayaking; }
+export function socialMediaItems(post) {
+  if (Array.isArray(post?.media) && post.media.length) {
+    return post.media.map((item, index) => typeof item === 'string'
+      ? { id: `${post.id}-media-${index}`, imageKey: item, localImage: null }
+      : { id: item.id || `${post.id}-media-${index}`, imageKey: item.imageKey || item.assetKey || null, localImage: item.localImage || item.url || null });
+  }
+  return [{ id: `${post?.id || 'social'}-media-0`, imageKey: post?.imageKey, localImage: post?.localImage || null }];
+}
+
+export function socialImagesForPost(post) {
+  return socialMediaItems(post).map((item) => item.localImage || socialImages[item.imageKey] || socialImages.kayaking);
+}
+
+export function socialImage(post) { return socialImagesForPost(post)[0]; }

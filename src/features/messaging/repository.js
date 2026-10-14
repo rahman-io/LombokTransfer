@@ -71,12 +71,12 @@ export function markChatThreadRead(threadId) {
   if (thread.unreadBy[selfId]) { thread.unreadBy[selfId] = 0; changed = true; }
   return changed ? persist() : true;
 }
-export function sendChatMessage(threadId, text) {
+export function sendChatMessage(threadId, text, attachment = null) {
   const thread = chatThread(threadId);
   const senderId = activeSocialUser().id;
   const clean = String(text || '').trim().slice(0, 1000);
   if (!thread || !thread.participantIds.includes(senderId) || !clean) return false;
-  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId] };
+  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(attachment?.type && attachment?.postId ? { attachment: { type: attachment.type, postId: attachment.postId } } : {}) };
   messagingState().messages.push(message);
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;
@@ -94,7 +94,7 @@ export function toMessagingFirebaseFixture(source = messagingState()) {
     })),
     messages: source.messages.map((message) => ({
       id: message.id, conversationId: message.threadId, senderId: message.senderId,
-      text: message.text, createdAt: message.createdAt, readBy: message.readBy,
+      text: message.text, createdAt: message.createdAt, readBy: message.readBy, attachment: message.attachment || null,
     })),
   };
 }

@@ -24,6 +24,10 @@ export const state = {
   filter: 'All',
   inboxFilter: 'All',
   listName: 'Favourites',
+  socialReplyCommentId: '',
+  socialSharePostId: '',
+  socialGalleryPostId: '',
+  socialGalleryIndex: 0,
 };
 
 export function update(patch) {

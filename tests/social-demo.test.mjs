@@ -23,6 +23,7 @@ test('seeded community has stable linked users, posts and interactions', () => {
     assert.ok(post.likedBy.every((id) => seed.users.some((user) => user.id === id)));
     assert.ok(post.comments.every((comment) => seed.users.some((user) => user.id === comment.authorId)));
   }
+  assert.ok(seed.posts.some((post) => post.media.length > 1));
 });
 
 test('switching demo accounts changes whose likes, saves and follows are toggled', () => {
@@ -47,6 +48,10 @@ test('comments and posts keep author identity and self-only deletion', () => {
   assert.equal(addSocialComment('post-agafay', '  Wonderful trip!  '), true);
   assert.equal(socialPost('post-agafay').comments.at(-1).authorId, 'maya');
   const commentId = socialPost('post-agafay').comments.at(-1).id;
+  assert.equal(addSocialComment('post-agafay', 'A reply from the trail!', commentId), true);
+  assert.equal(socialPost('post-agafay').comments.at(-1).parentId, commentId);
+  const replyId = socialPost('post-agafay').comments.at(-1).id;
+  assert.equal(deleteSocialComment('post-agafay', replyId), true);
   assert.equal(deleteSocialComment('post-agafay', commentId), true);
   const created = createSocialPost({ caption: '  One more adventure  ', location: 'Split', imageKey: 'kayaking', experienceId: 'kayaking' });
   assert.equal(created.authorId, 'maya');
@@ -56,6 +61,8 @@ test('comments and posts keep author identity and self-only deletion', () => {
   assert.equal(socialPost(created.id).caption, 'Updated caption');
   const photoOnly = createSocialPost({ caption: '', location: 'Split', imageKey: 'kayaking' });
   assert.equal(photoOnly.caption, '');
+  const carousel = createSocialPost({ caption: 'A carousel', location: 'Split', media: [{ imageKey: 'kayaking' }, { imageKey: 'kayakingSunset' }] });
+  assert.equal(carousel.media.length, 2);
   assert.equal(switchSocialUser('rahman'), true);
   assert.equal(editSocialPost(created.id, { caption: 'Wrong owner', location: 'Elsewhere' }), false);
   assert.equal(deleteSocialPost(created.id), false);
@@ -72,7 +79,8 @@ test('Firebase export separates relationships and keeps photos/posts unpublished
   assert.ok(exported.saves.length > 0);
   assert.ok(exported.follows.length > 0);
   assert.equal(exported.socialPosts[0].status, 'draft');
-  assert.equal(exported.socialPosts[0].media.storagePath, null);
+  assert.equal(Array.isArray(exported.socialPosts[0].media), true);
+  assert.equal(exported.socialPosts[0].media[0].storagePath, null);
   assert.equal('likedBy' in exported.socialPosts[0], false);
   assert.equal('localImage' in exported.socialPosts[0], false);
   assert.equal(exported.reports[0].reporterId, 'rahman');

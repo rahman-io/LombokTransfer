@@ -15,7 +15,7 @@ import { bookingView, checkoutView, cardDetailsView } from '../features/booking/
 import { experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
-import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, socialState, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
+import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
 import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
@@ -26,6 +26,11 @@ const root = document.getElementById('app');
 let lastPath = '';
 let galleryDrag = null;
 let suppressGalleryClick = false;
+let suppressSocialMediaClick = false;
+let socialMediaTap = null;
+let socialCarouselDrag = null;
+let socialPinchPointers = new Map();
+let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let devBrowserPreview = false;
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
 function syncDetailHeader() {
@@ -122,6 +127,17 @@ function announce(message) {
 }
 function closeModal() { state.modal = ''; render(); }
 function openModal(name) { state.modal = name; render(); }
+function resetSocialZoom() { socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false }; }
+function applySocialZoom() {
+  const image = root.querySelector('[data-social-zoom-image]');
+  if (image) image.style.transform = `translate(${socialZoom.x}px, ${socialZoom.y}px) scale(${socialZoom.scale})`;
+}
+function openSocialGallery(postId, index = 0) {
+  state.socialGalleryPostId = postId;
+  state.socialGalleryIndex = Number(index) || 0;
+  resetSocialZoom();
+  openModal('social-gallery');
+}
 function clickAction(action, el) {
   const { path } = route();
   const id = el.dataset.id || path.split('/')[2] || state.selectedExperience;
@@ -194,16 +210,41 @@ function clickAction(action, el) {
     case 'social-like': toggleSocialLike(id); render(); break;
     case 'social-save': toggleSocialSave(id); render(); break;
     case 'social-follow': toggleSocialFollow(id); render(); break;
-    case 'social-select-photo': socialDraft.imageKey = value; socialDraft.localImage = null; render(); break;
+    case 'social-reply': state.socialReplyCommentId = value; render(); break;
+    case 'social-cancel-reply': state.socialReplyCommentId = ''; render(); break;
+    case 'social-select-photo': {
+      const current = socialDraft.media || [];
+      const exists = current.some((item) => item.imageKey === value && !item.localImage);
+      const next = exists ? current.filter((item) => item.imageKey !== value || item.localImage) : [...current, { imageKey: value, localImage: null }];
+      socialDraft.media = next.length ? next : [{ imageKey: value, localImage: null }];
+      socialDraft.imageKey = socialDraft.media[0].imageKey || 'kayaking';
+      socialDraft.localImage = socialDraft.media[0].localImage || null;
+      render();
+      break;
+    }
+    case 'social-open-gallery': openSocialGallery(id, value); break;
+    case 'social-gallery-prev': state.socialGalleryIndex = Math.max(0, state.socialGalleryIndex - 1); resetSocialZoom(); render(); break;
+    case 'social-gallery-next': state.socialGalleryIndex += 1; resetSocialZoom(); render(); break;
     case 'social-delete': if (window.confirm('Delete this post from the local demo?') && deleteSocialPost(id)) navigate('/social'); break;
     case 'social-delete-comment': if (deleteSocialComment(id, value)) render(); break;
     case 'social-report': if (reportSocialPost(id)) announce('Report saved for admin review (demo)'); else announce('This post was already reported'); break;
     case 'social-share': {
       const post = socialPost(id);
       if (!post) break;
-      const url = `${location.origin}${location.pathname}#/social/post/${encodeURIComponent(id)}`;
-      if (navigator.share) navigator.share({ title: 'Travel moment', url }).catch(() => {});
-      else navigator.clipboard?.writeText(url).then(() => announce('Post link copied')).catch(() => announce('Sharing unavailable'));
+      state.socialSharePostId = post.id;
+      openModal('social-share');
+      break;
+    }
+    case 'social-share-to-chat': {
+      const post = socialPost(state.socialSharePostId);
+      const recipient = socialUser(value);
+      if (!post || !recipient) break;
+      const threadId = getOrCreateChatThread(recipient.id);
+      if (!threadId || !sendChatMessage(threadId, 'Shared a Vibes post with you', { type: 'social-post', postId: post.id })) { announce('Could not send this post'); break; }
+      recordSocialShare(post.id, recipient.id);
+      state.socialSharePostId = '';
+      state.modal = '';
+      navigate(`/inbox/chat/${encodeURIComponent(threadId)}`);
       break;
     }
     default: break;
@@ -221,6 +262,30 @@ export function startApp() {
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
   root.addEventListener('click', (event) => {
+    const socialMedia = event.target.closest('[data-social-media]');
+    if (socialMedia) {
+      event.preventDefault();
+      if (suppressSocialMediaClick) { suppressSocialMediaClick = false; return; }
+      const postId = socialMedia.dataset.socialMedia;
+      const now = Date.now();
+      if (socialMediaTap?.postId === postId && now - socialMediaTap.at < 360) {
+        clearTimeout(socialMediaTap.timer);
+        socialMediaTap = null;
+        toggleSocialLike(postId);
+        render();
+      } else {
+        if (socialMediaTap) clearTimeout(socialMediaTap.timer);
+        socialMediaTap = { postId, at: now, timer: setTimeout(() => { socialMediaTap = null; navigate(`/social/post/${encodeURIComponent(postId)}`); }, 360) };
+      }
+      return;
+    }
+    const zoomStage = event.target.closest('[data-social-zoom-stage]');
+    if (zoomStage) {
+      const now = Date.now();
+      if (now - socialZoom.lastTap < 320) { socialZoom.scale = socialZoom.scale > 1 ? 1 : 2; socialZoom.x = 0; socialZoom.y = 0; applySocialZoom(); socialZoom.lastTap = 0; }
+      else socialZoom.lastTap = now;
+      return;
+    }
     const el = event.target.closest('[data-action]');
     if (!el) return;
     if (suppressGalleryClick && el.dataset.action === 'gallery') {
@@ -234,10 +299,50 @@ export function startApp() {
   });
   root.addEventListener('pointerdown', (event) => {
     const track = event.target.closest('[data-gallery-track]');
-    if (!track || event.pointerType !== 'mouse') return;
-    galleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
+    if (track && event.pointerType === 'mouse') galleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
+    const carousel = event.target.closest('[data-social-carousel]');
+    if (carousel) socialCarouselDrag = { track: carousel, pointerId: event.pointerId, x: event.clientX, left: carousel.scrollLeft, moved: false };
+    const socialMedia = event.target.closest('[data-social-media]');
+    if (socialMedia && event.pointerType !== 'mouse') {
+      socialPinchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY, postId: socialMedia.dataset.socialMedia, index: socialMedia.dataset.mediaIndex || 0 });
+      if (socialPinchPointers.size === 2) {
+        const first = [...socialPinchPointers.values()][0];
+        clearTimeout(socialMediaTap?.timer);
+        socialMediaTap = null;
+        openSocialGallery(first.postId, first.index);
+      }
+    }
+    const zoomStage = event.target.closest('[data-social-zoom-stage]');
+    if (zoomStage) {
+      zoomStage.setPointerCapture?.(event.pointerId);
+      zoomStage.dataset.pointerId = event.pointerId;
+      zoomStage._socialPointer = { x: event.clientX, y: event.clientY };
+    }
   });
   root.addEventListener('pointermove', (event) => {
+    if (socialPinchPointers.has(event.pointerId)) socialPinchPointers.set(event.pointerId, { ...socialPinchPointers.get(event.pointerId), x: event.clientX, y: event.clientY });
+    const zoomStage = event.target.closest('[data-social-zoom-stage]');
+    if (zoomStage && socialZoom.scale > 1 && zoomStage._socialPointer && socialPinchPointers.size < 2) {
+      socialZoom.x += event.clientX - zoomStage._socialPointer.x;
+      socialZoom.y += event.clientY - zoomStage._socialPointer.y;
+      zoomStage._socialPointer = { x: event.clientX, y: event.clientY };
+      socialZoom.moved = true;
+      applySocialZoom();
+      return;
+    }
+    if (socialPinchPointers.size === 2) {
+      const points = [...socialPinchPointers.values()];
+      const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      if (!socialZoom.pinchStart) socialZoom.pinchStart = { distance, scale: socialZoom.scale };
+      socialZoom.scale = Math.max(1, Math.min(4, socialZoom.pinchStart.scale * (distance / socialZoom.pinchStart.distance)));
+      applySocialZoom();
+      return;
+    }
+    if (socialCarouselDrag && socialCarouselDrag.pointerId === event.pointerId) {
+      const distance = event.clientX - socialCarouselDrag.x;
+      if (Math.abs(distance) > 6 && !socialCarouselDrag.moved) { socialCarouselDrag.moved = true; socialCarouselDrag.track.setPointerCapture?.(event.pointerId); }
+      if (socialCarouselDrag.moved) socialCarouselDrag.track.scrollLeft = socialCarouselDrag.left - distance;
+    }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
     const distance = event.clientX - galleryDrag.x;
     if (Math.abs(distance) > 6 && !galleryDrag.moved) {
@@ -248,6 +353,12 @@ export function startApp() {
     if (galleryDrag.moved) galleryDrag.track.scrollLeft = galleryDrag.left - distance;
   });
   const endGalleryDrag = (event) => {
+    socialPinchPointers.delete(event.pointerId);
+    if (!socialPinchPointers.size) socialZoom.pinchStart = null;
+    if (socialCarouselDrag?.pointerId === event.pointerId) {
+      if (socialCarouselDrag.moved) { suppressSocialMediaClick = true; setTimeout(() => { suppressSocialMediaClick = false; }, 0); }
+      socialCarouselDrag = null;
+    }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
     if (galleryDrag.moved) {
       galleryDrag.track.style.scrollSnapType = '';
@@ -288,13 +399,18 @@ export function startApp() {
   });
   root.addEventListener('scroll', (event) => {
     const track = event.target;
+    if (track.matches?.('[data-social-carousel]') && track.clientWidth) {
+      const index = Math.max(0, Math.round(track.scrollLeft / track.clientWidth));
+      track.parentElement?.querySelectorAll('.social-post-dots span').forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === index));
+      return;
+    }
     if (!track.matches?.('[data-gallery-track]') || !track.clientWidth) return;
     const index = Math.max(0, Math.min(galleryLength() - 1, Math.round(track.scrollLeft / track.clientWidth)));
     updateGalleryIndicators(index);
   }, true);
   root.addEventListener('change', (event) => {
-    if (event.target.id === 'social-photo-input' && event.target.files?.[0]) {
-      prepareSocialPhoto(event.target.files[0]).then((dataUrl) => { socialDraft.localImage = dataUrl; render(); }).catch((error) => announce(error.message));
+    if (event.target.id === 'social-photo-input' && event.target.files?.length) {
+      Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));
     }
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
@@ -309,7 +425,7 @@ export function startApp() {
     }
     if (event.target.id === 'social-compose-form') {
       event.preventDefault();
-      const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage, experienceId: socialDraft.experienceId });
+      const post = createSocialPost({ caption: socialDraft.caption, location: socialDraft.location, imageKey: socialDraft.imageKey, localImage: socialDraft.localImage, media: socialDraft.media, experienceId: socialDraft.experienceId });
       if (!post) { announce('Could not save this post on this device'); return; }
       clearSocialDraft();
       navigate(`/social/post/${encodeURIComponent(post.id)}`);
@@ -318,7 +434,7 @@ export function startApp() {
       event.preventDefault();
       const postId = route().path.split('/')[3];
       const input = event.target.elements.comment;
-      if (addSocialComment(postId, input?.value)) render();
+      if (addSocialComment(postId, input?.value, event.target.dataset.replyTo || null)) { state.socialReplyCommentId = ''; render(); }
     }
     if (event.target.id === 'social-edit-form') {
       event.preventDefault();
