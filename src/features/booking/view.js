@@ -4,10 +4,12 @@ import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { formatDate, escapeHtml } from '../../utils/html.js';
+import { calculateDemoQuote, formatDemoPrice } from '../experiences/booking-demo.js';
 export function bookingView(id) {
   const item = getExperience(id);
   const dateText = state.date ? formatDate(state.date) : 'Select a date';
-  const total = item.id === 'kayaking' ? '51.51' : item.price.toFixed(2);
+  const quote = calculateDemoQuote(item, state);
+  const total = quote.total.toFixed(2);
   return mainLayout(`
     ${header(item.title, `<button class="icon-button" data-action="heart" data-id="${item.id}">${icon('heart')}</button><button class="icon-button" data-action="share">${icon('share')}</button>`, 'truncated')}
     <div class="page-pad booking-page">
@@ -19,7 +21,7 @@ export function bookingView(id) {
       <h2>1 option available</h2>
       <article class="option-card"><h3>${item.title}</h3><div class="option-fact">${icon('clock', 21)} Duration: ${item.duration}</div><div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div><button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
         <hr /><h3>Starting time</h3><p>${dateText}</p><button class="time-button ${state.selectedTime === '6:00 PM' ? 'active' : ''}" data-action="select-time" data-value="6:00 PM">6:00 PM</button><button class="time-button ${state.selectedTime === '7:30 PM' ? 'active' : ''}" data-action="select-time" data-value="7:30 PM">7:30 PM</button>
-        <p class="urgency">${icon('info', 17)} Only 21 hours left to book</p><hr /><strong class="option-price">$${total}</strong><small>${state.adults} Adult × $${total}<br/>All taxes and fees included</small><a class="primary-button full" href="#/checkout/${item.id}">Continue</a>
+        <p class="urgency">${icon('info', 17)} Only 21 hours left to book</p><hr /><strong class="option-price">$${total}</strong><small>${state.adults} Adult × ${formatDemoPrice(quote.adultPrice)}${state.children ? `<br/>${state.children} Child × ${formatDemoPrice(quote.childPrice)}` : ''}<br/>Demo price · All taxes and fees included</small><a class="primary-button full" href="#/checkout/${item.id}">Continue</a>
       </article>
       <details><summary>Meeting point</summary><p>Your exact meeting point will be confirmed after booking.</p></details>
       <details><summary>Important information</summary><p>Bring your booking confirmation and arrive before the selected time.</p></details>
@@ -32,8 +34,8 @@ function progress(step) {
 export function checkoutView(id) {
   const item = getExperience(id);
   const step = state.checkoutStep;
-  const total = item.id === 'kayaking' ? '51.51' : item.price.toFixed(2);
-  const summary = `<div class="checkout-summary"><strong>${item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult · ${formatDate(state.date)} · ${state.selectedTime} · Instructor: English</small></div>`;
+  const total = calculateDemoQuote(item, state).total.toFixed(2);
+  const summary = `<div class="checkout-summary"><strong>${item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${state.selectedTime} · Instructor: English · Demo price</small></div>`;
   const contact = `
     <h1>Enter your personal details</h1>
     <label class="form-label"><span>Full name</span><input id="checkout-name" autocomplete="name" placeholder="Full name" value="${escapeHtml(state.guestName)}" required /></label>
@@ -45,7 +47,7 @@ export function checkoutView(id) {
     <div class="checkout-total"><strong>$${total}</strong><small>Total</small></div><button class="primary-button full" data-action="go-payment">Go to payment</button>`;
   const payment = `
     <h2>Choose your currency</h2><p class="muted">Pay in your usual currency to avoid possible exchange rate fees from your bank.</p>
-    <div class="radio-group"><label><input type="radio" name="currency" checked /> $${total}</label><label><input type="radio" name="currency" /> zł 201.10</label></div>
+    <div class="radio-group"><label><input type="radio" name="currency" checked /> $${total}</label><label><input type="radio" name="currency" /> zł ${(Number(total) * 4).toFixed(2)} (demo)</label></div>
     <h2>Payment method</h2><div class="radio-group">
       <label><input type="radio" name="payment" value="card" ${state.paymentMethod === 'card' ? 'checked' : ''} /> Debit or credit card ${icon('credit', 22)}</label>
       <label><input type="radio" name="payment" value="paypal" ${state.paymentMethod === 'paypal' ? 'checked' : ''} /> PayPal</label>
@@ -64,7 +66,7 @@ export function checkoutView(id) {
 }
 export function cardDetailsView(id) {
   const item = getExperience(id);
-  const total = item.id === 'kayaking' ? '51.51' : item.price.toFixed(2);
+  const total = calculateDemoQuote(item, state).total.toFixed(2);
   return mainLayout(`
     ${header('Card details')}<div class="page-pad card-details-page">
       <h1>Enter card details</h1>
