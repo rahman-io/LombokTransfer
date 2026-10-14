@@ -31,8 +31,25 @@ let socialMediaTap = null;
 let socialCarouselDrag = null;
 let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
+let mainSwipe = null;
+let mainTouchSwipe = null;
+let suppressMainSwipeClick = false;
 let devBrowserPreview = false;
+const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
+function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
+function canStartMainSwipe(target) {
+  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
+}
+function navigateMainSwipe(distance) {
+  const currentIndex = mainNavigationIndex();
+  if (currentIndex < 0) return;
+  const nextIndex = currentIndex + (distance < 0 ? 1 : -1);
+  if (nextIndex < 0 || nextIndex >= mainNavigationPaths.length) return;
+  suppressMainSwipeClick = true;
+  setTimeout(() => { suppressMainSwipeClick = false; }, 0);
+  navigate(mainNavigationPaths[nextIndex]);
+}
 function syncDetailHeader() {
   const header = root.querySelector('[data-detail-sticky-header]');
   const actions = root.querySelector('.detail-top-actions');
@@ -262,6 +279,7 @@ export function startApp() {
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
   root.addEventListener('click', (event) => {
+    if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
     const socialMedia = event.target.closest('[data-social-media]');
     if (socialMedia) {
       event.preventDefault();
@@ -298,6 +316,11 @@ export function startApp() {
     clickAction(el.dataset.action, el);
   });
   root.addEventListener('pointerdown', (event) => {
+    const mainIndex = mainNavigationIndex();
+    const swipeTarget = event.target.closest('.main-content');
+    if (mainIndex >= 0 && swipeTarget && event.pointerType !== 'touch' && canStartMainSwipe(event.target)) {
+      mainSwipe = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    }
     const track = event.target.closest('[data-gallery-track]');
     if (track && event.pointerType === 'mouse') galleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
     const carousel = event.target.closest('[data-social-carousel]');
@@ -320,6 +343,14 @@ export function startApp() {
     }
   });
   root.addEventListener('pointermove', (event) => {
+    if (mainSwipe?.pointerId === event.pointerId) {
+      const distanceX = event.clientX - mainSwipe.x;
+      const distanceY = event.clientY - mainSwipe.y;
+      if (Math.abs(distanceX) > 8 && Math.abs(distanceX) > Math.abs(distanceY)) {
+        mainSwipe.moved = true;
+        event.preventDefault();
+      }
+    }
     if (socialPinchPointers.has(event.pointerId)) socialPinchPointers.set(event.pointerId, { ...socialPinchPointers.get(event.pointerId), x: event.clientX, y: event.clientY });
     const zoomStage = event.target.closest('[data-social-zoom-stage]');
     if (zoomStage && socialZoom.scale > 1 && zoomStage._socialPointer && socialPinchPointers.size < 2) {
@@ -353,6 +384,15 @@ export function startApp() {
     if (galleryDrag.moved) galleryDrag.track.scrollLeft = galleryDrag.left - distance;
   });
   const endGalleryDrag = (event) => {
+    if (mainSwipe?.pointerId === event.pointerId) {
+      if (mainSwipe.moved) {
+        suppressMainSwipeClick = true;
+        setTimeout(() => { suppressMainSwipeClick = false; }, 0);
+        const distance = event.clientX - mainSwipe.x;
+        navigateMainSwipe(distance);
+      }
+      mainSwipe = null;
+    }
     socialPinchPointers.delete(event.pointerId);
     if (!socialPinchPointers.size) socialZoom.pinchStart = null;
     if (socialCarouselDrag?.pointerId === event.pointerId) {
@@ -370,6 +410,30 @@ export function startApp() {
   };
   root.addEventListener('pointerup', endGalleryDrag);
   root.addEventListener('pointercancel', endGalleryDrag);
+  root.addEventListener('touchstart', (event) => {
+    const touch = event.touches[0];
+    if (touch && canStartMainSwipe(event.target)) mainTouchSwipe = { x: touch.clientX, y: touch.clientY, moved: false };
+  }, { passive: true });
+  root.addEventListener('touchmove', (event) => {
+    const touch = event.touches[0];
+    if (!mainTouchSwipe || !touch) return;
+    const distanceX = touch.clientX - mainTouchSwipe.x;
+    const distanceY = touch.clientY - mainTouchSwipe.y;
+    if (Math.abs(distanceX) > 8 && Math.abs(distanceX) > Math.abs(distanceY)) {
+      mainTouchSwipe.moved = true;
+      event.preventDefault();
+    }
+  }, { passive: false });
+  root.addEventListener('touchend', (event) => {
+    const touch = event.changedTouches[0];
+    if (!mainTouchSwipe || !touch) return;
+    if (mainTouchSwipe.moved) {
+      suppressMainSwipeClick = true;
+      setTimeout(() => { suppressMainSwipeClick = false; }, 0);
+      navigateMainSwipe(touch.clientX - mainTouchSwipe.x);
+    }
+    mainTouchSwipe = null;
+  }, { passive: true });
   root.addEventListener('input', (event) => {
     if (event.target.closest('#social-compose-form')) {
       if (event.target.name === 'caption') socialDraft.caption = event.target.value;
