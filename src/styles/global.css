@@ -1,6 +1,6 @@
 body{min-width:320px;background:#f5f6f8;-webkit-tap-highlight-color:transparent}
 #app{min-height:100dvh}
-.app-shell{position:relative;width:min(100%,560px);min-height:100dvh;margin:auto;padding-top:env(safe-area-inset-top);background:#fff;box-shadow:0 0 28px #09152b0c;overflow:hidden}
+.app-shell{position:relative;width:min(100%,560px);min-height:100dvh;margin:auto;padding-top:env(safe-area-inset-top);background:#fff;box-shadow:0 0 28px #09152b0c;overflow:clip}
 .main-content{min-height:100dvh;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 h1,h2,h3,p{margin-top:0}
 h1,h2,h3{letter-spacing:-.035em;color:var(--navy);line-height:1.17}

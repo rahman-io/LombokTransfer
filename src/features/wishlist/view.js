@@ -7,7 +7,8 @@ import { experienceCard } from '../../components/cards.js';
 export function wishlistView() {
   const cover = state.wishlist.map((id) => experiences.find((item) => item.id === id)).find(Boolean);
   return mainLayout(`
-    <div class="page-pad wishlist-overview"><div class="title-row"><h1>Wishlist</h1><button class="icon-button" data-action="new-list" aria-label="Create a list">${icon('plus')}</button></div>
+    ${header('Wishlist', `<button class="icon-button" data-action="new-list" aria-label="Create a list">${icon('plus')}</button>`)}
+    <div class="page-pad wishlist-overview">
     <a href="#/wishlist/favourites" class="wishlist-album"><img src="${cover?.cardImage || cover?.image || images.wishlist}" alt="" /><div><span><strong>${state.listName}</strong><small>${state.wishlist.length} ${state.wishlist.length === 1 ? 'activity' : 'activities'}</small></span>${icon('chevron', 21)}</div></a></div>
   `, 'Profile');
 }
