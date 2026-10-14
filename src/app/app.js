@@ -21,6 +21,12 @@ let galleryDrag = null;
 let suppressGalleryClick = false;
 let devBrowserPreview = false;
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
+function syncDetailHeader() {
+  const header = root.querySelector('[data-detail-sticky-header]');
+  const actions = root.querySelector('.detail-top-actions');
+  if (!header || !actions) return;
+  header.classList.toggle('is-visible', actions.getBoundingClientRect().bottom <= 0);
+}
 function currentView() {
   const { path, params } = route();
   if (path === '/login') return loginView();
@@ -53,6 +59,7 @@ export function render() {
     window.scrollTo({ top: 0, behavior: 'instant' });
     lastPath = path;
   }
+  syncDetailHeader();
 }
 function galleryLength() {
   const { path } = route();
@@ -158,6 +165,7 @@ export function startApp() {
     setTimeout(() => navigate('/login'), 850);
   } else render();
   window.addEventListener('hashchange', () => { state.modal = ''; render(); });
+  window.addEventListener('scroll', syncDetailHeader, { passive: true });
   root.addEventListener('click', (event) => {
     const el = event.target.closest('[data-action]');
     if (!el) return;

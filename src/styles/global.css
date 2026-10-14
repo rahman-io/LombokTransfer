@@ -29,6 +29,7 @@ p{line-height:1.5}.muted,small{color:var(--muted)}
 .chip{display:inline-flex;justify-content:center;align-items:center;gap:6px;min-height:39px;padding:7px 18px;border-radius:999px;background:#ebeff2;color:var(--navy);white-space:nowrap}
 .chip.selected{background:var(--navy);color:#fff}.chip.round{width:39px;padding:0}
 .home-hero{padding:40px var(--gutter) 28px;background:linear-gradient(180deg,#e7f4ff 0,#fff 78%)}
+.app-shell:has(.home-page)::before{content:"";position:absolute;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#e7f4ff}
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .hero-top h1{font-size:30px;line-height:1.03;margin:0 0 34px;font-weight:900}
 .inbox-button{position:relative;display:grid;place-items:center;width:43px;height:43px;border:1px solid var(--line);background:#fff;border-radius:50%}

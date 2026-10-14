@@ -12,6 +12,12 @@ export function experienceView(id) {
   const photos = getExperienceGallery(item);
   const cancellation = item.cancellation || { title: 'Free cancellation', text: 'Cancel up to 24 hours in advance for a full refund' };
   const detail = `
+    <header class="detail-sticky-header" data-detail-sticky-header>
+      <button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>
+      <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
+      <button class="icon-button ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="Wishlist">${icon('heart')}</button>
+      <button class="icon-button" data-action="share" aria-label="Share">${icon('share')}</button>
+    </header>
     <div class="detail-top">
       <div class="detail-gallery"><div class="detail-gallery-track" data-gallery-track aria-label="Activity photos" tabindex="0">${photos.map((source, index) => `<img class="detail-main-image" src="${escapeHtml(source)}" alt="${escapeHtml(item.title)} — photo ${index + 1} of ${photos.length}" data-action="gallery" data-id="${escapeHtml(item.id)}" data-index="${index}" ${index ? 'loading="lazy"' : ''} draggable="false" />`).join('')}</div>
         <div class="detail-top-actions"><button class="round-white" data-action="back" aria-label="Back">${icon('arrow')}</button><span><button class="round-white ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="Wishlist">${icon('heart')}</button><button class="round-white" data-action="share" aria-label="Share">${icon('share')}</button></span></div>
