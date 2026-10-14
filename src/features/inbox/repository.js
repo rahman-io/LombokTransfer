@@ -1,6 +1,9 @@
 import { demoMessages } from '../experiences/demo-engagement.js';
 import { activeSocialUser, socialActivity } from '../social/repository.js';
 import { chatMessages, visibleChatThreads } from '../messaging/repository.js';
+import { state } from '../../app/store.js';
+import { visibleSocialPosts } from '../social/repository.js';
+import { getContextAwareNotifications } from '../travel-intelligence/repository.js';
 
 const STORAGE_KEY = 'lombok-inbox-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -41,6 +44,7 @@ export function unreadInboxItems() {
   demoMessages.filter((message) => !message.read && !isRead(`update:${message.id}`)).forEach((message) => items.push({ id: `update:${message.id}`, type: 'Updates', source: message }));
   socialActivity(selfId).filter((event) => !isRead(`activity:${event.id}`)).forEach((event) => items.push({ id: `activity:${event.id}`, type: 'Activity', source: event }));
   visibleChatThreads().forEach((thread) => chatMessages(thread.id).filter((message) => message.senderId !== selfId && !message.readBy.includes(selfId)).forEach((message) => items.push({ id: `message:${message.id}`, type: 'Messages', source: message })));
+  getContextAwareNotifications({ userState: state, posts: visibleSocialPosts() }).filter((notification) => !isRead(`smart:${notification.id}`)).forEach((notification) => items.push({ id: `smart:${notification.id}`, type: 'Smart', source: notification }));
   return items;
 }
 

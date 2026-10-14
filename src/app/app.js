@@ -15,11 +15,12 @@ import { bookingView, checkoutView, cardDetailsView } from '../features/booking/
 import { experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
-import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave } from '../features/social/repository.js';
+import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, reportSocialPost, socialPost, socialState, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
 import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
+import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -74,7 +75,14 @@ export function render() {
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   selectGalleryIndex(state.galleryIndex, false);
   if (path !== lastPath) {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    const restoreSocialFeed = path === '/social' && lastPath.startsWith('/social/post/') && state.socialFeedReturnHash === location.hash;
+    if (restoreSocialFeed) {
+      const scrollTop = state.socialFeedScroll;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollTop, behavior: 'instant' });
+        requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: 'instant' }));
+      });
+    } else window.scrollTo({ top: 0, behavior: 'instant' });
     lastPath = path;
   }
   syncDetailHeader();
@@ -176,6 +184,11 @@ function clickAction(action, el) {
     case 'booking-history': announce('No past bookings yet'); break;
     case 'inbox-more': announce('Inbox is up to date'); break;
     case 'inbox-read': markInboxItemRead(value); navigate(el.dataset.href || '/inbox'); break;
+    case 'travel-mission-claim': {
+      const user = socialState().activeUserId;
+      if (claimTravelMission(id, { userState: state, posts: visibleSocialPosts(), userId: user })) announce('Mission reward claimed');
+      break;
+    }
     case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
     case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;
@@ -198,6 +211,7 @@ function clickAction(action, el) {
   }
 }
 export function startApp() {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   watchInstallation(render);
   const firstLaunch = !needsInstallation() && !location.hash && !localStorage.getItem('travel-intro-seen');
   if (firstLaunch) {
@@ -207,6 +221,11 @@ export function startApp() {
   window.addEventListener('hashchange', () => { state.modal = ''; render(); });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
   root.addEventListener('click', (event) => {
+    const socialPostLink = event.target.closest('a[href^="#/social/post/"]');
+    if (socialPostLink && route().path === '/social') {
+      state.socialFeedScroll = window.scrollY;
+      state.socialFeedReturnHash = location.hash;
+    }
     const el = event.target.closest('[data-action]');
     if (!el) return;
     if (suppressGalleryClick && el.dataset.action === 'gallery') {
