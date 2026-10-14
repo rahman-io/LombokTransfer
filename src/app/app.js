@@ -50,6 +50,12 @@ function navigateMainSwipe(distance) {
   setTimeout(() => { suppressMainSwipeClick = false; }, 0);
   navigate(mainNavigationPaths[nextIndex]);
 }
+function mainNavigationTransition(path) {
+  const currentIndex = mainNavigationIndex();
+  const previousIndex = mainNavigationPaths.indexOf(path);
+  if (currentIndex < 0 || previousIndex < 0 || currentIndex === previousIndex) return '';
+  return currentIndex > previousIndex ? 'next' : 'previous';
+}
 function syncDetailHeader() {
   const header = root.querySelector('[data-detail-sticky-header]');
   const actions = root.querySelector('.detail-top-actions');
@@ -93,7 +99,9 @@ export function render() {
   }
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
+  const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
+  if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   selectGalleryIndex(state.galleryIndex, false);
   if (path !== lastPath) {
