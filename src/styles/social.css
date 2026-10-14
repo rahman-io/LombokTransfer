@@ -55,10 +55,10 @@
 .social-post-dots span{width:5px;height:5px;border-radius:50%;background:#fff9}.social-post-dots span.active{background:#fff}
 .social-post-zoom-button{position:absolute;right:10px;bottom:9px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--navy);box-shadow:0 3px 12px #10284a33}
 .social-post-actions{display:flex;align-items:center;justify-content:space-between;padding:9px 15px 2px}
-.social-post-actions>div{display:flex;align-items:center;justify-content:space-between;width:205px}
-.social-action-item{display:inline-flex;align-items:center;gap:3px;color:var(--navy)}
+.social-post-actions>div{display:flex;align-items:center;justify-content:space-between;width:220px}
+.social-action-item{display:inline-flex;align-items:center;gap:7px;color:var(--navy)}
 .social-action-item button,.social-action-item a{display:grid;place-items:center;width:30px;height:30px}
-.social-action-item small{font-size:11px;color:#697488;font-weight:700}
+.social-action-item small{font-size:16px;line-height:1;color:var(--navy);font-weight:700;white-space:nowrap}
 .social-post-actions>button{display:grid;place-items:center;width:30px;height:30px}
 .social-post-actions .is-liked{color:#ff593a}.social-post-actions .is-liked .icon{fill:#ff593a}
 .social-post-actions .is-saved .icon{fill:var(--navy)}
