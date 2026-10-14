@@ -31,7 +31,7 @@ p{line-height:1.5}.muted,small{color:var(--muted)}
 .home-hero{padding:40px var(--gutter) 28px;background:linear-gradient(180deg,#e7f4ff 0,#fff 78%)}
 .app-shell:has(.home-page)::before{content:"";position:absolute;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#e7f4ff}
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.hero-top h1{font-size:30px;line-height:1.03;margin:0 0 34px;font-weight:900}
+.home-greeting{min-width:0;flex:1}.home-greeting-row{display:flex;align-items:center;justify-content:space-between;gap:14px}.hero-top h1{font-size:30px;line-height:1.03;margin:0 0 6px;font-weight:900}.home-greeting p{margin:0 0 28px;color:var(--navy);font-size:16px}.home-profile-photo{width:45px;height:45px;flex:none;border:2px solid #fff;border-radius:50%;object-fit:cover;object-position:68% 55%;box-shadow:0 0 0 1px var(--line)}
 .inbox-button{position:relative;display:grid;place-items:center;width:43px;height:43px;border:1px solid var(--line);background:#fff;border-radius:50%}
 .notification-dot{position:absolute;right:-3px;top:0;width:19px;height:19px;display:grid;place-items:center;border-radius:50%;background:var(--red);color:#fff;font-size:11px}
 .search-pill,.search-field,.results-search{display:flex;align-items:center;gap:10px;height:47px;border:1px solid #d1d7df;border-radius:30px;padding:0 15px;background:#fff;color:var(--navy)}
@@ -43,6 +43,7 @@ p{line-height:1.5}.muted,small{color:var(--muted)}
 .tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
 .tile strong{display:block;margin-top:6px;font-size:16px;line-height:1.2}
 .tile small{font-size:13px}
+.home-destinations .tile-row{gap:12px}.home-destinations .tile{position:relative;flex:0 0 calc(50% - 6px);min-width:0;height:min(62vw,330px);overflow:hidden;border-radius:17px;color:#fff;background:var(--navy)}.home-destinations .tile img{width:100%;height:100%;aspect-ratio:auto;border-radius:0;object-fit:cover}.home-destinations .tile:after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(180deg,transparent,#091a3bcc)}.destination-tile-copy{position:absolute;z-index:1;right:14px;bottom:14px;left:14px}.destination-tile-copy strong{margin:0;font-size:20px}.destination-tile-copy small{display:block;margin-top:2px;color:#fff;font-size:12px}
 .attraction-row .tile img{aspect-ratio:1.58}
 .home-section.last{padding-bottom:25px}
 .feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding-right:var(--gutter)}
