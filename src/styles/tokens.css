@@ -4,4 +4,5 @@
   --navy:#192b4d;--navy-2:#102340;--blue:#0078ed;--coral:#ff5533;
   --red:#c71d3d;--muted:#647087;--line:#d9dfe7;--soft:#edf1f4;--pale-blue:#dff0ff;
   --radius:16px;--gutter:20px;
+  --ai-violet:#7c3aed;--ai-gradient:linear-gradient(90deg,var(--coral),#ffb02e,var(--ai-violet));--ai-gradient-soft:linear-gradient(110deg,#fff0e8,#fff6df,#f0ebff);
 }
