@@ -1,4 +1,4 @@
-import { route, navigate, back } from './router.js';
+import { route, navigate, back, initializeNavigation, syncNavigation, consumeScrollRestore } from './router.js';
 import { state, update, toggleWishlist } from './store.js';
 import { homeView } from '../features/home/view.js';
 import { searchView, resultsView, mapView } from '../features/search/view.js';
@@ -75,12 +75,11 @@ export function render() {
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   selectGalleryIndex(state.galleryIndex, false);
   if (path !== lastPath) {
-    const restoreSocialFeed = path === '/social' && lastPath.startsWith('/social/post/') && state.socialFeedReturnHash === location.hash;
-    if (restoreSocialFeed) {
-      const scrollTop = state.socialFeedScroll;
+    const scrollRestore = consumeScrollRestore();
+    if (scrollRestore !== null) {
       requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollTop, behavior: 'instant' });
-        requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: 'instant' }));
+        window.scrollTo({ top: scrollRestore, behavior: 'instant' });
+        requestAnimationFrame(() => window.scrollTo({ top: scrollRestore, behavior: 'instant' }));
       });
     } else window.scrollTo({ top: 0, behavior: 'instant' });
     lastPath = path;
@@ -212,20 +211,16 @@ function clickAction(action, el) {
 }
 export function startApp() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  initializeNavigation();
   watchInstallation(render);
   const firstLaunch = !needsInstallation() && !location.hash && !localStorage.getItem('travel-intro-seen');
   if (firstLaunch) {
     root.innerHTML = splashView();
     setTimeout(() => navigate('/login'), 850);
   } else render();
-  window.addEventListener('hashchange', () => { state.modal = ''; render(); });
+  window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
   root.addEventListener('click', (event) => {
-    const socialPostLink = event.target.closest('a[href^="#/social/post/"]');
-    if (socialPostLink && route().path === '/social') {
-      state.socialFeedScroll = window.scrollY;
-      state.socialFeedReturnHash = location.hash;
-    }
     const el = event.target.closest('[data-action]');
     if (!el) return;
     if (suppressGalleryClick && el.dataset.action === 'gallery') {

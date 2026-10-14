@@ -24,8 +24,6 @@ export const state = {
   filter: 'All',
   inboxFilter: 'All',
   listName: 'Favourites',
-  socialFeedScroll: 0,
-  socialFeedReturnHash: '',
 };
 
 export function update(patch) {

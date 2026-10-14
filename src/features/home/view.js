@@ -13,7 +13,7 @@ export function homeView() {
   const communityLabel = (item) => { const signal = communitySignals.get(item.id); return signal?.posts ? `Shared by ${signal.posts} traveler${signal.posts === 1 ? '' : 's'} on Vibes` : ''; };
   return mainLayout(`
     <section class="home-hero">
-      <div class="hero-top"><h1>Experiences worth<br/>traveling for</h1><a class="inbox-button" href="#/inbox" aria-label="Inbox">${icon('inbox', 21)}${inboxBadge()}</a></div>
+      <div class="hero-top"><h1>Experiences worth<br/>traveling for</h1><a class="inbox-button" href="#/inbox" aria-label="Inbox">${icon('bell', 21)}${inboxBadge()}</a></div>
       <a href="#/search" class="search-pill">${icon('search', 19)}<span>Find places and things to do</span></a>
     </section>
     <section class="home-ai-planner"><a href="#/trip-planner"><span>${icon('sparkle', 20)}<strong>Plan a smarter trip</strong><small>Let AI match your interests with bookable experiences</small></span>${icon('chevron', 19)}</a></section>
