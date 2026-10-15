@@ -33,12 +33,16 @@ export const state = {
   joinedExperiences: saved.joinedExperiences || [],
   travelerGroupThreads: saved.travelerGroupThreads || {},
   travelerGroupThreadId: '',
+  privacy: saved.privacy || { onlineStatus: true, readReceipts: true },
+  chatReplyMessageId: '',
+  chatEditMessageId: '',
+  chatForwardMessageId: '',
 };
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads } = state;
-  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads });
+  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
+  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
 }
 
 export function toggleWishlist(id) {

@@ -17,7 +17,7 @@ import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
-import { getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, sendChatMessage } from '../features/messaging/repository.js';
+import { chatMessage, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
@@ -163,6 +163,7 @@ export function render() {
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
   selectGalleryIndex(state.galleryIndex, false);
+  if (path.startsWith('/inbox/chat/')) requestAnimationFrame(() => { const messages = root.querySelector('.chat-messages'); if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' }); });
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
     if (scrollRestore !== null) {
@@ -234,6 +235,20 @@ function clickAction(action, el) {
     case 'join-travelers': { const joined = state.joinedExperiences.includes(id); if (joined) { update({ joinedExperiences: state.joinedExperiences.filter((experienceId) => experienceId !== id) }); announce('You left this group'); break; } const experience = getExperience(id); const booking = experience ? getDemoBooking(experience) : null; const groupLabel = experience ? `${experience.city} · ${experience.title}` : 'Travel group'; const threadId = getOrCreateTravelGroupThread(id, booking?.bookedTravelers?.map((traveler) => traveler.id) || [], groupLabel); update({ joinedExperiences: [...state.joinedExperiences, id], travelerGroupThreads: { ...state.travelerGroupThreads, [id]: threadId } }); announce('You joined the travelers. Open the group chat below.'); break; }
     case 'leave-travel-group': if (leaveTravelGroupThread(id)) { const experienceId = route().path.split('/')[3]?.replace(/^group-/, '').split('-')[0]; update({ joinedExperiences: experienceId ? state.joinedExperiences.filter((item) => item !== experienceId) : state.joinedExperiences }); navigate('/inbox'); announce('You left the traveler group'); } break;
     case 'view-group-members': state.travelerGroupThreadId = id; openModal('travel-group-members'); break;
+    case 'reply-chat': state.chatReplyMessageId = id; state.chatEditMessageId = ''; render(); break;
+    case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
+    case 'cancel-chat-compose': state.chatReplyMessageId = ''; state.chatEditMessageId = ''; render(); break;
+    case 'delete-chat': if (window.confirm('Delete this message?') && deleteChatMessage(route().path.split('/')[3], id)) render(); break;
+    case 'react-chat': if (toggleChatReaction(route().path.split('/')[3], id, value)) render(); break;
+    case 'favorite-chat': if (toggleChatFavorite(route().path.split('/')[3], id)) render(); break;
+    case 'pin-chat': if (toggleChatPin(route().path.split('/')[3], id)) render(); break;
+    case 'info-chat': { const message = chatMessage(route().path.split('/')[3], id); state.modalTitle = 'Message info'; state.modalMessage = message ? `Sent ${new Date(message.createdAt).toLocaleString()} · Read by ${message.readBy.length} participant${message.readBy.length === 1 ? '' : 's'}${message.editedAt ? ' · Edited' : ''}${message.pinned ? ' · Pinned' : ''}` : 'Message unavailable'; openModal('message'); break; }
+    case 'forward-chat': state.chatForwardMessageId = id; openModal('forward-chat'); break;
+    case 'forward-chat-message': { const message = chatMessage(route().path.split('/')[3], state.chatForwardMessageId); const threadId = getOrCreateChatThread(id); if (message && threadId && sendChatMessage(threadId, `Forwarded: ${message.text || 'Photo'}`, message.attachment || null)) { state.chatForwardMessageId = ''; state.modal = ''; navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } break; }
+    case 'chat-emoji': { const input = root.querySelector('#chat-message-form input[name="message"]'); if (input) { input.value += ' 😊'; input.focus(); } break; }
+    case 'chat-sticker': { const threadId = route().path.split('/')[3]; if (sendChatMessage(threadId, '✨🗺️', { type: 'sticker', value: '✨🗺️' })) render(); break; }
+    case 'chat-photo': root.querySelector('#chat-photo-input')?.click(); break;
+    case 'toggle-privacy': { const key = value; update({ privacy: { ...state.privacy, [key]: !state.privacy[key] } }); render(); break; }
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
     case 'select-date': update({ date: value }); closeModal(); break;
     case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10) }); closeModal(); break; }
@@ -575,6 +590,10 @@ export function startApp() {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
       Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));
     }
+    if (event.target.id === 'chat-photo-input' && event.target.files?.length) {
+      const threadId = route().path.split('/')[3];
+      Promise.all([...event.target.files].slice(0, 6).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { dataUrls.forEach((localImage) => sendChatMessage(threadId, 'Photo', { type: 'image', localImage })); render(); }).catch(() => announce('Could not send this photo'));
+    }
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
@@ -584,7 +603,9 @@ export function startApp() {
       event.preventDefault();
       const threadId = route().path.split('/')[3];
       const input = event.target.elements.message;
-      if (sendChatMessage(threadId, input?.value)) render();
+      const editing = state.chatEditMessageId;
+      const sent = editing ? editChatMessage(threadId, editing, input?.value) : sendChatMessage(threadId, input?.value, null, { replyTo: state.chatReplyMessageId });
+      if (sent) { state.chatReplyMessageId = ''; state.chatEditMessageId = ''; render(); }
     }
     if (event.target.id === 'social-compose-form') {
       event.preventDefault();
@@ -605,6 +626,7 @@ export function startApp() {
       const { caption, location } = event.target.elements;
       if (editSocialPost(postId, { caption: caption.value, location: location.value })) navigate(`/social/post/${encodeURIComponent(postId)}`);
     }
+    if (event.target.id === 'chat-photo-input') return;
   });
   document.addEventListener('contextmenu', (event) => { if (!event.target.closest('input,textarea')) event.preventDefault(); });
 }

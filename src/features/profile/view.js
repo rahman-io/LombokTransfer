@@ -7,7 +7,7 @@ import { experiences, images } from '../experiences/data.js';
 import { activeSocialUser, socialState } from '../social/repository.js';
 import { getGamificationSummary, getTravelMissions, getTravelProfileIntelligence } from '../travel-intelligence/repository.js';
 const groups = [
-  ['Settings', [['Personal details', 'personal'], ['Saved cards', 'cards'], ['Currency', 'currency'], ['Language', 'language'], ['Appearance', 'appearance'], ['Notifications', 'notifications']]],
+  ['Settings', [['Personal details', 'personal'], ['Saved cards', 'cards'], ['Currency', 'currency'], ['Language', 'language'], ['Appearance', 'appearance'], ['Notifications', 'notifications'], ['Privacy', 'privacy']]],
   ['Support', [['About GetYourGuide', 'about'], ['Chat with us', 'chat'], ['Help center', 'help']]],
 ];
 export function profileView() {
@@ -30,7 +30,7 @@ export function profileView() {
   `, 'Profile');
 }
 export function profileSectionView(section) {
-  const titles = { personal: 'Personal details', cards: 'Saved cards', currency: 'Currency', language: 'Language', appearance: 'Appearance', notifications: 'Notifications', about: 'About GetYourGuide', chat: 'Chat with us', help: 'Help center', promos: 'Your promos' };
+  const titles = { personal: 'Personal details', cards: 'Saved cards', currency: 'Currency', language: 'Language', appearance: 'Appearance', notifications: 'Notifications', privacy: 'Privacy', about: 'About GetYourGuide', chat: 'Chat with us', help: 'Help center', promos: 'Your promos' };
   const title = titles[section] || 'Settings';
   let body = '';
   if (section === 'personal') body = `<label class="form-label">Name<input id="profile-name" value="${escapeHtml(state.guestName)}" /></label><label class="form-label">Email address<input id="profile-email" type="email" value="${escapeHtml(state.email)}" /></label><button class="primary-button full" data-action="save-profile">Save changes</button>`;
@@ -38,6 +38,7 @@ export function profileSectionView(section) {
   else if (section === 'language') body = ['English', 'Bahasa Indonesia', 'Polski', 'Français'].map((value) => `<button class="choice-row ${state.language === value ? 'active' : ''}" data-action="set-language" data-value="${value}">${value}${state.language === value ? icon('check') : ''}</button>`).join('');
   else if (section === 'cards') body = `<div class="empty-state">${icon('credit', 48)}<h2>No saved cards</h2><p>Cards used at checkout will appear here.</p></div>`;
   else if (section === 'promos') body = `<div class="empty-state">${icon('tickets', 48)}<h2>No promos yet</h2><p>Your offers will appear here.</p></div>`;
+  else if (section === 'privacy') body = `<div class="privacy-setting"><span><strong>Online status</strong><small>Allow travelers to see when you are online.</small></span><button class="privacy-toggle ${state.privacy.onlineStatus ? 'active' : ''}" data-action="toggle-privacy" data-value="onlineStatus" aria-pressed="${state.privacy.onlineStatus}">${state.privacy.onlineStatus ? 'On' : 'Off'}</button></div><div class="privacy-setting"><span><strong>Read receipts</strong><small>Show when you have read messages.</small></span><button class="privacy-toggle ${state.privacy.readReceipts ? 'active' : ''}" data-action="toggle-privacy" data-value="readReceipts" aria-pressed="${state.privacy.readReceipts}">${state.privacy.readReceipts ? 'On' : 'Off'}</button></div>`;
   else body = `<div class="empty-state">${icon('info', 45)}<h2>${title}</h2><p>Manage your ${title.toLowerCase()} here.</p></div>`;
   return mainLayout(`${header(title)}<div class="page-pad settings-content">${body}</div>`, 'Profile');
 }

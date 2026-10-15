@@ -2,12 +2,12 @@ export const socialDemoImageKeys = ['kayaking', 'kayakingSunset', 'skydiving', '
 
 // Stable IDs and timestamps deliberately mirror future Firestore documents.
 export const demoSocialUsers = [
-  { id: 'rahman', username: 'rahman.travels', displayName: 'A Rahman', initials: 'AR', color: '#234e70', bio: 'Collecting little moments, one destination at a time 🌍', location: 'Lombok, Indonesia', role: 'traveler' },
-  { id: 'maya', username: 'mayagoesplaces', displayName: 'Maya Putri', initials: 'MP', color: '#bb724f', bio: 'Golden-hour chaser. Always saying yes to a new city.', location: 'Bali, Indonesia', role: 'traveler' },
-  { id: 'leo', username: 'leo.ontheroad', displayName: 'Leo Martin', initials: 'LM', color: '#566d65', bio: 'Slow travel, big stories, too many photos.', location: 'Paris, France', role: 'traveler' },
-  { id: 'nina', username: 'nina.explores', displayName: 'Nina Sato', initials: 'NS', color: '#8f6383', bio: 'Food, culture and a little adventure ✨', location: 'Tokyo, Japan', role: 'traveler' },
-  { id: 'dario', username: 'dario.roma', displayName: 'Dario Rossi', initials: 'DR', color: '#a05d50', bio: 'Local guide sharing the Rome I love.', location: 'Rome, Italy', role: 'guide' },
-  { id: 'sophie', username: 'sophie.outdoors', displayName: 'Sophie Walker', initials: 'SW', color: '#587f8c', bio: 'Outside is where I feel most at home.', location: 'Queenstown, New Zealand', role: 'traveler' },
+  { id: 'rahman', username: 'rahman.travels', displayName: 'A Rahman', initials: 'AR', color: '#234e70', bio: 'Collecting little moments, one destination at a time 🌍', location: 'Lombok, Indonesia', role: 'traveler', online: true },
+  { id: 'maya', username: 'mayagoesplaces', displayName: 'Maya Putri', initials: 'MP', color: '#bb724f', bio: 'Golden-hour chaser. Always saying yes to a new city.', location: 'Bali, Indonesia', role: 'traveler', online: true },
+  { id: 'leo', username: 'leo.ontheroad', displayName: 'Leo Martin', initials: 'LM', color: '#566d65', bio: 'Slow travel, big stories, too many photos.', location: 'Paris, France', role: 'traveler', online: false },
+  { id: 'nina', username: 'nina.explores', displayName: 'Nina Sato', initials: 'NS', color: '#8f6383', bio: 'Food, culture and a little adventure ✨', location: 'Tokyo, Japan', role: 'traveler', online: false },
+  { id: 'dario', username: 'dario.roma', displayName: 'Dario Rossi', initials: 'DR', color: '#a05d50', bio: 'Local guide sharing the Rome I love.', location: 'Rome, Italy', role: 'guide', online: true },
+  { id: 'sophie', username: 'sophie.outdoors', displayName: 'Sophie Walker', initials: 'SW', color: '#587f8c', bio: 'Outside is where I feel most at home.', location: 'Queenstown, New Zealand', role: 'traveler', online: true },
 ];
 
 const seedComment = (id, authorId, text, createdAt, parentId = null) => ({ id, authorId, text, createdAt, parentId });

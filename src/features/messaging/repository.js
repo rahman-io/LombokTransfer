@@ -39,6 +39,8 @@ export function chatParticipants(threadId) {
   const thread = chatThread(threadId);
   return (thread?.participantIds || []).filter((id) => id !== selfId).map((id) => socialUser(id)).filter(Boolean);
 }
+export function chatMessage(threadId, messageId) { return messagingState().messages.find((message) => message.threadId === threadId && message.id === messageId); }
+export function isChatUserOnline(userId) { return Boolean(socialUser(userId)?.online); }
 export function visibleChatThreads() {
   const selfId = activeSocialUser().id;
   return messagingState().threads
@@ -108,19 +110,60 @@ export function markChatThreadRead(threadId) {
   if (thread.unreadBy[selfId]) { thread.unreadBy[selfId] = 0; changed = true; }
   return changed ? persist() : true;
 }
-export function sendChatMessage(threadId, text, attachment = null) {
+export function sendChatMessage(threadId, text, attachment = null, options = {}) {
   const thread = chatThread(threadId);
   const senderId = activeSocialUser().id;
   const clean = String(text || '').trim().slice(0, 1000);
   if (!thread || !thread.participantIds.includes(senderId) || !clean) return false;
   const attachmentId = attachment?.id || attachment?.postId;
   const allowedAttachment = ['social-post', 'experience', 'destination', 'attraction'].includes(attachment?.type) && attachmentId;
-  const normalizedAttachment = allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
-  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
+  const normalizedAttachment = attachment?.type === 'image' && attachment.localImage ? { type: 'image', localImage: attachment.localImage } : attachment?.type === 'sticker' && attachment.value ? { type: 'sticker', value: attachment.value } : allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
+  const replyTo = options.replyTo ? chatMessage(threadId, options.replyTo) : null;
+  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } } : {}), ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
   messagingState().messages.push(message);
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;
   thread.participantIds.filter((id) => id !== senderId).forEach((recipientId) => { thread.unreadBy[recipientId] = (thread.unreadBy[recipientId] || 0) + 1; });
+  return persist();
+}
+export function editChatMessage(threadId, messageId, text) {
+  const message = chatMessage(threadId, messageId);
+  const clean = String(text || '').trim().slice(0, 1000);
+  if (!message || message.senderId !== activeSocialUser().id || !clean) return false;
+  message.text = clean;
+  message.editedAt = now();
+  return persist();
+}
+export function deleteChatMessage(threadId, messageId) {
+  const message = chatMessage(threadId, messageId);
+  if (!message || message.senderId !== activeSocialUser().id) return false;
+  message.text = '';
+  message.deletedAt = now();
+  message.attachment = null;
+  return persist();
+}
+export function toggleChatReaction(threadId, messageId, emoji = '👍') {
+  const message = chatMessage(threadId, messageId);
+  if (!message) return false;
+  const userId = activeSocialUser().id;
+  message.reactions ||= {};
+  message.reactions[emoji] ||= [];
+  message.reactions[emoji] = message.reactions[emoji].includes(userId) ? message.reactions[emoji].filter((id) => id !== userId) : [...message.reactions[emoji], userId];
+  if (!message.reactions[emoji].length) delete message.reactions[emoji];
+  return persist();
+}
+export function toggleChatFavorite(threadId, messageId) {
+  const message = chatMessage(threadId, messageId);
+  if (!message) return false;
+  message.favoriteBy ||= [];
+  const userId = activeSocialUser().id;
+  message.favoriteBy = message.favoriteBy.includes(userId) ? message.favoriteBy.filter((id) => id !== userId) : [...message.favoriteBy, userId];
+  return persist();
+}
+export function toggleChatPin(threadId, messageId) {
+  const message = chatMessage(threadId, messageId);
+  if (!message) return false;
+  message.pinned = !message.pinned;
   return persist();
 }
 export function toMessagingFirebaseFixture(source = messagingState()) {

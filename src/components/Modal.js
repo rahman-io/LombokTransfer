@@ -75,6 +75,10 @@ export function modalView() {
     const people = thread ? thread.participantIds.map((userId) => socialUser(userId)).filter(Boolean) : [];
     title = 'Traveler group';
     body = `<p class="social-share-intro">Travelers in this group can compare dates and plan together.</p><div class="social-share-people">${people.map((user) => `<button data-action="social-like-profile" data-id="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
+  } else if (state.modal === 'forward-chat') {
+    const people = socialState().users.filter((user) => user.id !== activeSocialUser().id);
+    title = 'Forward message';
+    body = `<p class="social-share-intro">Choose a chat to forward this message to.</p><div class="social-share-people">${people.map((user) => `<button data-action="forward-chat-message" data-id="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
   } else if (state.modal === 'promo') {
     title = 'Promo or gift code';
     body = `<label class="form-label">Enter code<input id="promo-code" placeholder="Promo code" /></label><button class="primary-button full" data-action="apply-promo">Apply</button>`;

@@ -6,7 +6,7 @@ import { demoMessages } from '../experiences/demo-engagement.js';
 import { escapeHtml } from '../../utils/html.js';
 import { activeSocialUser, socialActivity, socialPost, socialUser } from '../social/repository.js';
 import { socialImage } from '../social/media.js';
-import { chatMessages, chatParticipant, chatParticipants, chatThread, markChatThreadRead, visibleChatThreads } from './repository.js';
+import { chatMessages, chatParticipant, chatParticipants, chatThread, isChatUserOnline, markChatThreadRead, visibleChatThreads } from './repository.js';
 import { getContextAwareNotifications } from '../travel-intelligence/repository.js';
 import { experiences } from '../experiences/data.js';
 import { visibleSocialPosts } from '../social/repository.js';
@@ -15,7 +15,10 @@ const esc = escapeHtml;
 function avatar(user, size = '') { return `<span class="chat-avatar ${size}" style="--avatar-color:${esc(user?.color || '#566d65')}" aria-hidden="true">${esc(user?.initials || '?')}</span>`; }
 function timeLabel(value) { return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
 function lastMessage(thread) { return chatMessages(thread.id).at(-1); }
+function visibleOnline(userId) { return isChatUserOnline(userId) && (userId !== activeSocialUser().id || state.privacy.onlineStatus); }
 function sharedAttachment(attachment) {
+  if (attachment?.type === 'image' && attachment.localImage) return `<img class="chat-image-attachment" src="${esc(attachment.localImage)}" alt="Photo sent in chat" loading="lazy" />`;
+  if (attachment?.type === 'sticker') return `<span class="chat-sticker-attachment">${esc(attachment.value || '✨')}</span>`;
   const post = attachment?.type === 'social-post' ? socialPost(attachment.postId) : null;
   if (post) return `<a class="chat-shared-post" href="#/social/post/${encodeURIComponent(post.id)}"><img src="${esc(socialImage(post))}" alt="" /><span><strong>Vibes post</strong><small>${esc(post.location || 'Travel moment')}</small></span>${icon('chevron', 17)}</a>`;
   if (attachment?.type === 'experience') {
@@ -27,12 +30,26 @@ function sharedAttachment(attachment) {
   if (!place) return '';
   return `<a class="chat-shared-post" href="#/results?city=${encodeURIComponent(place.city || place.name)}"><img src="${esc(place.image)}" alt="" /><span><strong>${attachment.type === 'destination' ? 'Destination' : 'Place to visit'}</strong><small>${esc(place.name)}</small></span>${icon('chevron', 17)}</a>`;
 }
+function messageStatus(message, thread, selfId) {
+  if (message.senderId !== selfId) return '';
+  if (!state.privacy.readReceipts) return '<span class="chat-message-status">✓</span>';
+  const recipients = thread.participantIds.filter((id) => id !== selfId);
+  const read = recipients.length > 0 && recipients.every((id) => message.readBy.includes(id));
+  return `<span class="chat-message-status ${read ? 'read' : ''}">${read ? '✓✓' : '✓'}</span>`;
+}
+function messageReactions(message) {
+  return Object.entries(message.reactions || {}).filter(([, users]) => users.length).map(([emoji, users]) => `<span>${emoji} ${users.length}</span>`).join('');
+}
+function messageActions(message, selfId) {
+  const own = message.senderId === selfId;
+  return `<details class="chat-message-menu"><summary aria-label="Message actions">${icon('more', 17)}</summary><div><button data-action="reply-chat" data-id="${esc(message.id)}">Reply</button>${own && !message.deletedAt ? `<button data-action="edit-chat" data-id="${esc(message.id)}">Edit</button>` : ''}${own && !message.deletedAt ? `<button data-action="delete-chat" data-id="${esc(message.id)}">Delete</button>` : ''}<button data-action="react-chat" data-id="${esc(message.id)}" data-value="👍">👍 Like</button><button data-action="react-chat" data-id="${esc(message.id)}" data-value="❤️">❤️ Love</button><button data-action="forward-chat" data-id="${esc(message.id)}">Forward</button><button data-action="favorite-chat" data-id="${esc(message.id)}">${message.favoriteBy?.includes(selfId) ? 'Unfavorite' : 'Favorite'}</button><button data-action="pin-chat" data-id="${esc(message.id)}">${message.pinned ? 'Unpin' : 'Pin'}</button><button data-action="info-chat" data-id="${esc(message.id)}">Info</button></div></details>`;
+}
 function chatRow(thread) {
   const person = chatParticipant(thread.id);
   const last = lastMessage(thread);
   const unread = thread.unreadBy[activeSocialUser().id] || 0;
   const title = thread.group ? thread.title : person?.displayName || 'Traveler';
-  const handle = thread.group ? `${thread.participantIds.length} travelers` : `@${person?.username || 'traveler'}`;
+  const handle = thread.group ? `${thread.participantIds.length} travelers · ${thread.participantIds.filter(visibleOnline).length} online` : `@${person?.username || 'traveler'}`;
   return `<a class="inbox-chat" href="#/inbox/chat/${encodeURIComponent(thread.id)}">${avatar(person)}<span><strong>${esc(title)}</strong><small>${esc(handle)}</small><span>${esc(last?.text || 'Start a conversation')}</span>${thread.context ? `<em>${esc(thread.context.label)}</em>` : ''}</span><small class="inbox-chat-time">${last ? timeLabel(last.createdAt) : ''}${unread ? `<b>${unread}</b>` : ''}</small></a>`;
 }
 function updateRow(message) {
@@ -73,11 +90,15 @@ export function chatView(threadId) {
   markChatThreadRead(threadId);
   const selfId = activeSocialUser().id;
   const messages = chatMessages(threadId);
+  const onlineLabel = thread.group ? `${thread.participantIds.filter(visibleOnline).length} online` : visibleOnline(person.id) ? 'Online' : 'Last seen recently';
+  const editing = messages.find((message) => message.id === state.chatEditMessageId && message.senderId === selfId);
+  const replying = messages.find((message) => message.id === state.chatReplyMessageId);
+  const composerValue = editing?.text || '';
   return mainLayout(`
-    <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(thread.group ? thread.title : person.displayName)}</strong><small>${esc(thread.group ? `${participants.length + 1} travelers in this group` : `@${person.username}`)}</small></span>${thread.group ? `<button class="icon-button" data-action="view-group-members" data-id="${esc(thread.id)}" aria-label="View group members">${icon('community', 22)}</button><button class="chat-group-leave-button" data-action="leave-travel-group" data-id="${esc(thread.id)}">Leave</button>` : `<a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a>`}</header>
+    <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(thread.group ? thread.title : person.displayName)}</strong><small>${esc(thread.group ? `${participants.length + 1} travelers · ${onlineLabel}` : `${onlineLabel} · @${person.username}`)}</small></span>${thread.group ? `<button class="icon-button" data-action="view-group-members" data-id="${esc(thread.id)}" aria-label="View group members">${icon('community', 22)}</button><button class="chat-group-leave-button" data-action="leave-travel-group" data-id="${esc(thread.id)}">Leave</button>` : `<a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a>`}</header>
       ${thread.context ? `<a class="chat-context" href="#/experience/${esc(thread.context.experienceId)}">${esc(thread.context.label)}${icon('chevron', 18)}</a>` : ''}
-      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}">${thread.group && message.senderId !== selfId ? `<small class="chat-sender-name">${esc(socialUser(message.senderId)?.displayName || 'Traveler')}</small>` : ''}<div>${esc(message.text)}${sharedAttachment(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
-      <form class="chat-composer" id="chat-message-form"><input name="message" type="text" maxlength="1000" placeholder="Message ${esc(person.displayName.split(' ')[0])}..." autocomplete="off" required /><button type="submit" aria-label="Send message">${icon('send', 21)}</button></form>
+      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}">${thread.group && message.senderId !== selfId ? `<small class="chat-sender-name">${esc(socialUser(message.senderId)?.displayName || 'Traveler')}</small>` : ''}<div class="chat-message-line"><div class="chat-message-bubble ${message.deletedAt ? 'deleted' : ''}">${message.replyTo ? `<div class="chat-reply-preview"><strong>Reply</strong><span>${esc(message.replyTo.text || 'Message')}</span></div>` : ''}${message.deletedAt ? '<em>This message was deleted</em>' : `${esc(message.text)}${sharedAttachment(message.attachment)}${message.editedAt ? '<small class="chat-edited">edited</small>' : ''}`}</div>${messageActions(message, selfId)}</div>${messageReactions(message) ? `<div class="chat-reactions">${messageReactions(message)}</div>` : ''}<small>${timeLabel(message.createdAt)} ${messageStatus(message, thread, selfId)}</small></div>`).join('')}</div>
+      <form class="chat-composer" id="chat-message-form">${editing ? `<div class="chat-compose-context"><strong>Edit message</strong><button type="button" data-action="cancel-chat-compose" aria-label="Cancel edit">${icon('close', 15)}</button></div>` : replying ? `<div class="chat-compose-context"><strong>Replying to ${esc(socialUser(replying.senderId)?.displayName || 'traveler')}</strong><span>${esc(replying.text || 'Message')}</span><button type="button" data-action="cancel-chat-compose" aria-label="Cancel reply">${icon('close', 15)}</button></div>` : ''}<div class="chat-compose-row"><button type="button" class="chat-compose-tool" data-action="chat-photo" aria-label="Send photo">${icon('image', 20)}</button><button type="button" class="chat-compose-tool" data-action="chat-emoji" aria-label="Add emoji">😊</button><button type="button" class="chat-compose-tool" data-action="chat-sticker" aria-label="Send sticker">✨</button><input name="message" type="text" maxlength="1000" value="${esc(composerValue)}" placeholder="Message ${thread.group ? 'the group' : esc(person.displayName.split(' ')[0])}..." autocomplete="off" required /><button type="submit" aria-label="Send message">${icon('send', 21)}</button></div><input id="chat-photo-input" type="file" accept="image/*" multiple hidden /></form>
     </div>
   `, 'Discover', { className: 'inbox-shell' });
 }
