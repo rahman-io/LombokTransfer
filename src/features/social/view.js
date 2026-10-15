@@ -63,8 +63,8 @@ function captionPreview(post, author) {
   const maxLength = 102;
   const availableCaption = Math.max(1, maxLength - prefix.length);
   const truncated = caption.length > availableCaption;
-  const visibleCaption = truncated ? `${caption.slice(0, availableCaption).trimEnd()}… selengkapnya` : caption;
-  return `<p class="social-post-caption"><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${visibleCaption ? ` ${esc(visibleCaption)}` : ''}</p>`;
+  const visibleCaption = truncated ? caption.slice(0, availableCaption).trimEnd() : caption;
+  return `<p class="social-post-caption${truncated ? ' is-expandable' : ''}"><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${visibleCaption ? ` <span class="social-caption-preview">${esc(visibleCaption)}${truncated ? '…' : ''}</span>` : ''}${truncated ? ` <span class="social-caption-full">${esc(caption)}</span><span class="social-caption-more"> selengkapnya</span>` : ''}</p>`;
 }
 
 function postCarousel(post, author) {

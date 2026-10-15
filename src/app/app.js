@@ -352,6 +352,12 @@ export function startApp() {
       else socialZoom.lastTap = now;
       return;
     }
+    const socialCaption = event.target.closest('.social-post-caption.is-expandable');
+    if (socialCaption && !event.target.closest('a')) {
+      event.preventDefault();
+      socialCaption.classList.toggle('is-expanded');
+      return;
+    }
     const el = event.target.closest('[data-action]');
     if (!el) return;
     if (suppressGalleryClick && el.dataset.action === 'gallery') {
