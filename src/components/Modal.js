@@ -5,7 +5,7 @@ import { getExperience, getExperienceGallery } from '../features/experiences/dat
 import { getDemoReviews } from '../features/experiences/demo-engagement.js';
 import { activeSocialUser, socialPost, socialState, socialUser } from '../features/social/repository.js';
 import { socialImage, socialImagesForPost } from '../features/social/media.js';
-import { chatThread } from '../features/messaging/repository.js';
+import { chatMessages, chatThread } from '../features/messaging/repository.js';
 
 function monthGrid(year, month) {
   const first = new Date(year, month, 1).getDay();
@@ -79,6 +79,10 @@ export function modalView() {
     const people = socialState().users.filter((user) => user.id !== activeSocialUser().id);
     title = 'Forward message';
     body = `<p class="social-share-intro">Choose a chat to forward this message to.</p><div class="social-share-people">${people.map((user) => `<button data-action="forward-chat-message" data-id="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
+  } else if (state.modal === 'chat-collection') {
+    const messages = chatMessages(state.chatCollectionThreadId).filter((message) => state.chatCollectionKind === 'pinned' ? message.pinned : message.favoriteBy?.includes(activeSocialUser().id));
+    title = state.chatCollectionKind === 'pinned' ? 'Pinned messages' : 'Favorite messages';
+    body = messages.length ? `<div class="chat-collection-list">${messages.map((message) => `<button data-action="info-chat" data-id="${escapeHtml(message.id)}"><span>${escapeHtml(message.text || 'Attachment')}</span><small>${new Date(message.createdAt).toLocaleString()}</small>${icon('chevron', 17)}</button>`).join('')}</div>` : `<div class="empty-state"><h2>No ${state.chatCollectionKind === 'pinned' ? 'pinned' : 'favorite'} messages</h2><p>Messages you save here will appear in this chat collection.</p></div>`;
   } else if (state.modal === 'promo') {
     title = 'Promo or gift code';
     body = `<label class="form-label">Enter code<input id="promo-code" placeholder="Promo code" /></label><button class="primary-button full" data-action="apply-promo">Apply</button>`;

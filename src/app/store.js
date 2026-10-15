@@ -37,6 +37,8 @@ export const state = {
   chatReplyMessageId: '',
   chatEditMessageId: '',
   chatForwardMessageId: '',
+  chatCollectionThreadId: '',
+  chatCollectionKind: '',
 };
 
 export function update(patch) {

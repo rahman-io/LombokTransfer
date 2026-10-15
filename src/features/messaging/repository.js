@@ -117,9 +117,9 @@ export function sendChatMessage(threadId, text, attachment = null, options = {})
   if (!thread || !thread.participantIds.includes(senderId) || !clean) return false;
   const attachmentId = attachment?.id || attachment?.postId;
   const allowedAttachment = ['social-post', 'experience', 'destination', 'attraction'].includes(attachment?.type) && attachmentId;
-  const normalizedAttachment = attachment?.type === 'image' && attachment.localImage ? { type: 'image', localImage: attachment.localImage } : attachment?.type === 'sticker' && attachment.value ? { type: 'sticker', value: attachment.value } : allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
+  const normalizedAttachment = attachment?.type === 'image' && attachment.localImage ? { type: 'image', localImage: attachment.localImage } : attachment?.type === 'audio' && attachment.localAudio ? { type: 'audio', localAudio: attachment.localAudio } : attachment?.type === 'sticker' && attachment.value ? { type: 'sticker', value: attachment.value } : allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
   const replyTo = options.replyTo ? chatMessage(threadId, options.replyTo) : null;
-  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } } : {}), ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
+  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], deliveredTo: [senderId, ...thread.participantIds.filter((id) => id !== senderId)], ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } } : {}), ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
   messagingState().messages.push(message);
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;
@@ -176,7 +176,7 @@ export function toMessagingFirebaseFixture(source = messagingState()) {
     })),
     messages: source.messages.map((message) => ({
       id: message.id, conversationId: message.threadId, senderId: message.senderId,
-      text: message.text, createdAt: message.createdAt, readBy: message.readBy, attachment: message.attachment || null,
+      text: message.text, createdAt: message.createdAt, readBy: message.readBy, deliveredTo: message.deliveredTo || [], attachment: message.attachment || null,
     })),
   };
 }

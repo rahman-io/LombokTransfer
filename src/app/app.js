@@ -34,6 +34,9 @@ let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let mainSwipe = null;
 let mainTouchSwipe = null;
+let chatRecorder = null;
+let chatAudioStream = null;
+let chatAudioChunks = [];
 let suppressMainSwipeClick = false;
 let devBrowserPreview = false;
 let homeDestinationAutoScroll = null;
@@ -210,6 +213,28 @@ function announce(message) {
   render();
   setTimeout(() => { state.toast = ''; render(); }, 2200);
 }
+function sendChatPhotoFiles(threadId, files) {
+  Promise.all([...files].slice(0, 6).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { dataUrls.forEach((localImage) => sendChatMessage(threadId, 'Photo', { type: 'image', localImage })); render(); }).catch(() => announce('Could not send this photo'));
+}
+function toggleChatVoice(threadId, button) {
+  if (chatRecorder) { chatRecorder.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { announce('Voice messages are not supported on this device'); return; }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+    chatAudioStream = stream;
+    chatAudioChunks = [];
+    chatRecorder = new MediaRecorder(stream);
+    chatRecorder.ondataavailable = (event) => { if (event.data.size) chatAudioChunks.push(event.data); };
+    chatRecorder.onstop = () => {
+      const reader = new FileReader();
+      reader.onload = () => { sendChatMessage(threadId, 'Voice message', { type: 'audio', localAudio: reader.result }); chatAudioStream?.getTracks().forEach((track) => track.stop()); chatRecorder = null; chatAudioStream = null; chatAudioChunks = []; render(); };
+      reader.readAsDataURL(new Blob(chatAudioChunks, { type: chatRecorder.mimeType || 'audio/webm' }));
+    };
+    chatRecorder.start();
+    button.classList.add('recording');
+    button.setAttribute('aria-label', 'Stop recording');
+    announce('Recording voice message… tap the microphone again to send');
+  }).catch(() => announce('Microphone permission is required'));
+}
 function closeModal() { state.modal = ''; render(); }
 function openModal(name) { state.modal = name; render(); }
 function resetSocialZoom() { socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false }; }
@@ -243,11 +268,16 @@ function clickAction(action, el) {
     case 'favorite-chat': if (toggleChatFavorite(route().path.split('/')[3], id)) render(); break;
     case 'pin-chat': if (toggleChatPin(route().path.split('/')[3], id)) render(); break;
     case 'info-chat': { const message = chatMessage(route().path.split('/')[3], id); state.modalTitle = 'Message info'; state.modalMessage = message ? `Sent ${new Date(message.createdAt).toLocaleString()} · Read by ${message.readBy.length} participant${message.readBy.length === 1 ? '' : 's'}${message.editedAt ? ' · Edited' : ''}${message.pinned ? ' · Pinned' : ''}` : 'Message unavailable'; openModal('message'); break; }
+    case 'chat-collection': state.chatCollectionThreadId = route().path.split('/')[3]; state.chatCollectionKind = value; openModal('chat-collection'); break;
     case 'forward-chat': state.chatForwardMessageId = id; openModal('forward-chat'); break;
     case 'forward-chat-message': { const message = chatMessage(route().path.split('/')[3], state.chatForwardMessageId); const threadId = getOrCreateChatThread(id); if (message && threadId && sendChatMessage(threadId, `Forwarded: ${message.text || 'Photo'}`, message.attachment || null)) { state.chatForwardMessageId = ''; state.modal = ''; navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } break; }
-    case 'chat-emoji': { const input = root.querySelector('#chat-message-form input[name="message"]'); if (input) { input.value += ' 😊'; input.focus(); } break; }
-    case 'chat-sticker': { const threadId = route().path.split('/')[3]; if (sendChatMessage(threadId, '✨🗺️', { type: 'sticker', value: '✨🗺️' })) render(); break; }
-    case 'chat-photo': root.querySelector('#chat-photo-input')?.click(); break;
+    case 'chat-tools': root.querySelector('.chat-compose-tools')?.classList.toggle('open'); break;
+    case 'chat-emoji': { const input = root.querySelector('#chat-message-form input[name="message"]'); if (input) { input.focus(); input.setAttribute('inputmode', 'text'); } break; }
+    case 'chat-sticker': root.querySelector('.chat-sticker-panel')?.classList.toggle('open'); break;
+    case 'send-chat-sticker': { const threadId = route().path.split('/')[3]; if (sendChatMessage(threadId, value, { type: 'sticker', value })) render(); break; }
+    case 'chat-gallery': root.querySelector('#chat-photo-input')?.click(); break;
+    case 'chat-camera': root.querySelector('#chat-camera-input')?.click(); break;
+    case 'chat-voice': toggleChatVoice(route().path.split('/')[3], el); break;
     case 'toggle-privacy': { const key = value; update({ privacy: { ...state.privacy, [key]: !state.privacy[key] } }); render(); break; }
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
     case 'select-date': update({ date: value }); closeModal(); break;
@@ -423,6 +453,9 @@ export function startApp() {
     if (el.classList.contains('modal-backdrop') && event.target !== el) return;
     clickAction(el.dataset.action, el);
   });
+  root.addEventListener('toggle', (event) => {
+    if (event.target.matches?.('.chat-message-menu') && event.target.open) root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== event.target) menu.open = false; });
+  }, true);
   root.addEventListener('pointerdown', (event) => {
     const mainIndex = mainNavigationIndex();
     const swipeTarget = event.target.closest('.main-content');
@@ -590,10 +623,7 @@ export function startApp() {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
       Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));
     }
-    if (event.target.id === 'chat-photo-input' && event.target.files?.length) {
-      const threadId = route().path.split('/')[3];
-      Promise.all([...event.target.files].slice(0, 6).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { dataUrls.forEach((localImage) => sendChatMessage(threadId, 'Photo', { type: 'image', localImage })); render(); }).catch(() => announce('Could not send this photo'));
-    }
+    if (['chat-photo-input', 'chat-camera-input'].includes(event.target.id) && event.target.files?.length) sendChatPhotoFiles(route().path.split('/')[3], event.target.files);
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
