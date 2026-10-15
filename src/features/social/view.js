@@ -60,11 +60,12 @@ function likedByLabel(post) {
 function captionPreview(post, author) {
   const caption = post.caption || '';
   const prefix = `${author.username} `;
-  const maxLength = 102;
-  const availableCaption = Math.max(1, maxLength - prefix.length);
+  const suffix = '… selengkapnya';
+  const maxLength = 90;
+  const availableCaption = Math.max(1, maxLength - prefix.length - suffix.length);
   const truncated = caption.length > availableCaption;
   const visibleCaption = truncated ? caption.slice(0, availableCaption).trimEnd() : caption;
-  return `<p class="social-post-caption${truncated ? ' is-expandable' : ''}"><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${visibleCaption ? ` <span class="social-caption-preview">${esc(visibleCaption)}${truncated ? '…' : ''}</span>` : ''}${truncated ? ` <span class="social-caption-full">${esc(caption)}</span><span class="social-caption-more"> selengkapnya</span>` : ''}</p>`;
+  return `<p class="social-post-caption${truncated ? ' is-expandable' : ''}"><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${visibleCaption ? ` <span class="social-caption-preview">${esc(visibleCaption)}</span>` : ''}${truncated ? ` <span class="social-caption-full">${esc(caption)}</span><span class="social-caption-more">${esc(suffix)}</span>` : ''}</p>`;
 }
 
 function postCarousel(post, author) {
