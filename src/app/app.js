@@ -169,7 +169,7 @@ export function render() {
   selectGalleryIndex(state.galleryIndex, false);
   if (path.startsWith('/inbox/chat/')) {
     syncChatViewport();
-    requestAnimationFrame(() => { const messages = root.querySelector('.chat-messages'); if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' }); });
+    scrollChatToLatest();
   }
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
@@ -217,6 +217,18 @@ function announce(message) {
   render();
   setTimeout(() => { state.toast = ''; render(); }, 2200);
 }
+function scrollChatToLatest() {
+  cancelAnimationFrame(chatViewportFrame);
+  const align = () => {
+    const messages = root.querySelector('.chat-messages');
+    if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
+  };
+  chatViewportFrame = requestAnimationFrame(() => {
+    align();
+    chatViewportFrame = requestAnimationFrame(align);
+  });
+  setTimeout(align, 120);
+}
 function syncChatViewport() {
   const viewport = window.visualViewport;
   const height = viewport?.height || window.innerHeight;
@@ -229,11 +241,7 @@ function syncChatViewport() {
   window.scrollTo(0, 0);
   closeChatMenus();
   if (!document.activeElement?.closest('.chat-composer')) return;
-  cancelAnimationFrame(chatViewportFrame);
-  chatViewportFrame = requestAnimationFrame(() => {
-    const messages = root.querySelector('.chat-messages');
-    if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
-  });
+  scrollChatToLatest();
 }
 function closeChatMenus(except = null) {
   root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) panel.removeAttribute('style'); } });
@@ -681,10 +689,7 @@ export function startApp() {
   root.addEventListener('focusin', (event) => {
     if (!event.target.closest('.chat-composer')) return;
     closeChatMenus();
-    requestAnimationFrame(() => {
-      const messages = root.querySelector('.chat-messages');
-      if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
-    });
+    scrollChatToLatest();
   });
   root.addEventListener('change', (event) => {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
