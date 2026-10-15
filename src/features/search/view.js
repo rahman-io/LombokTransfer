@@ -38,7 +38,7 @@ export function mapView(city = 'Lombok') {
   if (!destination) return mainLayout(`${header('Map')}<div class="empty-state"><h2>Map unavailable for this destination</h2><p>Choose a supported destination to explore its map.</p><a class="outline-button" href="#/search">Choose destination</a></div>`, 'Discover');
   const config = mapDestinations[destination];
   const mapItems = getExperiencesByCity(destination).filter((item) => mapActivities[item.id]);
-  const points = mapItems.map((item) => ({ id: item.id, title: item.title, city: item.city, price: item.price, ...mapActivities[item.id] }));
+  const points = mapItems.map((item) => ({ id: item.id, title: item.title, city: item.city, price: item.price, listedPrice: item.listedPrice, listedPriceCurrency: item.listedPriceCurrency, ...mapActivities[item.id] }));
   return mainLayout(`
     <div class="map-controls">
       <div class="map-toolbar"><button class="round-white" data-action="back" aria-label="Close map">${icon('close', 22)}</button><a href="#/search" class="map-search">${icon('search', 19)}<span><strong>${escapeHtml(destination)}</strong><small>Change destination</small></span></a></div>

@@ -4,7 +4,7 @@ import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { experienceCard } from '../../components/cards.js';
 import { escapeHtml } from '../../utils/html.js';
-import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
+import { calculateDemoQuote, formatDemoPrice, formatListedPrice, getDemoBooking } from '../experiences/booking-demo.js';
 import { toExperienceDocument } from '../experiences/firebase-documents.js';
 import { getDemoReviews } from '../experiences/demo-engagement.js';
 import { socialImage } from '../social/media.js';
@@ -59,6 +59,8 @@ export function experienceView(id) {
         <div>${icon('calendar', 27)}<span><strong>${escapeHtml(cancellation.title)}</strong><small>${escapeHtml(cancellation.text)}</small></span></div>
         <div>${icon('clock', 27)}<span><strong>${escapeHtml(item.validity || 'Duration ' + item.duration)}</strong><small>Check availability to see starting times</small></span></div>
         <div>${icon('tickets', 27)}<span><strong>Reserve now & pay later</strong><small>Keep your travel plans flexible</small></span></div>
+        ${item.location ? `<div>${icon('pin', 27)}<span><strong>Location</strong><small>${escapeHtml(item.location)}</small></span></div>` : ''}
+        ${item.openingHours ? `<div>${icon('clock', 27)}<span><strong>Opening hours</strong><small>${escapeHtml(item.openingHours)}</small></span></div>` : ''}
       </div>
       <section class="booking-intelligence"><div class="booking-intelligence-heading"><span>${icon('sparkle', 16)} Smart travel signals</span><small>Local AI demo</small></div><div class="booking-intelligence-grid"><article class="booking-signal-card"><small>Booking likelihood</small><strong>${bookingLikelihood.score}%</strong><b>${escapeHtml(bookingLikelihood.label)}</b><p>${escapeHtml(bookingLikelihood.timing)}</p><em>${escapeHtml(bookingLikelihood.reason)}</em></article><article class="booking-signal-card"><small>Price & availability alerts</small>${bookingAlerts.slice(0, 2).map((alert) => `<div class="booking-alert"><strong>${escapeHtml(alert.title)}</strong><p>${escapeHtml(alert.text)}</p></div>`).join('')}</article></div>${smartBundle.items.length ? `<article class="smart-bundle"><div><small>Smart bundle</small><strong>Smart bundle suggestions</strong><p>${escapeHtml(smartBundle.reason)} · Save about $${smartBundle.savings}</p></div><div class="smart-bundle-items">${smartBundle.items.map((bundleItem) => `<a href="#/experience/${escapeHtml(bundleItem.id)}"><img src="${escapeHtml(bundleItem.image)}" alt="" /><span>${escapeHtml(bundleItem.title)}</span></a>`).join('')}</div></article>` : ''}</section>
       <section class="detail-section"><h2>What travelers loved ${icon('info', 18)}</h2><div class="review-card"><div class="review-stars">★★★★★</div><strong>${escapeHtml(reviews.featured.author)} - ${escapeHtml(reviews.featured.country)}</strong><small>${escapeHtml(reviews.featured.dateLabel)} · Verified booking</small><p>${escapeHtml(reviews.featured.text)}</p></div><button class="outline-button" data-action="reviews">See more reviews</button></section>
@@ -78,6 +80,6 @@ export function experienceView(id) {
       ${communityPosts.length ? `<section class="detail-community-section"><div class="detail-community-heading"><h2>Travelers shared this</h2><a href="#/social/create?experience=${encodeURIComponent(item.id)}">Share yours</a></div><div class="detail-community-posts">${communityPosts.map((post) => { const author = socialUser(post.authorId); return `<a class="detail-community-post" href="#/social/post/${escapeHtml(post.id)}"><img src="${escapeHtml(socialImage(post))}" alt="" loading="lazy" /><span><strong>@${escapeHtml(author?.username || 'traveler')}</strong><small>${post.likedBy.length} likes · ${post.comments.length} comments</small><p>${escapeHtml(post.caption || 'Shared a travel moment')}</p></span></a>`; }).join('')}</div></section>` : ''}
       <section class="detail-section"><h2>${sameCity.length ? `Discover more for ${escapeHtml(item.city)}` : 'Discover more experiences'}</h2><div class="related-list">${similar.map((other) => experienceCard(other)).join('')}</div></section>
     </div>`;
-  const footer = `<div class="detail-cta"><div><small>From</small><strong>$${escapeHtml(item.price)}</strong><small> per person</small></div><button class="primary-button" data-action="show-availability">Check availability</button></div>`;
+  const footer = `<div class="detail-cta"><div><small>From</small><strong>${escapeHtml(formatListedPrice(item))}</strong><small>${escapeHtml(item.priceNote || 'per person')}</small></div><button class="primary-button" data-action="show-availability">Check availability</button></div>`;
   return mainLayout(detail, 'Discover', { className: 'detail-page', footer });
 }

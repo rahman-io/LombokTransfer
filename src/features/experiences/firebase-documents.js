@@ -27,6 +27,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
       currency: 'USD',
       adultBaseCents: Math.round(item.price * 100),
       childBaseCents: Math.round((booking?.childPrice ?? item.price) * 100),
+      ...(item.listedPrice != null ? { listedCurrency: item.listedPriceCurrency || 'IDR', listedAmount: item.listedPrice, listedNote: item.priceNote || null } : {}),
       weekdayMultiplierBasisPoints: Object.fromEntries(Object.entries(booking?.weekdayMultipliers || {}).map(([day, multiplier]) => [day, Math.round(multiplier * 10000)])),
     },
     popularDays: [...(booking?.popularDays || [])],

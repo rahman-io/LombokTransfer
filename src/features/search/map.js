@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { escapeHtml } from '../../utils/html.js';
 import { distanceMeters, filterMapActivities, formatDistance, inBounds, locationErrorMessage, validCoordinates } from './map-data.js';
 import { fetchMapPlaces } from './map-service.js';
+import { formatListedPrice } from '../experiences/booking-demo.js';
 
 const nearbyCache = new Map();
 
@@ -28,7 +29,7 @@ export function createDiscoverMap(root) {
   const boundsArray = () => { const b = map.getBounds(); return [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]; };
   const distance = (point) => formatDistance(position, point);
   const selectedArea = () => config.areas.find((entry) => entry.id === area);
-  const popup = (item) => `<div class="map-popup"><strong>${escapeHtml(item.title || item.name)}</strong><small>${item.type ? (item.type === 'hotel' ? 'Hotel' : 'Restaurant') : `${escapeHtml(item.city)} · From $${item.price}`}</small><small>${distance(item.coordinates) || 'Use My location to see distance'}${position ? ' · straight-line estimate' : ''}</small>${item.type ? '' : `<a href="#/experience/${encodeURIComponent(item.id)}">View activity</a>`}</div>`;
+  const popup = (item) => `<div class="map-popup"><strong>${escapeHtml(item.title || item.name)}</strong><small>${item.type ? (item.type === 'hotel' ? 'Hotel' : 'Restaurant') : `${escapeHtml(item.city)} · From ${escapeHtml(formatListedPrice(item))}`}</small><small>${distance(item.coordinates) || 'Use My location to see distance'}${position ? ' · straight-line estimate' : ''}</small>${item.type ? '' : `<a href="#/experience/${encodeURIComponent(item.id)}">View activity</a>`}</div>`;
   const markerIcon = (type, text) => {
     const size = type === 'activity' ? [44, 32] : type === 'cluster' ? [30, 30] : [24, 24];
     return L.divIcon({ className: `map-pin map-pin-${type}`, html: `<span>${escapeHtml(text)}</span>`, iconSize: size, iconAnchor: [size[0] / 2, size[1]], popupAnchor: [0, -size[1]] });
@@ -55,7 +56,7 @@ export function createDiscoverMap(root) {
       groups.set(key, [...(groups.get(key) || []), point]);
     });
     groups.forEach((points) => {
-      const marker = L.marker(points[0].coordinates, { icon: markerIcon('activity', `$${Math.min(...points.map((p) => p.price))}`), zIndexOffset: 1000, title: points.map((p) => p.title).join(' / '), alt: 'Activity' }).addTo(activityLayer);
+      const marker = L.marker(points[0].coordinates, { icon: markerIcon('activity', formatListedPrice(points[0])), zIndexOffset: 1000, title: points.map((p) => p.title).join(' / '), alt: 'Activity' }).addTo(activityLayer);
       marker.mapItems = points;
       marker.bindPopup(points.map(popup).join(''), { maxHeight: 180, maxWidth: 260 });
     });

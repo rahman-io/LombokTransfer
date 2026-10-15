@@ -40,3 +40,9 @@ export function calculateDemoQuote(item, { adults = 1, children = 0, date = '' }
 export function formatDemoPrice(amount) {
   return `$${amount.toFixed(2)}`;
 }
+
+export function formatListedPrice(item) {
+  const amount = item?.listedPrice ?? item?.price ?? 0;
+  if (item?.listedPriceCurrency === 'IDR') return `Rp${Math.round(amount).toLocaleString('id-ID')}`;
+  return `$${amount}`;
+}

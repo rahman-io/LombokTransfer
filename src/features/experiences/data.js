@@ -127,7 +127,7 @@ const beachCatalog = [
   { id: 'beach-3257784', title: 'Tanjung Aan Beach', image: tripadvisorImages.tanjungAan },
   { id: 'beach-3268159', title: 'Senggigi Beach', image: tripadvisorImages.senggigi },
   { id: 'beach-3801497', title: 'Mawun Beach', image: tripadvisorImages.mawun },
-  { id: 'beach-4010189', title: 'Pink Beach', image: tripadvisorImages.pantaiPink },
+  { id: 'beach-4010189', title: 'Pink Beach', image: tripadvisorImages.pantaiPink, listedPrice: 5000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee', location: 'Sekaroh Village, Jerowaru, East Lombok, West Nusa Tenggara', openingHours: '08:00–17:00 WITA' },
   { id: 'beach-7174395', title: 'Secreat Gili Nanggu, Sudak, Kedis', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/24/ce/41/snorkelling-trip-yg-mau.jpg?w=500&h=-1&s=1' },
   { id: 'beach-8755374', title: 'Nipah Beach', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/3c/5b/2c/lombokprimatourblogspotcoid.jpg?w=500&h=400&s=1' },
   { id: 'beach-10296947', title: 'Mawi Beach', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0b/48/c0/b8/pantai-mawi-dari-bukit.jpg?w=500&h=400&s=1' },
@@ -206,7 +206,7 @@ const beachExperiences = beachCatalog.map((item) => ({
 
 const volcanoFallback = tripadvisorImages.rinjani;
 const volcanoCatalog = [
-  { id: 'volcano-386938', title: 'Mount Rinjani', image: tripadvisorImages.rinjani },
+  { id: 'volcano-386938', title: 'Mount Rinjani', image: tripadvisorImages.rinjani, listedPrice: 5000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee per day', location: 'Aikmel, East Lombok, West Nusa Tenggara', openingHours: 'Check-in 07:00–15:00 · Check-out 07:00–17:00 WITA' },
   { id: 'volcano-28123503', title: 'Jeweh Rinjani Trek', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/d4/2f/1f/caption.jpg?w=500&h=-1&s=1' },
   { id: 'volcano-26328401', title: 'Antok Trekking - Mt.Rinjani Lombok Volcano', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2c/10/62/2a/caption.jpg?w=500&h=400&s=1' },
   { id: 'volcano-24166667', title: 'Mount Rinjani Vacation', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/24/84/c4/1d/rinjani-summit-3726.jpg?w=500&h=400&s=1' },
@@ -240,6 +240,57 @@ const volcanoExperiences = volcanoCatalog.map((item) => ({
   highlights: [`Visit ${item.title}`, 'Explore Lombok’s volcanic landscape', 'Enjoy a flexible local experience'],
 }));
 
+const articleExperiences = [
+  {
+    id: 'bukit-selong', title: 'Bukit Selong Viewpoint', city: 'Sembalun', duration: '1 day', image: images.sumo,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 3000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Scenic viewpoint', category: 'Cultural',
+    description: 'Enjoy colorful hills, rice fields, and a peaceful Sembalun landscape from Bukit Selong, with a camping ground nearby.',
+    location: 'Sembalun Lawang, East Lombok, West Nusa Tenggara', openingHours: '07:00–18:00 WITA',
+    highlights: ['Enjoy the Bukit Selong viewpoint', 'See the colorful hills and rice fields', 'Take a scenic photo or camp nearby'],
+  },
+  {
+    id: 'madu-waterfall', title: 'Madu Waterfall', city: 'Lombok', duration: '1 day', image: waterfallFallback,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 5000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Waterfall', category: 'Waterfall',
+    description: 'Refresh yourself at Madu Waterfall and explore the natural landscape around Lombok with a flexible local experience.',
+    location: 'Lombok, West Nusa Tenggara', openingHours: '07:00–17:00 WITA',
+    highlights: ['Visit Madu Waterfall', 'Enjoy the surrounding natural landscape', 'Relax beside the fresh water'],
+  },
+  {
+    id: 'desa-sade', title: 'Sade Traditional Village', city: 'Lombok', duration: '1 day', image: tripadvisorImages.tetebatu,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 20000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Cultural experience', category: 'Cultural',
+    description: 'Discover Sasak traditions in Sade Traditional Village, including local weaving and the community’s cultural performances.',
+    location: 'Rembitan, Pujut, Central Lombok, West Nusa Tenggara', openingHours: '07:00–18:00 WITA',
+    highlights: ['Learn about Sasak traditions', 'Try traditional weaving', 'See a local peresean performance'],
+  },
+  {
+    id: 'desa-bonjeruk', title: 'Bonjeruk Tourism Village', city: 'Lombok', duration: '1 day', image: tripadvisorImages.mataram,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 20000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Cultural experience', category: 'Cultural',
+    description: 'Explore Bonjeruk Tourism Village, historic Dutch-era architecture, and local traditions including Gendang Beleq music.',
+    location: 'Jonggat, Central Lombok, West Nusa Tenggara', openingHours: 'Open 24 hours',
+    highlights: ['Explore historic village buildings', 'Discover local history', 'Experience Gendang Beleq music'],
+  },
+  {
+    id: 'desa-sesaot', title: 'Sesaot Tourism Village', city: 'Lombok', duration: '1 day', image: tripadvisorImages.lombok,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 20000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Nature experience', category: 'Cultural',
+    description: 'Explore Sesaot Tourism Village, natural springs, Tibu Sendalem Waterfall, and the surrounding Sasak community landscape.',
+    location: 'Narmada, West Lombok, West Nusa Tenggara', openingHours: '06:00–17:00 WITA',
+    highlights: ['Visit Tibu Sendalem Waterfall', 'Relax at Aik Nyet natural spring', 'Stay in a traditional Sasak house'],
+  },
+  {
+    id: 'desa-sembalun-lawang', title: 'Sembalun Lawang Tourism Village', city: 'Sembalun', duration: '1 day', image: tripadvisorImages.sembalun,
+    rating: '4.7', reviews: '128', price: 35, listedPrice: 20000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee',
+    badge: '', label: 'Cultural experience', category: 'Cultural',
+    description: 'Enjoy the green landscapes of Sembalun Lawang and try activities such as paragliding from Pergasingan or Telaga Hill.',
+    location: 'Sembalun, East Lombok, West Nusa Tenggara', openingHours: '07:00–18:00 WITA',
+    highlights: ['Explore Sembalun’s green landscapes', 'See the village near Mount Rinjani', 'Try a scenic outdoor activity'],
+  },
+];
+
 export const experiences = [
   {
     id: 'colosseum', title: 'Lombok: Tanjung Aan Beach & Kuta Coast Guided Tour',
@@ -272,7 +323,7 @@ export const experiences = [
   {
     id: 'pantheon', title: 'Lombok: Gili Islands Island-Hopping Experience',
     city: 'Lombok', duration: '1 day', image: images.pantheon, gallery: [images.pantheon, images.pantheonThumbA, images.pantheonThumbB], cardImage: images.pantheonCard, rating: '4.1', reviews: '40', featured: true,
-    price: 8, oldPrice: 13, badge: 'Likely to sell out', label: 'Audio guide',
+    price: 8, oldPrice: 13, listedPrice: 23000, listedPriceCurrency: 'IDR', priceNote: 'Public boat; fast boat from Rp85,000', location: 'Gili Indah, Pemenang, North Lombok, West Nusa Tenggara', openingHours: '08:00–17:00 WITA', badge: 'Likely to sell out', label: 'Audio guide',
     description: 'Spend a day exploring the Gili Islands, with time for the sea, beaches, and relaxed island views off Lombok’s northwest coast.',
     cancellation: { title: 'Cancellation policy', text: 'This activity is non-refundable' }, validity: 'Valid 1 day',
     includes: ['Island-hopping experience', 'Local guide', 'Booking confirmation'],
@@ -303,7 +354,7 @@ export const experiences = [
   {
     id: 'agafay', title: 'Mataram: Bilebante Green Tourism Village Experience',
     city: 'Mataram', duration: '5 hours', image: images.agafay, rating: '4.9', reviews: '9,164', featured: true,
-    price: 60, oldPrice: 68, badge: '', label: 'Dinner included',
+    price: 60, oldPrice: 68, listedPrice: 20000, listedPriceCurrency: 'IDR', priceNote: 'Entrance fee', badge: '', label: 'Dinner included',
     description: 'Spend time in Bilebante Green Tourism Village and discover local landscapes, food, and community-led experiences near Mataram.',
     highlights: ['Explore Bilebante village', 'Discover local food and landscapes', 'Meet the local community'],
   },
@@ -314,6 +365,7 @@ export const experiences = [
     description: 'Climb Pergasingan Hill near Sembalun for a sunrise view across the valleys and farmland of East Lombok.',
     highlights: ['Trek to Pergasingan Hill', 'Watch the sunrise over Sembalun', 'Take a memorable landscape photo'],
   },
+  ...articleExperiences,
   ...waterfallExperiences,
   ...beachExperiences,
   ...volcanoExperiences,
