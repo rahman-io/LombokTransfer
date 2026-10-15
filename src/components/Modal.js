@@ -78,6 +78,13 @@ export function modalView() {
     const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.chatGalleryIndex));
     title = 'Chat photos';
     body = photos.length ? `<div class="chat-lightbox"><div class="chat-lightbox-track" data-chat-gallery-track aria-label="Chat photos">${photos.map((photo, index) => `<div class="chat-lightbox-slide" data-chat-gallery-slide="${index}"><div class="chat-lightbox-stage" data-chat-zoom-stage data-chat-gallery-index="${index}" aria-label="Chat photo ${index + 1} of ${photos.length}"><img data-chat-zoom-image src="${escapeHtml(photo.source)}" alt="Chat photo ${index + 1} of ${photos.length}" draggable="false" /></div></div>`).join('')}</div><div class="chat-lightbox-controls"><button data-action="chat-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span data-chat-gallery-counter>${current + 1} / ${photos.length}</span><button data-action="chat-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="chat-lightbox-hint">Swipe between photos · pinch or double tap to zoom</small></div>` : '<p>Photo unavailable.</p>';
+  } else if (state.modal === 'shared-chat-confirm') {
+    const target = state.chatSharedTarget;
+    title = 'Buka konten bersama?';
+    body = `${target?.title ? `<div class="chat-shared-confirm-preview">${target.image ? `<img src="${escapeHtml(target.image)}" alt="" />` : ''}<span><strong>${escapeHtml(target.kind || 'Shared content')}</strong><small>${escapeHtml(target.title)}</small></span></div>` : ''}<p class="chat-shared-confirm-copy">Apakah Anda ingin melanjutkan membuka konten ini?</p><div class="chat-shared-confirm-actions"><button class="outline-button" data-action="close-modal">Batal</button><button class="primary-button" data-action="open-shared-chat-content">Lanjut buka</button></div>`;
+  } else if (state.modal === 'confirm-action') {
+    title = 'Konfirmasi';
+    body = `<p class="chat-shared-confirm-copy">${escapeHtml(state.confirmAction?.message || 'Apakah Anda ingin melanjutkan?')}</p><div class="chat-shared-confirm-actions"><button class="outline-button" data-action="close-modal">Batal</button><button class="primary-button" data-action="confirm-action">Lanjutkan</button></div>`;
   } else if (state.modal === 'travel-group-members') {
     const thread = chatThread(state.travelerGroupThreadId);
     const people = thread ? thread.participantIds.map((userId) => socialUser(userId)).filter(Boolean) : [];

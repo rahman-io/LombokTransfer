@@ -320,7 +320,11 @@ function toggleChatVoice(threadId, button) {
 }
 function closeModal() {
   const closingChatGallery = state.modal === 'chat-gallery';
+  const closingSharedChat = state.modal === 'shared-chat-confirm';
+  const closingConfirm = state.modal === 'confirm-action';
   state.modal = '';
+  if (closingSharedChat) state.chatSharedTarget = null;
+  if (closingConfirm) state.confirmAction = null;
   if (closingChatGallery && chatGalleryHistoryEntry) {
     chatGalleryHistoryEntry = false;
     history.back();
@@ -386,7 +390,7 @@ function clickAction(action, el) {
     case 'copy-chat-selection': { const text = window.getSelection?.()?.toString().trim(); if (text) copyChatText(text).then(() => { root.querySelector('.chat-selection-copy')?.remove(); announce('Text copied'); }).catch(() => announce('Unable to copy text')); break; }
     case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
     case 'cancel-chat-compose': state.chatReplyMessageId = ''; state.chatEditMessageId = ''; render(); break;
-    case 'delete-chat': if (window.confirm('Delete this message?') && deleteChatMessage(route().path.split('/')[3], id)) render(); break;
+    case 'delete-chat': state.confirmAction = { type: 'delete-chat', id, threadId: route().path.split('/')[3], message: 'Delete this message from the chat?' }; openModal('confirm-action'); break;
     case 'react-chat': if (toggleChatReaction(route().path.split('/')[3], id, value)) render(); break;
     case 'favorite-chat': if (toggleChatFavorite(route().path.split('/')[3], id)) render(); break;
     case 'pin-chat': if (toggleChatPin(route().path.split('/')[3], id)) render(); break;
@@ -433,6 +437,22 @@ function clickAction(action, el) {
     case 'copy-link': navigator.clipboard?.writeText(state.shareTarget?.url || location.href).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link')); break;
     case 'share-external': shareOutside(state.shareTarget); break;
     case 'close-modal': closeModal(); break;
+    case 'open-shared-chat-content': {
+      const target = state.chatSharedTarget;
+      state.chatSharedTarget = null;
+      state.modal = '';
+      if (target?.href) navigate(target.href);
+      break;
+    }
+    case 'confirm-action': {
+      const confirmation = state.confirmAction;
+      state.confirmAction = null;
+      state.modal = '';
+      if (confirmation?.type === 'delete-chat') { deleteChatMessage(confirmation.threadId, confirmation.id); render(); }
+      else if (confirmation?.type === 'social-delete' && deleteSocialPost(confirmation.id)) navigate('/social');
+      else render();
+      break;
+    }
     case 'select-time': update({ selectedTime: value }); render(); break;
     case 'meeting': state.modalTitle = 'Meeting point'; state.modalMessage = 'Your exact meeting point will be confirmed after booking.'; openModal('message'); break;
     case 'go-payment': {
@@ -449,6 +469,7 @@ function clickAction(action, el) {
     case 'card-details': if (state.paymentMethod === 'card') navigate('/card/' + id); else { state.modalTitle = 'Payment method'; state.modalMessage = 'This payment method will be connected in the backend phase.'; openModal('message'); } break;
     case 'payment-unavailable': state.modalTitle = 'Payment unavailable'; state.modalMessage = 'Online payments will be available when the backend is connected.'; openModal('message'); break;
     case 'save-profile': update({ guestName: document.getElementById('profile-name')?.value.trim() || state.guestName, email: document.getElementById('profile-email')?.value.trim() || state.email }); announce('Details saved'); break;
+    case 'choose-profile-photo': root.querySelector('#profile-photo-input')?.click(); break;
     case 'set-currency': update({ currency: value }); render(); break;
     case 'set-language': update({ language: value }); render(); break;
     case 'inbox-filter': state.inboxFilter = value; render(); break;
@@ -488,7 +509,7 @@ function clickAction(action, el) {
     case 'social-open-gallery': openSocialGallery(id, value); break;
     case 'social-gallery-prev': state.socialGalleryIndex = Math.max(0, state.socialGalleryIndex - 1); resetSocialZoom(); render(); break;
     case 'social-gallery-next': state.socialGalleryIndex += 1; resetSocialZoom(); render(); break;
-    case 'social-delete': if (window.confirm('Delete this post from the local demo?') && deleteSocialPost(id)) navigate('/social'); break;
+    case 'social-delete': state.confirmAction = { type: 'social-delete', id, message: 'Delete this post from this device?' }; openModal('confirm-action'); break;
     case 'social-delete-comment': if (deleteSocialComment(id, value)) render(); break;
     case 'social-report': if (reportSocialPost(id)) announce('Report saved for admin review (demo)'); else announce('This post was already reported'); break;
     case 'social-share': {
@@ -553,7 +574,8 @@ export function startApp() {
     const sharedChatContent = event.target.closest('.chat-shared-post');
     if (sharedChatContent) {
       event.preventDefault();
-      if (window.confirm('Open this shared content?')) navigate(sharedChatContent.getAttribute('href').replace(/^#/, ''));
+      state.chatSharedTarget = { href: sharedChatContent.getAttribute('href')?.replace(/^#/, ''), kind: sharedChatContent.querySelector('strong')?.textContent.trim() || 'Shared content', title: sharedChatContent.querySelector('small')?.textContent.trim() || '', image: sharedChatContent.querySelector('img')?.getAttribute('src') || '' };
+      openModal('shared-chat-confirm');
       return;
     }
     const socialMedia = event.target.closest('[data-social-media]');
@@ -876,6 +898,9 @@ export function startApp() {
   root.addEventListener('change', (event) => {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
       Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));
+    }
+    if (event.target.id === 'profile-photo-input' && event.target.files?.length) {
+      prepareSocialPhoto(event.target.files[0]).then((profilePhoto) => { update({ profilePhoto }); render(); announce('Profile photo updated'); }).catch((error) => announce(error.message));
     }
     if (['chat-photo-input', 'chat-camera-input'].includes(event.target.id) && event.target.files?.length) sendChatPhotoFiles(route().path.split('/')[3], event.target.files);
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;

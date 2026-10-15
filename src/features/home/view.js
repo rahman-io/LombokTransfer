@@ -35,7 +35,7 @@ export function homeView() {
   const topDestinations = trendingDestinations(posts, recommendations);
   return mainLayout(`
     <section class="home-hero">
-      <div class="hero-top"><div class="home-greeting"><div class="home-greeting-row"><div><h1>Hi, ${escapeHtml(greetingName())}</h1><p>Where would you like to go today?</p></div><a class="home-profile-link" href="#/profile" aria-label="Open profile"><img class="home-profile-photo" src="${escapeHtml(images.login)}" alt="Profile photo" /></a></div></div><a class="inbox-button" href="#/inbox" aria-label="Inbox">${icon('bell', 21)}${inboxBadge()}</a></div>
+      <div class="hero-top"><div class="home-greeting"><div class="home-greeting-row"><div><h1>Hi, ${escapeHtml(greetingName())}</h1><p>Where would you like to go today?</p></div><a class="home-profile-link" href="#/profile" aria-label="Open profile"><img class="home-profile-photo" src="${escapeHtml(state.profilePhoto || images.login)}" alt="Profile photo" /></a></div></div><a class="inbox-button" href="#/inbox" aria-label="Inbox">${icon('bell', 21)}${inboxBadge()}</a></div>
       <a href="#/search" class="search-pill">${icon('search', 19)}<span>Find places and things to do</span></a>
     </section>
     <section class="home-ai-planner"><a href="#/trip-planner"><span>${icon('sparkle', 20)}<strong class="ai-gradient-text">Plan a smarter trip</strong><small>Let AI match your interests with bookable experiences</small></span>${icon('chevron', 19)}</a></section>

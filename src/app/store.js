@@ -5,6 +5,7 @@ export const state = {
   wishlist: saved.wishlist || ['vatican', 'sumo'],
   guestName: saved.guestName || 'A Rahman',
   email: saved.email || 'lombok_transfer@gmail.com',
+  profilePhoto: saved.profilePhoto || '',
   currency: saved.currency || 'USD ($)',
   language: saved.language || 'English',
   date: saved.date || '',
@@ -16,6 +17,7 @@ export const state = {
   paymentMethod: saved.paymentMethod || 'card',
   checkoutStep: 1,
   modal: '',
+  confirmAction: null,
   galleryExperienceId: '',
   reviewExperienceId: '',
   galleryIndex: 0,
@@ -28,6 +30,7 @@ export const state = {
   socialSharePostId: '',
   socialLikesPostId: '',
   shareTarget: null,
+  chatSharedTarget: null,
   socialGalleryPostId: '',
   socialGalleryIndex: 0,
   joinedExperiences: saved.joinedExperiences || [],
@@ -45,8 +48,8 @@ export const state = {
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
-  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
+  const { wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
+  writeSavedState({ wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
 }
 
 export function toggleWishlist(id) {
