@@ -54,7 +54,7 @@ function relativePostTime(value, now = Date.now()) {
 function likedByLabel(post) {
   const firstLiker = socialUser(post.likedBy[0]);
   if (!firstLiker) return '';
-  return `Disukai oleh ${firstLiker.username}${post.likedBy.length > 1 ? ' dan lainnya' : ''}`;
+  return `Disukai oleh <strong>${esc(firstLiker.username)}${post.likedBy.length > 1 ? ' dan lainnya' : ''}</strong>`;
 }
 
 function captionPreview(post, author) {
@@ -82,7 +82,7 @@ function postCard(post, recommendationReason = '') {
     <div class="social-post-top"><a class="social-author" href="#/social/user/${esc(author.id)}">${avatar(author)}<span><strong>${esc(author.username)}</strong><small>${esc(post.location || author.location)} · ${relativePostTime(post.createdAt)}</small></span></a><details class="social-post-menu"><summary aria-label="Post options">${icon('more', 22)}</summary><div>${post.authorId === selfId ? `<a href="#/social/edit/${esc(post.id)}">Edit post</a><button data-action="social-delete" data-id="${esc(post.id)}">Delete post</button>` : `<button data-action="social-report" data-id="${esc(post.id)}">Report post</button>`}</div></details></div>
     ${postCarousel(post, author)}
     <div class="social-post-actions"><div><span class="social-action-item"><button data-action="social-like" data-id="${esc(post.id)}" class="${liked ? 'is-liked' : ''}" aria-label="${liked ? 'Unlike' : 'Like'} post" aria-pressed="${liked}">${icon('heart', 29)}</button><small>${compactCount(post.likedBy.length)}</small></span><span class="social-action-item"><a href="#/social/post/${esc(post.id)}" aria-label="View comments">${icon('comment', 29)}</a><small>${compactCount(post.comments.length)}</small></span><span class="social-action-item"><button data-action="social-share" data-id="${esc(post.id)}" aria-label="Share post">${icon('send', 29)}</button><small>${compactCount(socialShareCount(post))}</small></span></div><button data-action="social-save" data-id="${esc(post.id)}" class="${saved ? 'is-saved' : ''}" aria-label="${saved ? 'Remove saved post' : 'Save post'}" aria-pressed="${saved}">${icon('bookmark', 29)}</button></div>
-    <div class="social-post-copy">${recommendationReason ? `<small class="social-ai-reason">${icon('sparkle', 13)} ${esc(recommendationReason)}</small>` : ''}${likedByLabel(post) ? `<strong class="social-liked-by">${esc(likedByLabel(post))}</strong>` : ''}${captionPreview(post, author)}${socialTopics(post).length ? `<div class="social-post-topics">${socialTopics(post).slice(0, 3).map((topic) => `<a class="social-topic-tag" href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)}</a>`).join('')}</div>` : ''}${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}?from=vibes">${icon('tickets', 16)} Explore this experience</a>` : ''}</div>
+    <div class="social-post-copy">${recommendationReason ? `<small class="social-ai-reason">${icon('sparkle', 13)} ${esc(recommendationReason)}</small>` : ''}${likedByLabel(post) ? `<span class="social-liked-by">${likedByLabel(post)}</span>` : ''}${captionPreview(post, author)}${socialTopics(post).length ? `<div class="social-post-topics">${socialTopics(post).slice(0, 3).map((topic) => `<a class="social-topic-tag" href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)}</a>`).join('')}</div>` : ''}${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}?from=vibes">${icon('tickets', 16)} Explore this experience</a>` : ''}</div>
   </article>`;
 }
 
