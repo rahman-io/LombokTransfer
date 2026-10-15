@@ -101,5 +101,5 @@ export function modalView() {
     title = state.modalTitle || 'Information';
     body = `<p>${escapeHtml(state.modalMessage || '')}</p><button class="primary-button full" data-action="close-modal">OK</button>`;
   }
-  return `<div class="modal-backdrop" data-action="close-modal"><section class="bottom-sheet ${['social-gallery', 'chat-gallery'].includes(state.modal) ? `${state.modal}-modal` : ''}" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
+  return `<div class="modal-backdrop ${state.modal === 'chat-gallery' ? 'chat-gallery-backdrop' : ''}" data-action="close-modal"><section class="bottom-sheet ${['social-gallery', 'chat-gallery'].includes(state.modal) ? `${state.modal}-modal` : ''}" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
 }
