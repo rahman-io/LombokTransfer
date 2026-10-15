@@ -17,7 +17,7 @@ import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
-import { chatMessage, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
+import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
@@ -32,7 +32,6 @@ let socialMediaTap = null;
 let socialCarouselDrag = null;
 let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
-let suppressChatPhotoClick = false;
 let chatPinchPointers = new Map();
 let chatGalleryDrag = null;
 let chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
@@ -508,7 +507,6 @@ export function startApp() {
     const chatImage = event.target.closest('.chat-image-attachment');
     if (chatImage) {
       event.preventDefault();
-      if (suppressChatPhotoClick) { suppressChatPhotoClick = false; return; }
       clickAction('chat-open-gallery', chatImage);
       return;
     }
@@ -599,14 +597,6 @@ export function startApp() {
       zoomStage.dataset.pointerId = event.pointerId;
       zoomStage._socialPointer = { x: event.clientX, y: event.clientY };
     }
-  });
-  root.addEventListener('pointerup', (event) => {
-    const chatImage = event.target.closest('.chat-image-attachment');
-    if (!chatImage) return;
-    event.preventDefault();
-    suppressChatPhotoClick = true;
-    setTimeout(() => { suppressChatPhotoClick = false; }, 500);
-    clickAction('chat-open-gallery', chatImage);
   });
   root.addEventListener('pointermove', (event) => {
     if (mainSwipe?.pointerId === event.pointerId) {
@@ -768,11 +758,12 @@ export function startApp() {
   root.addEventListener('scroll', (event) => {
     const track = event.target;
     if (track.matches?.('.chat-messages')) closeChatMenus();
-    if (track.matches?.('.chat-gallery-track') && track.clientWidth) {
+    if (track.matches?.('[data-chat-gallery-track]') && track.clientWidth) {
       const index = Math.max(0, Math.min(chatGalleryPhotos(state.chatGalleryThreadId).length - 1, Math.round(track.scrollLeft / track.clientWidth)));
       if (index !== state.chatGalleryIndex) { state.chatGalleryIndex = index; resetChatZoom(); applyChatZoom(); }
       const counter = root.querySelector('[data-chat-gallery-counter]');
       if (counter) counter.textContent = `${index + 1} / ${chatGalleryPhotos(state.chatGalleryThreadId).length}`;
+      root.querySelectorAll('[data-action="chat-gallery-prev"], [data-action="chat-gallery-next"]').forEach((button) => { button.disabled = button.dataset.action === 'chat-gallery-prev' ? index === 0 : index === chatGalleryPhotos(state.chatGalleryThreadId).length - 1; });
       return;
     }
     if (track.matches?.('[data-social-carousel]') && track.clientWidth) {
