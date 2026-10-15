@@ -2,6 +2,7 @@ import { experiences, getExperience } from '../experiences/data.js';
 
 const storageKey = 'lombok-guide-demo-v1';
 const commissionRate = 0.10;
+const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
 const seedGuides = [
   { id: 'guide-adi', name: 'Adi Saputra', initials: 'AS', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', experienceIds: ['arena', 'sumo'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-nur', name: 'Nur Aisyah', initials: 'NA', area: 'North Lombok & Gili Islands', languages: 'Indonesian, English', bio: 'Island and waterfall guide who loves sharing local stories.', experienceIds: ['pantheon', 'vatican', 'basilica'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },
@@ -11,7 +12,7 @@ const seedGuides = [
 const emptyData = () => ({
   schemaVersion: 1,
   activeGuideId: 'guide-adi',
-  guides: seedGuides.map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds] })),
+  guides: seedGuides.map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })),
   requests: [
     { id: 'demo-rinjani-pending', schemaVersion: 1, experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), time: '5:00 AM', adults: 1, children: 0, travelers: 1, travelerName: 'Maya Putri', travelerEmail: 'maya.demo@example.com', unitPrice: 2531969, currency: 'IDR', ...priceSplit(2531969), status: 'pending', createdAt: new Date().toISOString(), review: null },
     { id: 'demo-gili-completed', schemaVersion: 1, experienceId: 'pantheon', packageId: 'gili-shared-snorkeling', guideId: 'guide-nur', date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), time: '8:00 AM', adults: 2, children: 0, travelers: 2, travelerName: 'Sophie Walker', travelerEmail: 'sophie.demo@example.com', unitPrice: 164872, currency: 'IDR', ...priceSplit(329744), status: 'completed', createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), review: { stars: 5, comment: 'Lovely day around the Gilis.', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() } },
@@ -20,7 +21,16 @@ const emptyData = () => ({
 function read() {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    return data && Array.isArray(data.guides) && Array.isArray(data.requests) ? data : emptyData();
+    if (!data || !Array.isArray(data.guides) || !Array.isArray(data.requests)) return emptyData();
+    data.guides.forEach((guide) => {
+      if (guide.priceAgreements) return;
+      guide.priceAgreements = guide.status === 'verified' ? initialAgreements(guide) : {};
+      Object.entries(guide.prices || {}).forEach(([packageId, amount]) => {
+        if (!guide.priceAgreements[packageId] || Number(amount) === guide.priceAgreements[packageId].approvedAmount) return;
+        guide.priceAgreements[packageId].proposal = { amount: Number(amount), status: 'pending', submittedAt: new Date().toISOString() };
+      });
+    });
+    return data;
   } catch { return emptyData(); }
 }
 function write(data) { localStorage.setItem(storageKey, JSON.stringify(data)); return data; }
@@ -32,7 +42,10 @@ export function switchGuide(id) {
   if (!data.guides.some((guide) => guide.id === id)) return false;
   data.activeGuideId = id; write(data); return true;
 }
-export function packagePrice(guide, option) { return Number(guide?.prices?.[option.id] || option.price); }
+export function packagePrice(guide, option) { const amount = guide?.priceAgreements?.[option?.id]?.approvedAmount; return Number.isInteger(amount) && amount >= 1000 ? amount : null; }
+export function publicPackagePrice(experienceId, option) { const prices = availableGuides(experienceId, option.id).map((guide) => packagePrice(guide, option)); return prices.length ? Math.min(...prices) : null; }
+export function approvedPackageLabel(experienceId, option) { const amount = publicPackagePrice(experienceId, option); return amount === null ? 'Awaiting guide approval' : `Rp${amount.toLocaleString('id-ID')}`; }
+export function approvedExperienceLabel(item) { const prices = (item.packageOptions || []).map((option) => publicPackagePrice(item.id, option)).filter((amount) => amount !== null); return prices.length ? `Rp${Math.min(...prices).toLocaleString('id-ID')}` : 'Awaiting guide approval'; }
 export function packageStartTimes(experience, option) { return experience?.id === 'arena' || option?.id === 'pergasingan-sunrise' ? ['5:00 AM', '6:00 AM'] : ['8:00 AM', '9:00 AM']; }
 export function priceSplit(amount) {
   const platform = Math.round(Number(amount) * commissionRate);
@@ -54,9 +67,9 @@ export function availableGuides(experienceId, optionId, date = '', travelers = 1
   const option = getExperience(experienceId)?.packageOptions?.find((entry) => entry.id === optionId);
   if (!option || (date && !packageDates(date, option).length)) return [];
   const dates = date ? packageDates(date, option) : [];
-  return data.guides.filter((guide) => guide.status === 'verified' && guide.experienceIds.includes(experienceId) && Number(travelers) > 0 && dates.every((day) => !guide.blockedDates.includes(day) && data.requests.filter((request) => request.guideId === guide.id && request.status === 'accepted' && requestDates(request).includes(day)).reduce((total, request) => total + request.travelers, 0) + Number(travelers) <= guide.capacity) && Number(travelers) <= guide.capacity);
+  return data.guides.filter((guide) => guide.status === 'verified' && guide.experienceIds.includes(experienceId) && packagePrice(guide, option) !== null && Number(travelers) > 0 && dates.every((day) => !guide.blockedDates.includes(day) && data.requests.filter((request) => request.guideId === guide.id && request.status === 'accepted' && requestDates(request).includes(day)).reduce((total, request) => total + request.travelers, 0) + Number(travelers) <= guide.capacity) && Number(travelers) <= guide.capacity);
 }
-export function createGuideRequest({ experienceId, packageId, guideId, date, time, adults, children, travelerName, travelerEmail }) {
+export function createGuideRequest({ experienceId, packageId, guideId, date, time, adults, children, travelerName, travelerEmail, expectedUnitPrice }) {
   const experience = getExperience(experienceId);
   const option = experience?.packageOptions?.find((entry) => entry.id === packageId);
   const travelers = Number(adults) + Number(children);
@@ -65,8 +78,9 @@ export function createGuideRequest({ experienceId, packageId, guideId, date, tim
   const data = read();
   if (data.requests.some((request) => request.travelerEmail === String(travelerEmail).trim().toLowerCase() && request.experienceId === experienceId && request.packageId === packageId && request.date === date && ['pending', 'accepted'].includes(request.status))) return null;
   const unitPrice = packagePrice(guide, option);
+  if (Number(expectedUnitPrice) !== unitPrice) return null;
   const split = priceSplit(unitPrice * travelers);
-  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 1, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), unitPrice, currency: option.currency || 'IDR', ...split, status: 'pending', createdAt: new Date().toISOString(), review: null };
+  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 1, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, status: 'pending', createdAt: new Date().toISOString(), review: null };
   data.requests.unshift(request); write(data); return request;
 }
 export function updateGuideRequest(id, guideId, status) {
@@ -87,11 +101,23 @@ export function saveGuideProfile(id, { name, area, languages, bio, capacity }) {
   if (!guide || !String(name).trim() || !String(area).trim() || !Number.isInteger(Number(capacity)) || Number(capacity) < 1 || Number(capacity) > 30) return false;
   Object.assign(guide, { name: String(name).trim().slice(0, 80), area: String(area).trim().slice(0, 100), languages: String(languages).trim().slice(0, 100), bio: String(bio).trim().slice(0, 500), capacity: Number(capacity) }); write(data); return true;
 }
-export function setGuidePrice(guideId, packageId, amount) {
+export function proposeGuidePrice(guideId, packageId, amount) {
   const data = read(); const guide = data.guides.find((entry) => entry.id === guideId);
   const option = guide?.experienceIds.flatMap((id) => getExperience(id)?.packageOptions || []).find((entry) => entry.id === packageId);
   if (!guide || !option || guide.status !== 'verified' || !Number.isInteger(Number(amount)) || Number(amount) < 1000) return false;
-  guide.prices[packageId] = Number(amount); write(data); return true;
+  const agreement = guide.priceAgreements[packageId] || { approvedAmount: null, approvedAt: null, approvedBy: null, proposal: null };
+  if (Number(amount) === agreement.approvedAmount) return false;
+  agreement.proposal = { amount: Number(amount), status: 'pending', submittedAt: new Date().toISOString() };
+  guide.priceAgreements[packageId] = agreement; write(data); return true;
+}
+export function decideGuidePrice(guideId, packageId, decision) {
+  const data = read(); const guide = data.guides.find((entry) => entry.id === guideId);
+  const agreement = guide?.priceAgreements?.[packageId];
+  if (!agreement || agreement.proposal?.status !== 'pending' || !['approved', 'rejected'].includes(decision)) return false;
+  const amount = agreement.proposal.amount;
+  agreement.proposal = { ...agreement.proposal, status: decision, decidedAt: new Date().toISOString(), agreedAmount: decision === 'approved' ? amount : null };
+  if (decision === 'approved') { agreement.approvedAmount = amount; agreement.approvedAt = agreement.proposal.decidedAt; agreement.approvedBy = 'demo-admin'; }
+  write(data); return true;
 }
 export function toggleGuideExperience(guideId, experienceId) {
   const data = read(); const guide = data.guides.find((entry) => entry.id === guideId);
