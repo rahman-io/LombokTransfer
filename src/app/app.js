@@ -37,6 +37,7 @@ let mainTouchSwipe = null;
 let chatRecorder = null;
 let chatAudioStream = null;
 let chatAudioChunks = [];
+let chatViewportFrame = 0;
 let suppressMainSwipeClick = false;
 let devBrowserPreview = false;
 let homeDestinationAutoScroll = null;
@@ -166,7 +167,10 @@ export function render() {
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
   selectGalleryIndex(state.galleryIndex, false);
-  if (path.startsWith('/inbox/chat/')) requestAnimationFrame(() => { const messages = root.querySelector('.chat-messages'); if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' }); });
+  if (path.startsWith('/inbox/chat/')) {
+    syncChatViewport();
+    requestAnimationFrame(() => { const messages = root.querySelector('.chat-messages'); if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' }); });
+  }
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
     if (scrollRestore !== null) {
@@ -216,10 +220,20 @@ function announce(message) {
 function syncChatViewport() {
   const viewport = window.visualViewport;
   const height = viewport?.height || window.innerHeight;
+  const top = viewport?.offsetTop || 0;
   const offset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
   document.documentElement.style.setProperty('--chat-viewport-height', `${height}px`);
+  document.documentElement.style.setProperty('--chat-viewport-top', `${top}px`);
   document.documentElement.style.setProperty('--chat-keyboard-offset', `${offset}px`);
-  if (root.querySelector('.chat-page')) closeChatMenus();
+  if (!root.querySelector('.chat-page')) return;
+  window.scrollTo(0, 0);
+  closeChatMenus();
+  if (!document.activeElement?.closest('.chat-composer')) return;
+  cancelAnimationFrame(chatViewportFrame);
+  chatViewportFrame = requestAnimationFrame(() => {
+    const messages = root.querySelector('.chat-messages');
+    if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
+  });
 }
 function closeChatMenus(except = null) {
   root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) panel.removeAttribute('style'); } });
