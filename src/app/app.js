@@ -213,6 +213,35 @@ function announce(message) {
   render();
   setTimeout(() => { state.toast = ''; render(); }, 2200);
 }
+function syncChatViewport() {
+  const viewport = window.visualViewport;
+  const height = viewport?.height || window.innerHeight;
+  const offset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
+  document.documentElement.style.setProperty('--chat-viewport-height', `${height}px`);
+  document.documentElement.style.setProperty('--chat-keyboard-offset', `${offset}px`);
+}
+function closeChatMenus(except = null) {
+  root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) { panel.style.top = ''; panel.style.left = ''; } } });
+}
+function positionChatMenu(menu) {
+  const panel = menu.querySelector('div');
+  if (!panel) return;
+  const anchor = menu.getBoundingClientRect();
+  panel.style.position = 'fixed';
+  panel.style.right = 'auto';
+  panel.style.bottom = 'auto';
+  panel.style.left = '0px';
+  panel.style.top = '0px';
+  const size = panel.getBoundingClientRect();
+  const viewportWidth = window.visualViewport?.width || window.innerWidth;
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const margin = 8;
+  const left = Math.max(margin, Math.min(viewportWidth - size.width - margin, anchor.left));
+  const above = anchor.top - size.height - 6;
+  const top = above >= margin ? above : Math.min(viewportHeight - size.height - margin, anchor.bottom + 6);
+  panel.style.left = `${left}px`;
+  panel.style.top = `${Math.max(margin, top)}px`;
+}
 function sendChatPhotoFiles(threadId, files) {
   Promise.all([...files].slice(0, 6).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { dataUrls.forEach((localImage) => sendChatMessage(threadId, 'Photo', { type: 'image', localImage })); render(); }).catch(() => announce('Could not send this photo'));
 }
@@ -410,8 +439,12 @@ export function startApp() {
   } else render();
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
+  syncChatViewport();
+  window.addEventListener('resize', syncChatViewport, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncChatViewport, { passive: true });
   root.addEventListener('click', (event) => {
     if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
+    if (!event.target.closest('.chat-message-menu')) closeChatMenus();
     const socialMedia = event.target.closest('[data-social-media]');
     if (socialMedia) {
       event.preventDefault();
@@ -454,7 +487,7 @@ export function startApp() {
     clickAction(el.dataset.action, el);
   });
   root.addEventListener('toggle', (event) => {
-    if (event.target.matches?.('.chat-message-menu') && event.target.open) root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== event.target) menu.open = false; });
+    if (event.target.matches?.('.chat-message-menu') && event.target.open) { closeChatMenus(event.target); requestAnimationFrame(() => positionChatMenu(event.target)); }
   }, true);
   root.addEventListener('pointerdown', (event) => {
     const mainIndex = mainNavigationIndex();
@@ -610,6 +643,7 @@ export function startApp() {
   });
   root.addEventListener('scroll', (event) => {
     const track = event.target;
+    if (track.matches?.('.chat-messages')) closeChatMenus();
     if (track.matches?.('[data-social-carousel]') && track.clientWidth) {
       const index = Math.max(0, Math.round(track.scrollLeft / track.clientWidth));
       track.parentElement?.querySelectorAll('.social-post-dots span').forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === index));
