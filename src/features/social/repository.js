@@ -5,11 +5,6 @@ import { rankSocialActivity, socialModerationQueue } from './intelligence.js';
 const STORAGE_KEY = 'lombok-social-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const now = () => new Date().toISOString();
-const guideChatUsers = [
-  { id: 'guide-adi', username: 'adi.rinjani', displayName: 'Adi Saputra', initials: 'AS', color: '#205785', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', location: 'Sembalun, East Lombok', role: 'guide', online: true },
-  { id: 'guide-nur', username: 'nur.gilis', displayName: 'Nur Aisyah', initials: 'NA', color: '#8b5d45', bio: 'Island and waterfall guide who loves sharing local stories.', location: 'North Lombok & Gili Islands', role: 'guide', online: true },
-  { id: 'guide-lalu', username: 'lalu.lombok', displayName: 'Lalu Pratama', initials: 'LP', color: '#5f6f54', bio: 'Cultural guide for village visits and local craft experiences.', location: 'Central Lombok', role: 'guide', online: false },
-];
 
 export function createSeedSocialState() {
   return {
@@ -27,6 +22,13 @@ function readState() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved?.schemaVersion === 1 && Array.isArray(saved.users) && Array.isArray(saved.posts) && Array.isArray(saved.follows) && Array.isArray(saved.reports) && saved.users.some((user) => user.id === saved.activeUserId)) {
       const seeds = new Map(demoSocialPosts.map((post) => [post.id, post]));
+      const userSeeds = new Map(demoSocialUsers.map((user) => [user.id, user]));
+      saved.users = saved.users.map((user) => {
+        const seed = userSeeds.get(user.id);
+        return seed ? { ...user, role: seed.role, guideId: user.guideId || seed.guideId, accountEmail: user.accountEmail || seed.accountEmail } : user;
+      });
+      const existingUserIds = new Set(saved.users.map((user) => user.id));
+      saved.users.push(...demoSocialUsers.filter((user) => !existingUserIds.has(user.id)).map((user) => clone(user)));
       saved.posts = saved.posts.map((post) => {
         const seed = seeds.get(post.id);
         const media = Array.isArray(post.media) && post.media.length ? post.media : seed?.media || [{ id: `${post.id}-media-1`, imageKey: post.imageKey, localImage: post.localImage || null, storagePath: null }];
@@ -50,7 +52,7 @@ function persist() {
 }
 
 export function activeSocialUser() { return socialState().users.find((user) => user.id === socialState().activeUserId); }
-export function socialUser(id) { return socialState().users.find((user) => user.id === id) || guideChatUsers.find((user) => user.id === id); }
+export function socialUser(id) { return socialState().users.find((user) => user.id === id); }
 export function socialPost(id) { return socialState().posts.find((post) => post.id === id && post.status === 'published'); }
 export function visibleSocialPosts() { return [...socialState().posts].filter((post) => post.status === 'published').sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
 export function socialPostsForExperience(experienceId) { return visibleSocialPosts().filter((post) => post.experienceId === experienceId); }
@@ -192,7 +194,7 @@ export function socialModerationItems() { return socialModerationQueue(socialSta
 export function toSocialFirebaseFixture(source = socialState()) {
   const publishedPosts = source.posts.filter((post) => post.status === 'published');
   return {
-    socialProfiles: source.users.map(({ id, username, displayName, bio, location, role, initials, color }) => ({ id, username, displayName, bio, location, role, initials, color, schemaVersion: 1, createdAt: '2026-10-01T00:00:00Z', updatedAt: null })),
+    socialProfiles: source.users.map(({ id, username, displayName, bio, location, role, guideId, accountEmail, initials, color }) => ({ id, username, displayName, bio, location, role, guideId: guideId || null, accountEmail: accountEmail || null, initials, color, schemaVersion: 1, createdAt: '2026-10-01T00:00:00Z', updatedAt: null })),
     socialPosts: publishedPosts.map((post) => ({
       id: post.id, schemaVersion: 1, authorId: post.authorId, status: 'draft',
       caption: post.caption, location: post.location, experienceId: post.experienceId,

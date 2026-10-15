@@ -3,6 +3,7 @@ import { readSavedState, writeSavedState } from '../services/storage.js';
 const saved = readSavedState();
 export const state = {
   wishlist: saved.wishlist || ['vatican', 'sumo'],
+  accountUserId: saved.accountUserId || 'rahman',
   guestName: saved.guestName || 'A Rahman',
   email: saved.email || 'lombok_transfer@gmail.com',
   profilePhoto: saved.profilePhoto || '',
@@ -53,8 +54,8 @@ export const state = {
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
-  writeSavedState({ wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
+  const { wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
+  writeSavedState({ wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
 }
 
 export function toggleWishlist(id) {

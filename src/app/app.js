@@ -14,7 +14,7 @@ import { attractions, destinations, experiences, getExperience, getExperienceGal
 import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
-import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
+import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
 import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
@@ -141,6 +141,8 @@ function setupHomeDestinationCarousel() {
 }
 function currentView() {
   const { path, params } = route();
+  const guideRoute = path === '/guide' || path.startsWith('/guide/');
+  if (guideRoute && activeSocialUser()?.role !== 'guide') return profileView();
   if (path === '/login') return loginView();
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
@@ -182,6 +184,8 @@ export function render() {
   const preserveChatScroll = chatRoute && path === lastPath;
   const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
   maybeShowInstallInfo();
+  const account = activeSocialUser();
+  if (account && state.accountUserId !== account.id) update({ accountUserId: account.id, guestName: account.displayName, email: account.accountEmail || `${account.username.replace(/[^a-z0-9]+/gi, '.')}@demo.example.com` });
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
@@ -548,7 +552,7 @@ function clickAction(action, el) {
     }
     case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
-    case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;
+    case 'social-switch-user': if (switchSocialUser(id)) { const user = socialUser(id); if (user?.role === 'guide') switchGuide(user.guideId || user.id); navigate('/social'); render(); } break;
     case 'social-discover-destination': navigate('/results?city=' + encodeURIComponent(value)); break;
     case 'social-likes': state.socialLikesPostId = id; openModal('social-likes'); break;
     case 'social-like-profile': state.modal = ''; navigate(`/social/user/${encodeURIComponent(id)}`); break;
@@ -980,7 +984,7 @@ export function startApp() {
     }
     if (['chat-photo-input', 'chat-camera-input'].includes(event.target.id) && event.target.files?.length) sendChatPhotoFiles(route().path.split('/')[3], event.target.files);
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
-    if (event.target.id === 'guide-account-select' && switchGuide(event.target.value)) render();
+    if (event.target.id === 'guide-account-select' && switchGuide(event.target.value)) { const guideUser = socialState().users.find((user) => user.guideId === event.target.value || user.id === event.target.value); if (guideUser) switchSocialUser(guideUser.id); render(); }
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });

@@ -10,6 +10,7 @@ const seedGuides = [
   { id: 'guide-adi', name: 'Adi Saputra', initials: 'AS', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', experienceIds: ['arena', 'sumo'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-nur', name: 'Nur Aisyah', initials: 'NA', area: 'North Lombok & Gili Islands', languages: 'Indonesian, English', bio: 'Island and waterfall guide who loves sharing local stories.', experienceIds: ['pantheon', 'vatican', 'basilica'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-lalu', name: 'Lalu Pratama', initials: 'LP', area: 'Central Lombok', languages: 'Indonesian, English', bio: 'Cultural guide for village visits and local craft experiences.', experienceIds: ['desa-sade', 'pantheon'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
+  { id: 'guide-dario', name: 'Dario Rossi', initials: 'DR', area: 'Rome, Italy', languages: 'Italian, English', bio: 'Local guide sharing the Rome I love.', experienceIds: ['colosseum', 'pantheon'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
 ];
 
 const emptyData = () => ({
@@ -27,6 +28,9 @@ function read() {
     if (!data || !Array.isArray(data.guides) || !Array.isArray(data.requests)) return emptyData();
     let migrated = data.schemaVersion !== 2;
     data.schemaVersion = 2;
+    const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
+    data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
+    if (data.guides.some((guide) => !existingGuideIds.has(guide.id))) migrated = true;
     data.guides.forEach((guide) => {
       if (guide.priceAgreements) return;
       guide.priceAgreements = guide.status === 'verified' ? initialAgreements(guide) : {};

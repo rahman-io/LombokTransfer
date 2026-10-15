@@ -2,12 +2,15 @@ export const socialDemoImageKeys = ['kayaking', 'kayakingSunset', 'skydiving', '
 
 // Stable IDs and timestamps deliberately mirror future Firestore documents.
 export const demoSocialUsers = [
-  { id: 'rahman', username: 'rahman.travels', displayName: 'A Rahman', initials: 'AR', color: '#234e70', bio: 'Collecting little moments, one destination at a time 🌍', location: 'Lombok, Indonesia', role: 'traveler', online: true },
-  { id: 'maya', username: 'mayagoesplaces', displayName: 'Maya Putri', initials: 'MP', color: '#bb724f', bio: 'Golden-hour chaser. Always saying yes to a new city.', location: 'Bali, Indonesia', role: 'traveler', online: true },
-  { id: 'leo', username: 'leo.ontheroad', displayName: 'Leo Martin', initials: 'LM', color: '#566d65', bio: 'Slow travel, big stories, too many photos.', location: 'Paris, France', role: 'traveler', online: false },
-  { id: 'nina', username: 'nina.explores', displayName: 'Nina Sato', initials: 'NS', color: '#8f6383', bio: 'Food, culture and a little adventure ✨', location: 'Tokyo, Japan', role: 'traveler', online: false },
-  { id: 'dario', username: 'dario.roma', displayName: 'Dario Rossi', initials: 'DR', color: '#a05d50', bio: 'Local guide sharing the Rome I love.', location: 'Rome, Italy', role: 'guide', online: true },
-  { id: 'sophie', username: 'sophie.outdoors', displayName: 'Sophie Walker', initials: 'SW', color: '#587f8c', bio: 'Outside is where I feel most at home.', location: 'Queenstown, New Zealand', role: 'traveler', online: true },
+  { id: 'rahman', username: 'rahman.travels', displayName: 'A Rahman', initials: 'AR', color: '#234e70', bio: 'Collecting little moments, one destination at a time 🌍', location: 'Lombok, Indonesia', role: 'traveler', accountEmail: 'lombok_transfer@gmail.com', online: true },
+  { id: 'maya', username: 'mayagoesplaces', displayName: 'Maya Putri', initials: 'MP', color: '#bb724f', bio: 'Golden-hour chaser. Always saying yes to a new city.', location: 'Bali, Indonesia', role: 'traveler', accountEmail: 'maya.demo@example.com', online: true },
+  { id: 'leo', username: 'leo.ontheroad', displayName: 'Leo Martin', initials: 'LM', color: '#566d65', bio: 'Slow travel, big stories, too many photos.', location: 'Paris, France', role: 'traveler', accountEmail: 'leo.demo@example.com', online: false },
+  { id: 'nina', username: 'nina.explores', displayName: 'Nina Sato', initials: 'NS', color: '#8f6383', bio: 'Food, culture and a little adventure ✨', location: 'Tokyo, Japan', role: 'traveler', accountEmail: 'nina.demo@example.com', online: false },
+  { id: 'dario', username: 'dario.roma', displayName: 'Dario Rossi', initials: 'DR', color: '#a05d50', bio: 'Local guide sharing the Rome I love.', location: 'Rome, Italy', role: 'guide', guideId: 'guide-dario', accountEmail: 'dario.demo@example.com', online: true },
+  { id: 'sophie', username: 'sophie.outdoors', displayName: 'Sophie Walker', initials: 'SW', color: '#587f8c', bio: 'Outside is where I feel most at home.', location: 'Queenstown, New Zealand', role: 'traveler', accountEmail: 'sophie.demo@example.com', online: true },
+  { id: 'guide-adi', username: 'adi.rinjani', displayName: 'Adi Saputra', initials: 'AS', color: '#205785', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', location: 'Sembalun, East Lombok', role: 'guide', guideId: 'guide-adi', accountEmail: 'adi.demo@example.com', online: true },
+  { id: 'guide-nur', username: 'nur.gilis', displayName: 'Nur Aisyah', initials: 'NA', color: '#8b5d45', bio: 'Island and waterfall guide who loves sharing local stories.', location: 'North Lombok & Gili Islands', role: 'guide', guideId: 'guide-nur', accountEmail: 'nur.demo@example.com', online: true },
+  { id: 'guide-lalu', username: 'lalu.lombok', displayName: 'Lalu Pratama', initials: 'LP', color: '#5f6f54', bio: 'Cultural guide for village visits and local craft experiences.', location: 'Central Lombok', role: 'guide', guideId: 'guide-lalu', accountEmail: 'lalu.demo@example.com', online: false },
 ];
 
 const seedComment = (id, authorId, text, createdAt, parentId = null) => ({ id, authorId, text, createdAt, parentId });

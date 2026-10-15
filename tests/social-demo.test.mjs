@@ -16,7 +16,7 @@ globalThis.localStorage = {
 
 test('seeded community has stable linked users, posts and interactions', () => {
   const seed = createSeedSocialState();
-  assert.equal(seed.users.length, 6);
+  assert.equal(seed.users.length, 9);
   assert.ok(seed.posts.length >= 6);
   for (const post of seed.posts) {
     assert.ok(seed.users.some((user) => user.id === post.authorId));
