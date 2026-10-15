@@ -17,7 +17,7 @@ function timeLabel(value) { return new Date(value).toLocaleTimeString('en-US', {
 function lastMessage(thread) { return chatMessages(thread.id).at(-1); }
 function visibleOnline(userId) { return isChatUserOnline(userId) && (userId !== activeSocialUser().id || state.privacy.onlineStatus); }
 function sharedAttachment(attachment, messageId = '') {
-  if (attachment?.type === 'image' && attachment.localImage) return `<img class="chat-image-attachment" src="${esc(attachment.localImage)}" alt="Photo sent in chat" loading="lazy" data-action="chat-open-gallery" data-id="${esc(messageId)}" />`;
+  if (attachment?.type === 'image' && attachment.localImage) return `<button type="button" class="chat-image-attachment" data-action="chat-open-gallery" data-id="${esc(messageId)}" aria-label="Open chat photo"><img src="${esc(attachment.localImage)}" alt="Photo sent in chat" loading="lazy" draggable="false" /></button>`;
   if (attachment?.type === 'audio' && attachment.localAudio) return `<audio class="chat-audio-attachment" src="${esc(attachment.localAudio)}" controls preload="metadata"></audio>`;
   if (attachment?.type === 'sticker') return `<span class="chat-sticker-attachment">${esc(attachment.value || '✨')}</span>`;
   const post = attachment?.type === 'social-post' ? socialPost(attachment.postId) : null;
