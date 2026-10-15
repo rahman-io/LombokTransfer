@@ -53,6 +53,7 @@ let activeMap = null;
 let activeMapMarkers = null;
 let activeMapPoiMarkers = null;
 let activeMapPlaces = [];
+let activeUserPosition = null;
 let activeUserMarker = null;
 let mapLocationWatchId = null;
 let mapRequestController = null;
@@ -174,19 +175,39 @@ function initializeMap() {
   if (window.L) mount();
   else document.querySelector('script[src*="leaflet.js"]')?.addEventListener('load', mount, { once: true });
 }
+function distanceLabel(coordinates) {
+  if (!activeUserPosition || !Array.isArray(coordinates) || coordinates.length < 2) return '';
+  const [latitude, longitude] = coordinates;
+  const toRadians = (value) => value * Math.PI / 180;
+  const earthRadius = 6371;
+  const latitudeDelta = toRadians(latitude - activeUserPosition.latitude);
+  const longitudeDelta = toRadians(longitude - activeUserPosition.longitude);
+  const haversine = Math.sin(latitudeDelta / 2) ** 2 + Math.cos(toRadians(activeUserPosition.latitude)) * Math.cos(toRadians(latitude)) * Math.sin(longitudeDelta / 2) ** 2;
+  const distance = earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  return distance < 1 ? `${Math.max(1, Math.round(distance * 1000))} m away` : `${distance.toFixed(1)} km away`;
+}
+function experienceMapPopup(point) {
+  const distance = distanceLabel(point.coordinates);
+  return `<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}${distance ? ` · ${distance}` : ''}</small>${distance ? '' : '<small class="map-distance-prompt">Enable location to see distance</small>'}<a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`;
+}
+function nearbyMapPopup(place) {
+  const distance = distanceLabel([place.latitude, place.longitude]);
+  return `<div class="map-popup"><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · OpenStreetMap${distance ? ` · ${distance}` : ''}</small>${distance ? '' : '<small class="map-distance-prompt">Enable location to see distance</small>'}</div>`;
+}
 function renderMapPlaces() {
   if (!activeMapPoiMarkers) return;
   const visiblePlaces = mapPlaceMode === 'all' ? activeMapPlaces : activeMapPlaces.filter((place) => place.type === mapPlaceMode);
   activeMapPoiMarkers.clearLayers();
   visiblePlaces.forEach((place) => {
     const marker = window.L.marker([place.latitude, place.longitude]).addTo(activeMapPoiMarkers);
-    marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · OpenStreetMap</small></div>`);
+    marker.mapPlace = place;
+    marker.bindPopup(nearbyMapPopup(place));
   });
   root.querySelectorAll('[data-action="map-place-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === mapPlaceMode));
   const list = root.querySelector('[data-map-nearby-list]');
   if (!list) return;
   list.hidden = visiblePlaces.length === 0;
-  list.innerHTML = visiblePlaces.slice(0, 8).map((place) => `<div class="map-nearby-item"><span class="map-nearby-icon">${place.type === 'restaurant' ? '🍽️' : '🏨'}</span><span><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} nearby</small></span></div>`).join('');
+  list.innerHTML = visiblePlaces.slice(0, 8).map((place) => `<div class="map-nearby-item"><span class="map-nearby-icon">${place.type === 'restaurant' ? '🍽️' : '🏨'}</span><span><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · ${distanceLabel([place.latitude, place.longitude]) || 'Enable location for distance'}</small></span></div>`).join('');
 }
 function scheduleNearbyPlacesLoad() {
   clearTimeout(mapMoveTimer);
@@ -223,10 +244,19 @@ async function loadNearbyPlaces() {
 }
 function updateMapUserLocation(position, center = false) {
   if (!activeMap || !window.L) return;
+  activeUserPosition = { latitude: position.coords.latitude, longitude: position.coords.longitude };
   const point = [position.coords.latitude, position.coords.longitude];
   if (!activeUserMarker) activeUserMarker = window.L.circleMarker(point, { radius: 8, color: '#fff', weight: 3, fillColor: '#156ee8', fillOpacity: 1 }).addTo(activeMap).bindPopup('You are here');
   else activeUserMarker.setLatLng(point);
+  updateMapDistances();
   if (center) activeMap.setView(point, 15);
+}
+function updateMapDistances() {
+  root.querySelectorAll('[data-map-result-distance]').forEach((element) => { element.textContent = distanceLabel(JSON.parse(element.dataset.mapResultDistanceCoordinates || '[]')) || 'Enable location for distance'; });
+  const note = root.querySelector('[data-map-distance-note]');
+  if (note) note.textContent = activeUserPosition ? 'Distances update from your current location.' : 'Allow location access to see distances.';
+  activeMapMarkers?.eachLayer((marker) => { if (marker.mapPoint) marker.bindPopup(experienceMapPopup(marker.mapPoint)); });
+  renderMapPlaces();
 }
 function stopMapLocationTracking() {
   if (mapLocationWatchId !== null) navigator.geolocation?.clearWatch(mapLocationWatchId);
@@ -245,6 +275,7 @@ function teardownMap() {
   clearTimeout(mapMoveTimer);
   mapRequestController?.abort();
   mapRequestController = null;
+  activeUserPosition = null;
   activeUserMarker = null;
   activeMapPlaces = [];
   if (activeMap) activeMap.remove();
@@ -261,7 +292,8 @@ function renderMapArea(area = 'all') {
   activeMapMarkers.clearLayers();
   visiblePoints.forEach((point) => {
     const marker = window.L.marker(point.coordinates).addTo(activeMapMarkers);
-    marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}</small><a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`);
+    marker.mapPoint = point;
+    marker.bindPopup(experienceMapPopup(point));
   });
   root.querySelectorAll('[data-action="map-area-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === area));
   root.querySelectorAll('[data-map-result-area]').forEach((item) => { item.hidden = area !== 'all' && item.dataset.mapResultArea !== area; });
