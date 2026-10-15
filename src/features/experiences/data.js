@@ -319,11 +319,17 @@ export const experiences = [
   ...volcanoExperiences,
 ];
 
+export const experienceCategories = [
+  { id: 'pantai', name: 'Pantai', description: 'Temukan pantai dan pesisir Lombok', image: beachCatalog[0].image, count: beachExperiences.length, value: 'Pantai' },
+  { id: 'air-terjun', name: 'Air Terjun', description: 'Jelajahi air terjun tersembunyi', image: waterfallCatalog[0].image, count: waterfallExperiences.length, value: 'Air Terjun' },
+  { id: 'gunung-berapi', name: 'Gunung Berapi', description: 'Nikmati lanskap vulkanik Rinjani', image: volcanoCatalog[0].image, count: volcanoExperiences.length, value: 'Gunung Berapi' },
+];
+
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];
 export const getExperienceGallery = (item) => item.gallery?.length ? item.gallery : [item.image];
 export const getFeaturedExperiences = () => experiences.filter((item) => item.featured);
 export const getPopularExperiences = () => experiences.filter((item) => item.popularSearch);
-export const getExperiencesByCity = (city) => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase());
+export const getExperiencesByCity = (city, category = '') => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase() && (!category || item.category === category));
 export const demoFirebaseDocuments = {
   organizations: [{ id: 'demo-operator', schemaVersion: 1, name: 'Demo operator', status: 'draft' }],
   experiences: experiences.map((item) => toExperienceDocument(item, demoBookingData[item.id])),

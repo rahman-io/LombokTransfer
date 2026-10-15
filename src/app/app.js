@@ -143,7 +143,7 @@ function currentView() {
   if (path === '/login') return loginView();
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
-  if (path === '/results') { trackSearch(params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok'); }
+  if (path === '/results') { trackSearch(params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok', params.get('category') || ''); }
   if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();

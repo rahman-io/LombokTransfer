@@ -22,14 +22,14 @@ export function searchView() {
     </div>
   `, 'Discover');
 }
-export function resultsView(city = 'Lombok') {
-  const resultItems = getExperiencesByCity(city);
+export function resultsView(city = 'Lombok', category = '') {
+  const resultItems = getExperiencesByCity(city, category);
   return mainLayout(`
-    <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
+    <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(category ? `${category} · ${city}` : city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
       <div class="chip-row"><button class="chip round" data-action="filter-sheet">${icon('sliders', 20)}</button>${filters.map((filter) => `<button class="chip ${state.filter === filter ? 'selected' : ''}" data-action="set-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
     </div>
     <div class="result-count">${resultItems.length} ${resultItems.length === 1 ? 'result' : 'results'} ${icon('info', 16)}</div>
-    <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>No activities in ${escapeHtml(city)} yet</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
+    <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>No ${escapeHtml(category || 'activities')} in ${escapeHtml(city)} yet</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
     ${Object.keys(mapDestinations).some((name) => name.toLocaleLowerCase() === city.toLocaleLowerCase()) && resultItems.length ? `<button class="floating-map" data-action="show-map">${icon('map', 21)} Open map</button>` : ''}
   `, 'Discover', { className: 'results-page' });
 }
