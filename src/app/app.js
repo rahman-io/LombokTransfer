@@ -398,7 +398,7 @@ function clickAction(action, el) {
     case 'chat-gallery-prev': selectChatGalleryIndex(state.chatGalleryIndex - 1); break;
     case 'chat-gallery-next': selectChatGalleryIndex(state.chatGalleryIndex + 1); break;
     case 'chat-tools': root.querySelector('.chat-compose-tools')?.classList.toggle('open'); break;
-    case 'chat-emoji': { const input = root.querySelector('#chat-message-form input[name="message"]'); if (input) { input.focus(); input.setAttribute('inputmode', 'text'); } break; }
+    case 'chat-emoji': { const input = root.querySelector('#chat-message-form textarea[name="message"]'); if (input) { input.focus(); input.setAttribute('inputmode', 'text'); } break; }
     case 'chat-sticker': root.querySelector('.chat-sticker-panel')?.classList.toggle('open'); break;
     case 'send-chat-sticker': { const threadId = route().path.split('/')[3]; if (sendChatMessage(threadId, value, { type: 'sticker', value })) render(); break; }
     case 'chat-gallery': root.querySelector('#chat-photo-input')?.click(); break;
