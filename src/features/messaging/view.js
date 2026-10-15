@@ -69,12 +69,12 @@ export function chatView(threadId) {
   const thread = chatThread(threadId);
   const person = chatParticipant(threadId);
   const participants = chatParticipants(threadId);
-  if (!thread || !person) return inboxView();
+  if (!thread || !person || !thread.participantIds.includes(activeSocialUser().id)) return inboxView();
   markChatThreadRead(threadId);
   const selfId = activeSocialUser().id;
   const messages = chatMessages(threadId);
   return mainLayout(`
-      <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(thread.group ? thread.title : person.displayName)}</strong><small>${esc(thread.group ? `${participants.length + 1} travelers in this group` : `@${person.username}`)}</small></span>${thread.group ? `<button class="icon-button" data-action="view-group-members" data-id="${esc(thread.id)}" aria-label="View group members">${icon('community', 22)}</button>` : `<a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a>`}</header>
+    <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(thread.group ? thread.title : person.displayName)}</strong><small>${esc(thread.group ? `${participants.length + 1} travelers in this group` : `@${person.username}`)}</small></span>${thread.group ? `<button class="icon-button" data-action="view-group-members" data-id="${esc(thread.id)}" aria-label="View group members">${icon('community', 22)}</button><button class="chat-group-leave-button" data-action="leave-travel-group" data-id="${esc(thread.id)}">Leave</button>` : `<a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a>`}</header>
       ${thread.context ? `<a class="chat-context" href="#/experience/${esc(thread.context.experienceId)}">${esc(thread.context.label)}${icon('chevron', 18)}</a>` : ''}
       <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}">${thread.group && message.senderId !== selfId ? `<small class="chat-sender-name">${esc(socialUser(message.senderId)?.displayName || 'Traveler')}</small>` : ''}<div>${esc(message.text)}${sharedAttachment(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
       <form class="chat-composer" id="chat-message-form"><input name="message" type="text" maxlength="1000" placeholder="Message ${esc(person.displayName.split(' ')[0])}..." autocomplete="off" required /><button type="submit" aria-label="Send message">${icon('send', 21)}</button></form>

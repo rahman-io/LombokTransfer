@@ -70,10 +70,19 @@ export function getOrCreateChatThread(userId) {
 export function getOrCreateTravelGroupThread(experienceId, participantIds, label) {
   const selfId = activeSocialUser().id;
   const members = [...new Set([selfId, ...participantIds])].filter((id) => socialUser(id));
-  const existing = messagingState().threads.find((thread) => thread.status === 'active' && thread.group && thread.context?.experienceId === experienceId && thread.participantIds.includes(selfId));
-  if (existing) return existing.id;
+  const existing = messagingState().threads.find((thread) => thread.status === 'active' && thread.group && thread.context?.experienceId === experienceId);
+  if (existing) {
+    existing.title = label;
+    existing.context.label = label;
+    if (!existing.participantIds.includes(selfId)) {
+      existing.participantIds.push(selfId);
+      existing.unreadBy[selfId] = 0;
+      persist();
+    }
+    return existing.id;
+  }
   const timestamp = now();
-  const thread = { id: `group-${experienceId}-${selfId}`, participantIds: members, group: true, title: `${members.length} travelers`, context: { experienceId, label }, createdAt: timestamp, updatedAt: timestamp, lastMessageId: null, unreadBy: Object.fromEntries(members.map((id) => [id, 0])), status: 'active' };
+  const thread = { id: `group-${experienceId}`, participantIds: members, group: true, title: label, context: { experienceId, label }, createdAt: timestamp, updatedAt: timestamp, lastMessageId: null, unreadBy: Object.fromEntries(members.map((id) => [id, 0])), status: 'active' };
   const hostId = members.find((id) => id !== selfId) || selfId;
   const welcomeMessage = { id: `chat-${crypto.randomUUID()}`, threadId: thread.id, senderId: hostId, text: `Welcome to the ${label} traveler group. Compare dates and plan together here.`, createdAt: timestamp, readBy: [hostId] };
   thread.lastMessageId = welcomeMessage.id;
@@ -81,6 +90,14 @@ export function getOrCreateTravelGroupThread(experienceId, participantIds, label
   messagingState().threads.push(thread);
   messagingState().messages.push(welcomeMessage);
   return persist() ? thread.id : null;
+}
+export function leaveTravelGroupThread(threadId) {
+  const selfId = activeSocialUser().id;
+  const thread = chatThread(threadId);
+  if (!thread?.group || !thread.participantIds.includes(selfId)) return false;
+  thread.participantIds = thread.participantIds.filter((id) => id !== selfId);
+  delete thread.unreadBy[selfId];
+  return persist();
 }
 export function markChatThreadRead(threadId) {
   const thread = chatThread(threadId);
