@@ -2,10 +2,10 @@
 const weekdayMultipliers = { 0: 1.12, 1: 1, 2: 1.03, 3: 1.05, 4: 1.08, 5: 1.1, 6: 1.15 };
 const demoTimeOptions = ['6:00 PM', '7:30 PM'];
 const bookedTravelers = [
-  { initials: 'MP', color: '#bb724f' },
-  { initials: 'DR', color: '#a05d50' },
-  { initials: 'SW', color: '#587f8c' },
-  { initials: 'NS', color: '#8f6383' },
+  { id: 'maya', initials: 'MP', color: '#bb724f' },
+  { id: 'dario', initials: 'DR', color: '#a05d50' },
+  { id: 'sophie', initials: 'SW', color: '#587f8c' },
+  { id: 'nina', initials: 'NS', color: '#8f6383' },
 ];
 
 export const demoBookingData = {

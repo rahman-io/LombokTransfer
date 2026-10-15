@@ -5,6 +5,7 @@ import { getExperience, getExperienceGallery } from '../features/experiences/dat
 import { getDemoReviews } from '../features/experiences/demo-engagement.js';
 import { activeSocialUser, socialPost, socialState, socialUser } from '../features/social/repository.js';
 import { socialImage, socialImagesForPost } from '../features/social/media.js';
+import { chatThread } from '../features/messaging/repository.js';
 
 function monthGrid(year, month) {
   const first = new Date(year, month, 1).getDay();
@@ -69,6 +70,11 @@ export function modalView() {
     const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.socialGalleryIndex));
     title = 'Travel photos';
     body = post && photos.length ? `<div class="social-lightbox"><div class="social-lightbox-stage" data-social-zoom-stage aria-label="Travel photo ${current + 1} of ${photos.length}"><img data-social-zoom-image src="${escapeHtml(photos[current])}" alt="Travel photo ${current + 1} of ${photos.length}" draggable="false" /></div><div class="social-lightbox-controls"><button data-action="social-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span>${current + 1} / ${photos.length}</span><button data-action="social-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="social-lightbox-hint">Pinch or double tap to zoom · drag to explore</small></div>` : '<p>Photo unavailable.</p>';
+  } else if (state.modal === 'travel-group-members') {
+    const thread = chatThread(state.travelerGroupThreadId);
+    const people = thread ? thread.participantIds.map((userId) => socialUser(userId)).filter(Boolean) : [];
+    title = 'Traveler group';
+    body = `<p class="social-share-intro">Travelers in this group can compare dates and plan together.</p><div class="social-share-people">${people.map((user) => `<button data-action="social-like-profile" data-id="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
   } else if (state.modal === 'promo') {
     title = 'Promo or gift code';
     body = `<label class="form-label">Enter code<input id="promo-code" placeholder="Promo code" /></label><button class="primary-button full" data-action="apply-promo">Apply</button>`;

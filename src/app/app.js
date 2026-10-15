@@ -13,10 +13,11 @@ import { getInstallState, isInstalledApp, requestInstallation, watchInstallation
 import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
 import { attractions, destinations, experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
+import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
-import { getOrCreateChatThread, sendChatMessage } from '../features/messaging/repository.js';
+import { getOrCreateChatThread, getOrCreateTravelGroupThread, sendChatMessage } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
@@ -230,7 +231,8 @@ function clickAction(action, el) {
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
     case 'open-dates': openModal('dates'); break;
     case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
-    case 'join-travelers': { const joined = state.joinedExperiences.includes(id); update({ joinedExperiences: joined ? state.joinedExperiences.filter((experienceId) => experienceId !== id) : [...state.joinedExperiences, id] }); announce(joined ? 'You left this group' : 'You joined the travelers'); break; }
+    case 'join-travelers': { const joined = state.joinedExperiences.includes(id); if (joined) { update({ joinedExperiences: state.joinedExperiences.filter((experienceId) => experienceId !== id) }); announce('You left this group'); break; } const experience = getExperience(id); const booking = experience ? getDemoBooking(experience) : null; const threadId = getOrCreateTravelGroupThread(id, booking?.bookedTravelers?.map((traveler) => traveler.id) || [], experience?.title || 'Travel experience'); update({ joinedExperiences: [...state.joinedExperiences, id], travelerGroupThreads: { ...state.travelerGroupThreads, [id]: threadId } }); announce('You joined the travelers. Open the group chat below.'); break; }
+    case 'view-group-members': state.travelerGroupThreadId = id; openModal('travel-group-members'); break;
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
     case 'select-date': update({ date: value }); closeModal(); break;
     case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10) }); closeModal(); break; }

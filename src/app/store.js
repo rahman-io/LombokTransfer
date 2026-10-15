@@ -31,12 +31,14 @@ export const state = {
   socialGalleryPostId: '',
   socialGalleryIndex: 0,
   joinedExperiences: saved.joinedExperiences || [],
+  travelerGroupThreads: saved.travelerGroupThreads || {},
+  travelerGroupThreadId: '',
 };
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences } = state;
-  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences });
+  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads } = state;
+  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads });
 }
 
 export function toggleWishlist(id) {

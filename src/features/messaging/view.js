@@ -6,7 +6,7 @@ import { demoMessages } from '../experiences/demo-engagement.js';
 import { escapeHtml } from '../../utils/html.js';
 import { activeSocialUser, socialActivity, socialPost, socialUser } from '../social/repository.js';
 import { socialImage } from '../social/media.js';
-import { chatMessages, chatParticipant, chatThread, markChatThreadRead, visibleChatThreads } from './repository.js';
+import { chatMessages, chatParticipant, chatParticipants, chatThread, markChatThreadRead, visibleChatThreads } from './repository.js';
 import { getContextAwareNotifications } from '../travel-intelligence/repository.js';
 import { experiences } from '../experiences/data.js';
 import { visibleSocialPosts } from '../social/repository.js';
@@ -31,7 +31,9 @@ function chatRow(thread) {
   const person = chatParticipant(thread.id);
   const last = lastMessage(thread);
   const unread = thread.unreadBy[activeSocialUser().id] || 0;
-  return `<a class="inbox-chat" href="#/inbox/chat/${encodeURIComponent(thread.id)}">${avatar(person)}<span><strong>${esc(person?.displayName || 'Traveler')}</strong><small>@${esc(person?.username || 'traveler')}</small><span>${esc(last?.text || 'Start a conversation')}</span>${thread.context ? `<em>${esc(thread.context.label)}</em>` : ''}</span><small class="inbox-chat-time">${last ? timeLabel(last.createdAt) : ''}${unread ? `<b>${unread}</b>` : ''}</small></a>`;
+  const title = thread.group ? thread.title : person?.displayName || 'Traveler';
+  const handle = thread.group ? `${thread.participantIds.length} travelers` : `@${person?.username || 'traveler'}`;
+  return `<a class="inbox-chat" href="#/inbox/chat/${encodeURIComponent(thread.id)}">${avatar(person)}<span><strong>${esc(title)}</strong><small>${esc(handle)}</small><span>${esc(last?.text || 'Start a conversation')}</span>${thread.context ? `<em>${esc(thread.context.label)}</em>` : ''}</span><small class="inbox-chat-time">${last ? timeLabel(last.createdAt) : ''}${unread ? `<b>${unread}</b>` : ''}</small></a>`;
 }
 function updateRow(message) {
   const experience = getExperience(message.experienceId);
@@ -66,14 +68,15 @@ export function inboxView() {
 export function chatView(threadId) {
   const thread = chatThread(threadId);
   const person = chatParticipant(threadId);
+  const participants = chatParticipants(threadId);
   if (!thread || !person) return inboxView();
   markChatThreadRead(threadId);
   const selfId = activeSocialUser().id;
   const messages = chatMessages(threadId);
   return mainLayout(`
-    <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(person.displayName)}</strong><small>@${esc(person.username)}</small></span><a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a></header>
+      <div class="chat-page"><header class="chat-header"><button class="icon-button" data-action="back" aria-label="Back">${icon('arrow')}</button>${avatar(person, 'small')}<span><strong>${esc(thread.group ? thread.title : person.displayName)}</strong><small>${esc(thread.group ? `${participants.length + 1} travelers in this group` : `@${person.username}`)}</small></span>${thread.group ? `<button class="icon-button" data-action="view-group-members" data-id="${esc(thread.id)}" aria-label="View group members">${icon('community', 22)}</button>` : `<a class="icon-button" href="#/social/user/${esc(person.id)}" aria-label="View profile">${icon('community', 22)}</a>`}</header>
       ${thread.context ? `<a class="chat-context" href="#/experience/${esc(thread.context.experienceId)}">${esc(thread.context.label)}${icon('chevron', 18)}</a>` : ''}
-      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}"><div>${esc(message.text)}${sharedAttachment(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
+      <div class="chat-messages">${messages.map((message) => `<div class="chat-message ${message.senderId === selfId ? 'mine' : ''}">${thread.group && message.senderId !== selfId ? `<small class="chat-sender-name">${esc(socialUser(message.senderId)?.displayName || 'Traveler')}</small>` : ''}<div>${esc(message.text)}${sharedAttachment(message.attachment)}</div><small>${timeLabel(message.createdAt)}</small></div>`).join('')}</div>
       <form class="chat-composer" id="chat-message-form"><input name="message" type="text" maxlength="1000" placeholder="Message ${esc(person.displayName.split(' ')[0])}..." autocomplete="off" required /><button type="submit" aria-label="Send message">${icon('send', 21)}</button></form>
     </div>
   `, 'Discover', { className: 'inbox-shell' });
