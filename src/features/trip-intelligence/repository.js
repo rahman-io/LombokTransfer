@@ -15,7 +15,7 @@ export function getTripIntent(userState = {}, catalog = [], socialContext = {}) 
   const scores = intentRules.map((rule) => ({ ...rule, score: sourceItems.reduce((total, item) => total + (rule.keywords.some((keyword) => normalize(item.label) === normalize(keyword)) ? 2 : 0), 0) + engagedPosts.filter((post) => post.experienceId && sourceItems.some((item) => item.id === post.experienceId)).length }));
   const intent = scores.sort((a, b) => b.score - a.score)[0] || intentRules[0];
   const cityCounts = sourceItems.reduce((counts, item) => { counts[item.city] = (counts[item.city] || 0) + 1; return counts; }, {});
-  const destination = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || catalog[0]?.city || 'Rome';
+  const destination = Object.entries(cityCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || catalog[0]?.city || 'Lombok';
   const prices = sourceItems.map((item) => Number(item.price)).filter(Number.isFinite);
   const averagePrice = prices.length ? Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length) : 60;
   return { id: intent.id, label: intent.label, description: intent.description, destination, averagePrice, confidence: sourceItems.length ? Math.min(96, 58 + sourceItems.length * 12) : 42, source: sourceItems.length ? 'saved-and-social-signals' : 'catalog-cold-start' };

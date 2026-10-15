@@ -143,8 +143,8 @@ function currentView() {
   if (path === '/login') return loginView();
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
-  if (path === '/results') { trackSearch(params.get('city') || 'Rome'); return resultsView(params.get('city') || 'Rome'); }
-  if (path === '/map') return mapView(params.get('city') || 'Rome');
+  if (path === '/results') { trackSearch(params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok'); }
+  if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
   if (path === '/bookings') return bookingsView();
@@ -433,7 +433,7 @@ function clickAction(action, el) {
     case 'language': state.modalTitle = 'Language'; state.modalMessage = 'English'; openModal('message'); break;
     case 'filter-sheet': openModal('filters'); break;
     case 'set-filter': state.filter = value; render(); break;
-    case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Rome')); break;
+    case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Lombok')); break;
     case 'map-place-filter':
     case 'map-locate':
     case 'map-track-location':
@@ -900,7 +900,7 @@ export function startApp() {
     document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = !item.textContent.toLowerCase().includes(state.search.toLowerCase()); });
   });
   root.addEventListener('keydown', (event) => {
-    if (event.target.id === 'place-search' && event.key === 'Enter') navigate('/results?city=' + encodeURIComponent(event.target.value.trim() || 'Rome'));
+    if (event.target.id === 'place-search' && event.key === 'Enter') navigate('/results?city=' + encodeURIComponent(event.target.value.trim() || 'Lombok'));
     if (event.key === 'Escape' && state.modal) closeModal();
     if (event.target.matches('[data-gallery-track]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
       event.preventDefault();

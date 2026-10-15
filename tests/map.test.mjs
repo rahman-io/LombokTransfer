@@ -16,12 +16,12 @@ test('map distances handle absent GPS, zero, long distances and antipodes', () =
 test('area, activity type, place type and current viewport constrain the same activity set', () => {
   const points = Object.entries(mapActivities).map(([id, value]) => ({ id, ...value }));
   assert.equal(filterMapActivities(points).length, 5);
-  assert.deepEqual(filterMapActivities(points, { area: 'vatican-city' }).map((p) => p.id), ['vatican', 'basilica']);
+  assert.deepEqual(filterMapActivities(points, { area: 'north-lombok' }).map((p) => p.id), ['arena', 'vatican']);
   assert.deepEqual(filterMapActivities(points, { category: 'ticket' }).map((p) => p.id), ['pantheon']);
-  assert.equal(filterMapActivities(points, { area: 'vatican-city', category: 'ticket' }).length, 0);
+  assert.equal(filterMapActivities(points, { area: 'north-lombok', category: 'ticket' }).length, 0);
   assert.equal(filterMapActivities(points, { mode: 'hotel' }).length, 0);
   assert.equal(filterMapActivities(points, { area: 'view', bounds: [52, 20, 53, 22] }).length, 0);
-  for (const point of points) assert.ok(inBounds(point.coordinates, mapDestinations.Rome.areas.find((area) => area.id === point.area).bounds));
+  for (const point of points) assert.ok(inBounds(point.coordinates, mapDestinations.Lombok.areas.find((area) => area.id === point.area).bounds));
 });
 
 test('nearby results validate coordinates, use way centers, deduplicate and keep OSM IDs distinct', () => {

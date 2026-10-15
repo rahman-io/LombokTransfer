@@ -1,19 +1,21 @@
 // Only catalog activities with known coordinates are placed on the map.
 export const mapDestinations = {
-  Rome: { center: [41.9028, 12.4805], zoom: 13, areas: [
-    { id: 'historic-center', name: 'Historic Center', bounds: [41.879, 12.465, 41.910, 12.510] },
-    { id: 'vatican-city', name: 'Vatican City', bounds: [41.898, 12.445, 41.911, 12.465] },
+  Lombok: { center: [-8.65, 116.32], zoom: 10, areas: [
+    { id: 'south-lombok', name: 'South Lombok', bounds: [-9.05, 116.10, -8.70, 116.55] },
+    { id: 'central-lombok', name: 'Central Lombok', bounds: [-8.75, 116.10, -8.42, 116.55] },
+    { id: 'north-lombok', name: 'North Lombok', bounds: [-8.55, 115.90, -8.10, 116.55] },
+    { id: 'gili-islands', name: 'Gili Islands', bounds: [-8.45, 115.90, -8.22, 116.12] },
   ] },
-  Paris: { center: [48.8566, 2.3522], zoom: 13, areas: [] },
-  London: { center: [51.5072, -0.1276], zoom: 13, areas: [] },
+  Mataram: { center: [-8.5833, 116.1167], zoom: 13, areas: [] },
+  Sembalun: { center: [-8.3667, 116.5333], zoom: 12, areas: [] },
 };
 
 export const mapActivities = {
-  colosseum: { coordinates: [41.8902, 12.4922], area: 'historic-center', category: 'tour' },
-  arena: { coordinates: [41.8902, 12.4922], area: 'historic-center', category: 'tour' },
-  pantheon: { coordinates: [41.8986, 12.4768], area: 'historic-center', category: 'ticket' },
-  vatican: { coordinates: [41.9029, 12.4534], area: 'vatican-city', category: 'tour' },
-  basilica: { coordinates: [41.9022, 12.4539], area: 'vatican-city', category: 'tour' },
+  colosseum: { coordinates: [-8.912, 116.385], area: 'south-lombok', category: 'tour' },
+  arena: { coordinates: [-8.367, 116.533], area: 'north-lombok', category: 'tour' },
+  pantheon: { coordinates: [-8.350, 116.040], area: 'gili-islands', category: 'ticket' },
+  vatican: { coordinates: [-8.306, 116.401], area: 'north-lombok', category: 'tour' },
+  basilica: { coordinates: [-8.566, 116.326], area: 'central-lombok', category: 'tour' },
 };
 
 export function validCoordinates(point) {

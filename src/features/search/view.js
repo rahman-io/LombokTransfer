@@ -22,7 +22,7 @@ export function searchView() {
     </div>
   `, 'Discover');
 }
-export function resultsView(city = 'Rome') {
+export function resultsView(city = 'Lombok') {
   const resultItems = getExperiencesByCity(city);
   return mainLayout(`
     <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
@@ -30,10 +30,10 @@ export function resultsView(city = 'Rome') {
     </div>
     <div class="result-count">${resultItems.length} ${resultItems.length === 1 ? 'result' : 'results'} ${icon('info', 16)}</div>
     <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>No activities in ${escapeHtml(city)} yet</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
-    ${city.toLocaleLowerCase() === 'rome' && resultItems.length ? `<button class="floating-map" data-action="show-map">${icon('map', 21)} Open map</button>` : ''}
+    ${Object.keys(mapDestinations).some((name) => name.toLocaleLowerCase() === city.toLocaleLowerCase()) && resultItems.length ? `<button class="floating-map" data-action="show-map">${icon('map', 21)} Open map</button>` : ''}
   `, 'Discover', { className: 'results-page' });
 }
-export function mapView(city = 'Rome') {
+export function mapView(city = 'Lombok') {
   const destination = Object.keys(mapDestinations).find((name) => name.toLowerCase() === city.toLowerCase());
   if (!destination) return mainLayout(`${header('Map')}<div class="empty-state"><h2>Map unavailable for this destination</h2><p>Choose a supported destination to explore its map.</p><a class="outline-button" href="#/search">Choose destination</a></div>`, 'Discover');
   const config = mapDestinations[destination];
