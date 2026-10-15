@@ -27,9 +27,9 @@ import { toExperienceDocument, toMediaDocuments, toDestinationDocument, toTileMe
 export const images = { rome, paris, statue, vatican, wishlist, colosseum, arena, vaticanTour, basilica, pantheon, pantheonCard, skydiving, kayaking, mapCore, login, agafay, sumo, pantheonThumbA, pantheonThumbB, skydivingThumbA, skydivingThumbB, kayakingThumbA, kayakingThumbB };
 
 export const destinations = [
-  { name: 'Rome', image: rome, count: '1,420 activities' },
-  { name: 'Paris', image: paris, count: '1,205 activities' },
-  { name: 'London', image: wishlist, count: '980 activities' },
+  { name: 'Rome', location: 'Italy', image: rome, count: '1,420 activities', rating: '4.8' },
+  { name: 'Paris', location: 'France', image: paris, count: '1,205 activities', rating: '4.8' },
+  { name: 'London', location: 'United Kingdom', image: wishlist, count: '980 activities', rating: '4.7' },
 ];
 
 export const attractions = [

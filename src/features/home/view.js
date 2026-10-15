@@ -14,7 +14,7 @@ function greetingName() {
 }
 
 function destinationTile(item) {
-  return `<div class="tile destination-tile"><a class="tile-link" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" /><span class="destination-tile-copy"><strong>${escapeHtml(item.name)}</strong>${item.count ? `<small>${escapeHtml(item.count)}</small>` : ''}</span></a><button class="destination-share-button" data-action="share-destination" data-kind="destination" data-id="${escapeHtml(item.name)}" aria-label="Share ${escapeHtml(item.name)}">${icon('send', 18)}</button></div>`;
+  return `<div class="tile destination-tile"><a class="tile-link" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" /><span class="destination-tile-copy"><strong>${escapeHtml(item.name)}</strong>${item.location ? `<span class="destination-tile-location">${icon('pin', 13)}<span>${escapeHtml(item.location)}</span></span>` : ''}<span class="destination-tile-meta">${item.count ? `<span>${escapeHtml(item.count)}</span>` : ''}${item.rating ? `<span>${icon('star', 13)} ${escapeHtml(item.rating)}</span>` : ''}</span></span></a><button class="destination-share-button" data-action="share-destination" data-kind="destination" data-id="${escapeHtml(item.name)}" aria-label="Share ${escapeHtml(item.name)}">${icon('send', 18)}</button></div>`;
 }
 
 function trendingDestinations(posts, recommendations) {
@@ -39,7 +39,7 @@ export function homeView() {
       <a href="#/search" class="search-pill">${icon('search', 19)}<span>Find places and things to do</span></a>
     </section>
     <section class="home-ai-planner"><a href="#/trip-planner"><span>${icon('sparkle', 20)}<strong class="ai-gradient-text">Plan a smarter trip</strong><small>Let AI match your interests with bookable experiences</small></span>${icon('chevron', 19)}</a></section>
-    <section class="home-section home-destinations"><div class="home-destinations-heading"><div><h2>Top destinations</h2><span>${icon('sparkle', 14)} Trending on Vibes</span></div><a href="#/search">See all</a></div><div class="tile-row" data-home-destination-carousel>${topDestinations.map(destinationTile).join('')}</div></section>
+    <section class="home-section home-destinations"><div class="home-destinations-heading"><div class="home-destinations-title-row"><h2>Top destinations</h2><a href="#/search">See all</a></div><span>${icon('sparkle', 14)} Trending on Vibes</span></div><div class="tile-row" data-home-destination-carousel>${topDestinations.map(destinationTile).join('')}</div></section>
     <section class="home-section"><h2>Attractions you can't miss</h2><div class="tile-row attraction-row">${attractions.map((item) => horizontalTile(item, '/results?city=' + encodeURIComponent(item.city))).join('')}</div></section>
     ${recommendations.length ? `<section class="home-section recommendation-section"><h2>Picked for you</h2><div class="feature-grid">${recommendations.map(({ experience, reason }) => experienceCard({ ...experience, recommendationReason: reason, communityReason: communityLabel(experience) }, 'grid')).join('')}</div></section>` : ''}
     <section class="home-section last"><h2>Go beyond the guidebook</h2><div class="feature-grid">${getFeaturedExperiences().map((item) => experienceCard({ ...item, communityReason: communityLabel(item) }, 'grid')).join('')}</div></section>
