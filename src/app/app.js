@@ -421,8 +421,8 @@ function clickAction(action, el) {
       const item = getExperience(experienceId);
       const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : '';
       const option = item?.packageOptions?.find((entry) => entry.id === packageId) || item?.packageOptions?.[0];
-      const request = createGuideRequest({ experienceId, packageId: option?.id, guideId: state.selectedGuideExperienceId === experienceId ? state.selectedGuideId : '', date: state.date, time: state.selectedTime, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, expectedUnitPrice: el.dataset.unitPrice });
-      if (request) { state.checkoutStep = 1; navigate('/bookings'); }
+      const request = createGuideRequest({ experienceId, packageId: option?.id, guideId: state.selectedGuideExperienceId === experienceId ? state.selectedGuideId : '', date: state.date, time: state.selectedTime, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, notes: state.bookingNotes, expectedUnitPrice: el.dataset.unitPrice });
+      if (request) { state.bookingNotes = ''; state.checkoutStep = 1; navigate('/bookings'); }
       else announce('Price or availability changed. Review the approved price and try again.');
       break;
     }
@@ -519,6 +519,7 @@ function clickAction(action, el) {
       const phone = document.getElementById('checkout-phone');
       if (!name?.value.trim() || !email?.checkValidity() || !phone?.value.trim()) { name?.reportValidity(); email?.reportValidity(); phone?.reportValidity(); break; }
       update({ guestName: name.value.trim(), email: email.value.trim() });
+      state.bookingNotes = document.getElementById('checkout-notes')?.value.trim().slice(0, 1000) || '';
       state.checkoutStep = 2; render(); window.scrollTo(0, 0); break;
     }
     case 'edit-contact': state.checkoutStep = 1; render(); window.scrollTo(0, 0); break;

@@ -20,6 +20,7 @@ export const state = {
   availabilityChecked: false,
   paymentMethod: saved.paymentMethod || 'card',
   checkoutStep: 1,
+  bookingNotes: '',
   modal: '',
   confirmAction: null,
   galleryExperienceId: '',

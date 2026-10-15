@@ -60,6 +60,7 @@ export function checkoutView(id) {
     <label class="form-label"><span>Email address</span><input id="checkout-email" autocomplete="email" type="email" value="${escapeHtml(state.email)}" required /></label>
     <label class="form-label"><span>Country</span><select id="checkout-country"><option>Poland (+48)</option><option>Indonesia (+62)</option><option>United States (+1)</option><option>United Kingdom (+44)</option></select></label>
     <label class="form-label"><span>Mobile phone number</span><input id="checkout-phone" type="tel" autocomplete="tel" placeholder="Mobile phone number" required /></label>
+    ${selectedPackage ? `<label class="form-label"><span>Notes for your guide (optional)</span><textarea id="checkout-notes" maxlength="1000" placeholder="Tell the guide about your pace, interests, or special requests">${escapeHtml(state.bookingNotes || '')}</textarea>` : ''}
     <p class="muted">We'll only contact you with essential updates or changes to your booking</p>
     ${summary}
     <div class="checkout-total"><strong>${selectedPackage ? packageTotal === null ? 'Awaiting approved price' : idr(packageTotal) : `$${total}`}</strong><small>${selectedPackage ? 'Approved package estimate · no payment yet' : 'Total'}</small></div><button class="primary-button full" data-action="go-payment">${selectedPackage ? 'Review request' : 'Go to payment'}</button>`;

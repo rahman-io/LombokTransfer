@@ -26,13 +26,14 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(packagePrice(activeGuide(), option), 2500000);
     assert.equal(availableGuides('arena', 'rinjani-2d1n', date, 1)[0].id, 'guide-adi');
     assert.equal(createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: 2600000 }), null);
-    const request = createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: 2500000 });
+    const request = createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', notes: 'Needs a steady pace and an early briefing.', expectedUnitPrice: 2500000 });
     assert.equal(request.status, 'pending');
     assert.equal(request.unitPrice, 2500000);
     assert.equal(request.guideShare, 2250000);
     assert.equal(request.platformShare, 250000);
     assert.equal(request.finance.paymentFee, 75000);
     assert.equal(request.finance.platformNet, 175000);
+    assert.equal(request.notes, 'Needs a steady pace and an early briefing.');
     assert.equal(request.priceApprovedBy, 'demo-admin');
     assert.equal(proposeGuidePrice('guide-adi', 'rinjani-2d1n', 2800000), true);
     assert.equal(decideGuidePrice('guide-adi', 'rinjani-2d1n', 'approved'), true);
@@ -40,6 +41,8 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: 2500000 }), null);
     assert.match(guideViews.guideDashboardView(), /Traveler Demo/);
     assert.match(guideViews.guideDashboardView(), /Total booking/);
+    assert.match(guideViews.guideDashboardView(), /Travel dates/);
+    assert.match(guideViews.guideDashboardView(), /Traveler notes/);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'accepted'), true);
     assert.equal(markGuideRequestPaid(request.id, 'traveler@example.com'), true);
     assert.equal(guideDemoData().requests[0].paymentStatus, 'paid');
