@@ -3,7 +3,7 @@ import { icon } from './icons.js';
 import { escapeHtml } from '../utils/html.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { getDemoReviews } from '../features/experiences/demo-engagement.js';
-import { activeSocialUser, socialPost, socialState } from '../features/social/repository.js';
+import { activeSocialUser, socialPost, socialState, socialUser } from '../features/social/repository.js';
 import { socialImage, socialImagesForPost } from '../features/social/media.js';
 
 function monthGrid(year, month) {
@@ -58,6 +58,11 @@ export function modalView() {
     const people = socialState().users.filter((user) => user.id !== activeSocialUser().id);
     title = 'Send to chat';
     body = `<p class="social-share-intro">Share this Vibes post with someone.</p>${post ? `<div class="social-share-preview"><img src="${escapeHtml(socialImage(post))}" alt="" /><span><strong>${escapeHtml(post.location || 'Travel moment')}</strong><small>${escapeHtml(post.caption || 'Travel moment')}</small></span></div>` : ''}<button class="outline-button full" data-action="social-share-external">Share outside app</button><p class="social-share-intro">Send to chat</p><div class="social-share-people">${people.map((user) => `<button data-action="social-share-to-chat" data-value="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
+  } else if (state.modal === 'social-likes') {
+    const post = socialPost(state.socialLikesPostId);
+    const people = post ? post.likedBy.map((userId) => socialUser(userId)).filter(Boolean) : [];
+    title = 'Liked by';
+    body = `<div class="social-share-people social-liked-people">${people.map((user) => `<button data-action="social-like-profile" data-id="${escapeHtml(user.id)}"><span class="social-share-avatar" style="--avatar-color:${escapeHtml(user.color || '#566d65')}">${escapeHtml(user.initials || '?')}</span><span><strong>${escapeHtml(user.displayName)}</strong><small>@${escapeHtml(user.username)}</small></span>${icon('chevron', 17)}</button>`).join('')}</div>`;
   } else if (state.modal === 'social-gallery') {
     const post = socialPost(state.socialGalleryPostId);
     const photos = post ? socialImagesForPost(post) : [];

@@ -54,12 +54,15 @@ function relativePostTime(value, now = Date.now()) {
 function likedByLabel(post) {
   const firstLiker = socialUser(post.likedBy[0]);
   if (!firstLiker) return '';
-  return `Disukai oleh <strong>${esc(firstLiker.username)}${post.likedBy.length > 1 ? ' dan lainnya' : ''}</strong>`;
+  const more = post.likedBy.length > 1 ? `<span class="social-liked-by-and"> dan </span><button class="social-liked-by-link" data-action="social-likes" data-id="${esc(post.id)}">lainnya</button>` : '';
+  return `Disukai oleh <button class="social-liked-by-link" data-action="social-like-profile" data-id="${esc(firstLiker.id)}">${esc(firstLiker.username)}</button>${more}`;
 }
 
 function recommendationMarkup(reason) {
   const match = String(reason || '').match(/^(Because you like )(.*)$/i);
-  return match ? `${esc(match[1])}<strong>${esc(match[2])}</strong>` : esc(reason);
+  if (!match) return esc(reason);
+  const destination = experiences.find((item) => item.city.toLowerCase() === match[2].trim().toLowerCase())?.city;
+  return destination ? `${esc(match[1])}<button class="social-ai-destination" data-action="social-discover-destination" data-value="${esc(destination)}">${esc(destination)}</button>` : `${esc(match[1])}<strong>${esc(match[2])}</strong>`;
 }
 
 function captionPreview(post, author) {

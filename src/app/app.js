@@ -260,6 +260,9 @@ function clickAction(action, el) {
     case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
     case 'social-switch-user': if (switchSocialUser(id)) { navigate('/social'); render(); } break;
+    case 'social-discover-destination': navigate('/results?city=' + encodeURIComponent(value)); break;
+    case 'social-likes': state.socialLikesPostId = id; openModal('social-likes'); break;
+    case 'social-like-profile': state.modal = ''; navigate(`/social/user/${encodeURIComponent(id)}`); break;
     case 'social-like': toggleSocialLike(id); render(); break;
     case 'social-save': toggleSocialSave(id); render(); break;
     case 'social-follow': toggleSocialFollow(id); render(); break;

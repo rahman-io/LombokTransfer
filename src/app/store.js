@@ -26,6 +26,7 @@ export const state = {
   listName: 'Favourites',
   socialReplyCommentId: '',
   socialSharePostId: '',
+  socialLikesPostId: '',
   shareTarget: null,
   socialGalleryPostId: '',
   socialGalleryIndex: 0,
