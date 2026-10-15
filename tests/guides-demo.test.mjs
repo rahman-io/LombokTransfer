@@ -39,6 +39,7 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(guideDemoData().requests[0].unitPrice, 2500000);
     assert.equal(createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: 2500000 }), null);
     assert.match(guideViews.guideDashboardView(), /Traveler Demo/);
+    assert.match(guideViews.guideDashboardView(), /Total booking/);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'accepted'), true);
     assert.equal(markGuideRequestPaid(request.id, 'traveler@example.com'), true);
     assert.equal(guideDemoData().requests[0].paymentStatus, 'paid');
