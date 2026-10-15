@@ -504,6 +504,12 @@ export function startApp() {
   root.addEventListener('click', (event) => {
     if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
     if (!event.target.closest('.chat-message-menu')) closeChatMenus();
+    const chatImage = event.target.closest('.chat-image-attachment');
+    if (chatImage) {
+      event.preventDefault();
+      clickAction('chat-open-gallery', chatImage);
+      return;
+    }
     const socialMedia = event.target.closest('[data-social-media]');
     if (socialMedia) {
       event.preventDefault();
