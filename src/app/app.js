@@ -39,7 +39,7 @@ const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
-  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
+  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
 }
 function navigateMainSwipe(distance) {
   const currentIndex = mainNavigationIndex();
