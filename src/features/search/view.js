@@ -1,4 +1,4 @@
-import { destinations, experiences, images, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
+import { destinations, experiences, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
 import { experienceCard } from '../../components/cards.js';
 import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
@@ -7,6 +7,18 @@ import { escapeHtml } from '../../utils/html.js';
 import { state } from '../../app/store.js';
 
 const filters = ['Golf carts', 'Entry tickets', 'Nightlife', 'Cooking classes', 'Guided tours'];
+const mapCenters = {
+  Rome: { latitude: 41.9028, longitude: 12.4964, zoom: 13 },
+  Paris: { latitude: 48.8566, longitude: 2.3522, zoom: 13 },
+  London: { latitude: 51.5072, longitude: -0.1276, zoom: 13 },
+};
+const experienceCoordinates = {
+  colosseum: [41.8902, 12.4922],
+  pantheon: [41.8986, 12.4768],
+  vatican: [41.9029, 12.4534],
+  basilica: [41.9022, 12.4539],
+  arena: [41.8902, 12.4922],
+};
 export function searchView() {
   return mainLayout(`
     ${header('Search')}
@@ -33,12 +45,22 @@ export function resultsView(city = 'Rome') {
   `, 'Discover', { className: 'results-page' });
 }
 export function mapView(city = 'Rome') {
+  const center = mapCenters[city] || mapCenters.Rome;
+  const mapItems = [experiences[4], experiences[0], experiences[2]];
+  const points = mapItems.map((item) => ({
+    id: item.id,
+    title: item.title,
+    city: item.city,
+    price: item.price,
+    coordinates: experienceCoordinates[item.id] || [center.latitude, center.longitude],
+  }));
   return mainLayout(`
-    <div class="map-canvas" style="background-image:url('${images.mapCore}')">
+    <div class="map-canvas" data-map-canvas data-map-city="${escapeHtml(city)}" data-map-center="${escapeHtml(JSON.stringify(center))}" data-map-points="${escapeHtml(JSON.stringify(points))}">
       <div class="map-toolbar"><button class="round-white" data-action="back">${icon('close')}</button><a href="#/search" class="map-search">${icon('search', 19)}<span>Search for a place or address</span></a></div>
       <div class="chip-row map-chips"><button class="chip selected" data-action="filter-sheet">${icon('sliders', 19)} 1</button><button class="chip selected" data-action="set-filter" data-value="Guided tours">♧ Guided tours ×</button><button class="chip">♧ Entry tickets</button></div>
-      <button class="map-image-hitbox" data-action="map-marker" aria-label="View activity on map"></button>
+      <button class="map-locate" data-action="map-locate" aria-label="Show my location">${icon('location', 19)}</button>
+      <div class="map-loading" data-map-loading>Loading live map…</div>
     </div>
-    <div class="map-results"><div class="sheet-handle"></div>${[experiences[4], experiences[0], experiences[2]].map((item) => experienceCard(item)).join('')}<a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
+    <div class="map-results"><div class="sheet-handle"></div>${mapItems.map((item) => experienceCard(item)).join('')}<a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
   `, 'Discover', { className: 'map-page' });
 }

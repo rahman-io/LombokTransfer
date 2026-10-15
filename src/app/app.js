@@ -20,6 +20,7 @@ import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBooki
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
+import { escapeHtml } from '../utils/html.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -48,6 +49,7 @@ let suppressMainSwipeClick = false;
 let suppressSocialHorizontalClick = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
+let activeMap = null;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
@@ -135,6 +137,32 @@ function setupHomeDestinationCarousel() {
   carousel.addEventListener('mouseleave', start, { passive: true });
   start();
 }
+function initializeMap() {
+  const container = root.querySelector('[data-map-canvas]');
+  if (!container) return;
+  const mount = () => {
+    if (!container.isConnected || !window.L || activeMap) return;
+    let center;
+    let points;
+    try {
+      center = JSON.parse(container.dataset.mapCenter);
+      points = JSON.parse(container.dataset.mapPoints);
+    } catch {
+      return;
+    }
+    activeMap = window.L.map(container, { zoomControl: false }).setView([center.latitude, center.longitude], center.zoom);
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(activeMap);
+    window.L.control.zoom({ position: 'bottomright' }).addTo(activeMap);
+    points.forEach((point) => {
+      const marker = window.L.marker(point.coordinates).addTo(activeMap);
+      marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}</small><a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`);
+    });
+    container.classList.add('is-ready');
+    requestAnimationFrame(() => activeMap?.invalidateSize());
+  };
+  if (window.L) mount();
+  else document.querySelector('script[src*="leaflet.js"]')?.addEventListener('load', mount, { once: true });
+}
 function currentView() {
   const { path, params } = route();
   if (path === '/login') return loginView();
@@ -173,10 +201,12 @@ export function render() {
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
+  if (activeMap) { activeMap.remove(); activeMap = null; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
+  initializeMap();
   selectGalleryIndex(state.galleryIndex, false);
   if (state.modal === 'chat-gallery') requestAnimationFrame(() => { const track = root.querySelector('[data-chat-gallery-track]'); if (track) track.scrollTo({ left: state.chatGalleryIndex * track.clientWidth, behavior: 'instant' }); applyChatZoom(); });
   if (chatRoute) {
@@ -427,6 +457,14 @@ function clickAction(action, el) {
     case 'set-filter': state.filter = value; render(); break;
     case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Rome')); break;
     case 'map-marker': navigate('/experience/pantheon'); break;
+    case 'map-locate': {
+      if (!activeMap || !navigator.geolocation) { announce('Location is not available on this device'); break; }
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        activeMap?.setView([coords.latitude, coords.longitude], 15);
+        window.L?.circleMarker([coords.latitude, coords.longitude], { radius: 8, color: '#fff', weight: 3, fillColor: '#156ee8', fillOpacity: 1 }).addTo(activeMap).bindPopup('You are here').openPopup();
+      }, () => announce('Location permission is required'));
+      break;
+    }
     case 'new-list': openModal('new-list'); break;
     case 'create-list': { const input = document.getElementById('list-name'); if (input?.value.trim()) { state.listName = input.value.trim(); closeModal(); navigate('/wishlist'); } break; }
     case 'save-to-list': closeModal(); break;
