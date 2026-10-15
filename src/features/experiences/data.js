@@ -54,6 +54,72 @@ export const attractions = [
   { name: 'Tanjung Aan Beach', image: images.vatican, city: 'Lombok', count: '530 activities' },
 ];
 
+const waterfallFallback = tripadvisorImages.sendangGile;
+const waterfallCatalog = [
+  { id: 'waterfall-1723009', title: 'Air Terjun Sendang Gile dan Tiu Kelep', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/26/0d/a1/35/air-terjun-sendang-gile.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-2314079', title: 'Air Terjun Benang Stokal and Benang Kelambu', image: tripadvisorImages.lombok },
+  { id: 'waterfall-3228954', title: 'Air Terjun Tetebatu', image: tripadvisorImages.tetebatu },
+  { id: 'waterfall-2314065', title: 'Air Terjun Sindang Gila', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/06/8b/0c/48/sindang-gila-waterfall.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-12199913', title: 'Air Terjun Mangku Sakti & Mangku Kodek', image: tripadvisorImages.mangkuSakti },
+  { id: 'waterfall-12968850', title: 'Air Terjun Burung Walet', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/d6/3e/c1/img-20200205-124825-2.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-11693311', title: 'Air Terjun Mangku Sakti', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/54/86/44/photo0jpg.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-11693315', title: 'Air Terjun Mangku Kodek', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/5f/a3/71/clombokfriendly.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-10531156', title: 'Air Terjun Jeruk Manis', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0c/c8/07/74/img-35941632716008-largejpg.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-8441517', title: 'Air Terjun Kawangan', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/ad/d7/f0/air-terjun-kawangan.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-10376300', title: 'Air Terjun Sekeper', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0b/9f/d9/79/truly-on-the-jungle.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-13619975', title: 'Air Terjun Tiu Pupus', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/28/6a/8b/61/tiu-pupus-waterfall.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-11693320', title: 'Air Terjun Dewi Selendang', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/10/43/e2/50/img20170805122337-largejpg_rotated_90.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-12721258', title: 'Air Terjun Tiu Pituq', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/8f/bc/4a/fb-img-15306403952751138.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-26168970', title: 'Wayto Rinjani', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2a/de/87/6a/caption.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-34299490', title: 'Azantar Indonesia', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/3a/73/cd/caption.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-11797776', title: 'Air Terjun Tiu Ngumbak', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/14/92/64/0d/air-terjun-tiu-ngumbak.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-25173046', title: 'Benang Stokel and Benang Kelambu Waterfall', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2a/0b/b5/c7/atl-softreking-village.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-13447303', title: 'Otak Kokoq Joben', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/17/0b/03/b0/sweet.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-25188413', title: 'Lokok Sekoah', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/94/a4/cb/air-terjun-lokok-sekoah.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-9696935', title: 'Air Terjun Telaga Madu', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/5f/4d/5c/with-companion.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-24926905', title: 'Air Terjun Benang Kelambu', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2e/a6/d7/8a/benang-kelambu-waterfall.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-13225974', title: 'Air Terjun Treng Wilis', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/c2/e5/22/telaga-biru-sri-jete.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-26865893', title: 'Jalan Raya Tetebatu', image: waterfallFallback },
+  { id: 'waterfall-25216201', title: 'Waterfall Lokok Sekoah', image: waterfallFallback },
+  { id: 'waterfall-12049695', title: 'Air Terjun Semporonan', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/18/2a/08/a1/one-of-the-most-interesting.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-9696936', title: 'Air Terjun Telaga Madu', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/1d/8b/4b/telaga-madu-waterfalls.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-25796578', title: 'Sendalem Waterfall', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/41/11/ed/tibu-sendalem-merupakan.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-9608982', title: 'Air Terjun Umar Maya', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0c/09/38/41/air-terjun-umar-maya.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-12813056', title: 'Air Terjun Jaran Kurus', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/19/bc/95/8f/lrm-export-79945059680421.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-34125312', title: 'Desa pringgasela', image: waterfallFallback },
+  { id: 'waterfall-25193063', title: 'Air Terjun Kalianjah Sambik Elen', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/94/c9/36/produk-kopi-gp-lombok.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-25032364', title: 'Benang Kelambu Dan Benang Stokel', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/60/4b/69/jelajah-sawah.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-27997429', title: 'Senaru Trek Centre', image: waterfallFallback },
+  { id: 'waterfall-34453794', title: 'Leong Vanilla and Chocolate Agritourism', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/92/88/3d/caption.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-27153378', title: 'Cinta Holiday', image: waterfallFallback },
+  { id: 'waterfall-34450139', title: 'Rinjanidreamers', image: waterfallFallback },
+  { id: 'waterfall-28156643', title: 'Benang Stokel And Benang Kelambu Waterfall', image: waterfallFallback },
+  { id: 'waterfall-34031709', title: 'Eleventrails', image: waterfallFallback },
+  { id: 'waterfall-25785530', title: 'Cendramata', image: waterfallFallback },
+  { id: 'waterfall-21142003', title: 'Air Terjun Tembiras', image: waterfallFallback },
+  { id: 'waterfall-32696940', title: 'Mount Rinjani Adventures', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2e/a1/cc/bd/caption.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-6607679', title: 'Lombok Hafala', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/06/b6/ef/49/lombok-hafala-day-tours.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-17497828', title: 'Go2Rinjani', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/23/78/0b/a3/on-the-top-with-tamil.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-11893591', title: 'Onyaq-onyaq Explorider', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/4b/ff/1e/onyaq-onyaq-explorider.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-24064742', title: 'TETEBATU', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2e/1d/96/3b/harvesting-rice-with.jpg?w=500&h=-1&s=1' },
+  { id: 'waterfall-34042952', title: 'Tetebatu Erlebnis', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/62/48/fa/the-happy-smiles-of-family.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-27478388', title: 'Zila Lombok Trans', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/b2/dc/1e/bukit-bengkoang.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-28474703', title: 'Lombok Wonderland Tour And Travel', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/a5/75/90/caption.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-14911727', title: 'Lombok Frame Holiday', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/34/e8/68/a6/lombok-frame-holiday.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-25219843', title: 'Detriip Travel', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2e/da/09/12/snorkeling-at-gili-islands.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-10126649', title: 'Lombok Rinjani Trekking', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/23/6e/aa/d7/this-me.jpg?w=500&h=400&s=1' },
+  { id: 'waterfall-34463957', title: 'RINJANI TREK ADVENTURE', image: waterfallFallback },
+  { id: 'waterfall-30800990', title: 'Galang Travel', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/63/cb/58/caption.jpg?w=800&h=800&s=1' },
+];
+
+const waterfallExperiences = waterfallCatalog.map((item) => ({
+  ...item,
+  city: 'Lombok', duration: '1 day', rating: '4.7', reviews: '128', price: 35, oldPrice: null,
+  badge: '', label: 'Air Terjun', category: 'Air Terjun',
+  description: `Explore ${item.title} and the surrounding natural landscape in Lombok with a local guide.`,
+  highlights: [`Visit ${item.title}`, 'Explore Lombok’s natural landscape', 'Enjoy a flexible local experience'],
+}));
+
 export const experiences = [
   {
     id: 'colosseum', title: 'Lombok: Tanjung Aan Beach & Kuta Coast Guided Tour',
@@ -128,6 +194,7 @@ export const experiences = [
     description: 'Climb Pergasingan Hill near Sembalun for a sunrise view across the valleys and farmland of East Lombok.',
     highlights: ['Trek to Pergasingan Hill', 'Watch the sunrise over Sembalun', 'Take a memorable landscape photo'],
   },
+  ...waterfallExperiences,
 ];
 
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];
