@@ -35,6 +35,8 @@ let mainSwipe = null;
 let mainTouchSwipe = null;
 let suppressMainSwipeClick = false;
 let devBrowserPreview = false;
+let homeDestinationAutoScroll = null;
+let homeDestinationResume = null;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
@@ -88,6 +90,35 @@ function syncDetailHeader() {
   if (!header || !actions) return;
   header.classList.toggle('is-visible', actions.getBoundingClientRect().bottom <= 0);
 }
+function setupHomeDestinationCarousel() {
+  clearInterval(homeDestinationAutoScroll);
+  clearTimeout(homeDestinationResume);
+  homeDestinationAutoScroll = null;
+  homeDestinationResume = null;
+  const carousel = root.querySelector('[data-home-destination-carousel]');
+  if (!carousel) return;
+  let index = 0;
+  const cards = () => [...carousel.querySelectorAll('.destination-tile')];
+  const start = () => {
+    clearInterval(homeDestinationAutoScroll);
+    homeDestinationAutoScroll = setInterval(() => {
+      if (document.hidden) return;
+      const items = cards();
+      if (items.length < 2) return;
+      index = (index + 1) % items.length;
+      carousel.scrollTo({ left: items[index].offsetLeft - carousel.offsetLeft, behavior: 'smooth' });
+    }, 4200);
+  };
+  const pause = () => {
+    clearInterval(homeDestinationAutoScroll);
+    clearTimeout(homeDestinationResume);
+    homeDestinationResume = setTimeout(start, 6500);
+  };
+  carousel.addEventListener('pointerdown', pause, { passive: true });
+  carousel.addEventListener('mouseenter', pause, { passive: true });
+  carousel.addEventListener('mouseleave', start, { passive: true });
+  start();
+}
 function currentView() {
   const { path, params } = route();
   if (path === '/login') return loginView();
@@ -129,6 +160,7 @@ export function render() {
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
+  setupHomeDestinationCarousel();
   selectGalleryIndex(state.galleryIndex, false);
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
