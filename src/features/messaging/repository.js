@@ -56,7 +56,7 @@ export function getOrCreateChatThread(userId, context = null) {
   if (!socialUser(userId) || userId === selfId) return null;
   const existing = findChatThreadWith(userId);
   if (existing) {
-    if (context && !existing.context) { existing.context = context; existing.updatedAt = now(); persist(); }
+    if (context) { existing.context = { ...(existing.context || {}), ...context }; existing.updatedAt = now(); persist(); }
     return existing.id;
   }
   const thread = {
@@ -127,6 +127,17 @@ export function sendChatMessage(threadId, text, attachment = null, options = {})
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;
   thread.participantIds.filter((id) => id !== senderId).forEach((recipientId) => { thread.unreadBy[recipientId] = (thread.unreadBy[recipientId] || 0) + 1; });
+  return persist();
+}
+export function sendChatSystemMessage(threadId, text, metadata = {}) {
+  const thread = chatThread(threadId);
+  const clean = String(text || '').trim().slice(0, 1000);
+  if (!thread || !clean) return false;
+  const createdAt = now();
+  const message = { id: `system-${crypto.randomUUID()}`, threadId, senderId: null, text: clean, createdAt, readBy: [...thread.participantIds], deliveredTo: [...thread.participantIds], system: true, ...metadata };
+  messagingState().messages.push(message);
+  thread.lastMessageId = message.id;
+  thread.updatedAt = createdAt;
   return persist();
 }
 export function editChatMessage(threadId, messageId, text) {

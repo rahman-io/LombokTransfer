@@ -15,7 +15,7 @@ import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
-import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
+import { chatMessage, chatMessages, chatThread, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, sendChatSystemMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
@@ -413,6 +413,17 @@ function openSocialGallery(postId, index = 0) {
   resetSocialZoom();
   openModal('social-gallery');
 }
+function bookingChatContext(request) {
+  const experience = getExperience(request.experienceId);
+  const option = experience?.packageOptions?.find((entry) => entry.id === request.packageId);
+  return { requestId: request.id, bookingId: request.bookingId, experienceId: request.experienceId, guideId: request.guideId, travelerEmail: request.travelerEmail, travelerName: request.travelerName, date: request.date, duration: option?.duration || '', total: request.finance?.travelerTotal || request.travelerTotal, label: `Booking · ${request.date}` };
+}
+function ensureBookingChat(threadId, request) {
+  if (!threadId || !request) return threadId;
+  const hasWelcome = chatMessages(threadId).some((message) => message.system && message.bookingId === request.bookingId);
+  if (!hasWelcome) sendChatSystemMessage(threadId, `Booking ${request.bookingId} is ready. Use this chat to coordinate the trip and keep payments inside LombokTransfer.`, { bookingId: request.bookingId });
+  return threadId;
+}
 function clickAction(action, el) {
   const { path } = route();
   const id = el.dataset.id || path.split('/')[2] || state.selectedExperience;
@@ -428,7 +439,17 @@ function clickAction(action, el) {
     case 'guide-request-complete': { const status = action === 'guide-request-accept' ? 'accepted' : action === 'guide-request-decline' ? 'declined' : 'completed'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
     case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) navigate(`/bookings/${encodeURIComponent(id)}`); else announce('Payment cannot be recorded for this booking'); break;
     case 'verify-booking': { const code = el.closest('[data-booking-verification]')?.querySelector('[data-booking-code]')?.value || ''; if (verifyBooking(id, code)) { announce('Booking verified'); render(); } else announce('Booking code is invalid or payment is not confirmed'); break; }
-    case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, { experienceId: request.experienceId, label: `Booking · ${request.date}` }); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); else announce('Guide chat is unavailable'); break; }
+    case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, bookingChatContext(request)); if (threadId) { ensureBookingChat(threadId, request); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } else announce('Guide chat is unavailable'); break; }
+    case 'guide-booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.guideId === activeGuide().id && entry.paymentStatus === 'paid'); const traveler = request && socialState().users.find((user) => user.accountEmail === request.travelerEmail || user.displayName === request.travelerName); const threadId = request && traveler && getOrCreateChatThread(traveler.id, bookingChatContext(request)); if (threadId) { ensureBookingChat(threadId, request); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } else announce('Traveler chat is unavailable for this booking'); break; }
+    case 'booking-chat-action': {
+      const thread = chatThread(id);
+      const request = thread?.context?.requestId ? guideDemoData().requests.find((entry) => entry.id === thread.context.requestId) : null;
+      const messages = { meeting: 'Hi, let’s confirm the meeting point for this booking.', time: 'Can we confirm the departure time for this booking?', location: 'Please share the meeting location or map pin for this booking.' };
+      if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside LombokTransfer. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
+      if (value === 'details' || value === 'qr') { if (request) navigate(`/bookings/${encodeURIComponent(request.id)}`); break; }
+      if (messages[value] && sendChatMessage(id, messages[value])) announce(value === 'location' ? 'Location request sent' : 'Message sent');
+      break;
+    }
     case 'admin-record-payment': announce(markGuideRequestPaid(id) ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break;
     case 'admin-release-payout': announce(releaseGuidePayout(id) ? 'Guide payout released in the demo ledger' : 'Payout cannot be released yet'); break;
     case 'guide-unblock-date': if (toggleGuideDate(activeGuide().id, value)) announce('Availability updated'); else announce('This date cannot be changed'); break;
