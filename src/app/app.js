@@ -18,8 +18,8 @@ import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPo
 import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
-import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView } from '../features/guides/view.js';
-import { activeGuide, applyAsGuide, availableGuides, createGuideRequest, decideGuidePrice, markGuideRequestPaid, proposeGuidePrice, releaseGuidePayout, reviewGuideRequest, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest } from '../features/guides/repository.js';
+import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
+import { activeGuide, applyAsGuide, availableGuides, createGuideRequest, decideGuidePrice, guideDemoData, markGuideRequestPaid, proposeGuidePrice, releaseGuidePayout, reviewGuideRequest, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest } from '../features/guides/repository.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 import { escapeHtml } from '../utils/html.js';
@@ -149,6 +149,7 @@ function currentView() {
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
   if (path === '/bookings') return travelerBookingsView();
+  if (path.startsWith('/bookings/')) return travelerBookingDetailView(path.split('/')[2]);
   if (path === '/guide') return guideDashboardView();
   if (path === '/guide/packages') return guidePackagesView();
   if (path === '/admin/prices') return guidePriceApprovalsView();
@@ -409,7 +410,8 @@ function clickAction(action, el) {
     case 'guide-request-accept':
     case 'guide-request-decline':
     case 'guide-request-complete': { const status = action === 'guide-request-accept' ? 'accepted' : action === 'guide-request-decline' ? 'declined' : 'completed'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
-    case 'pay-guide-request': announce(markGuideRequestPaid(id, state.email) ? 'Demo payment recorded' : 'Payment cannot be recorded for this booking'); break;
+    case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) navigate(`/bookings/${encodeURIComponent(id)}`); else announce('Payment cannot be recorded for this booking'); break;
+    case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, { experienceId: request.experienceId, label: `Booking · ${request.date}` }); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); else announce('Guide chat is unavailable'); break; }
     case 'admin-record-payment': announce(markGuideRequestPaid(id) ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break;
     case 'admin-release-payout': announce(releaseGuidePayout(id) ? 'Guide payout released in the demo ledger' : 'Payout cannot be released yet'); break;
     case 'guide-unblock-date': if (toggleGuideDate(activeGuide().id, value)) announce('Availability updated'); else announce('This date cannot be changed'); break;

@@ -5,6 +5,11 @@ import { rankSocialActivity, socialModerationQueue } from './intelligence.js';
 const STORAGE_KEY = 'lombok-social-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const now = () => new Date().toISOString();
+const guideChatUsers = [
+  { id: 'guide-adi', username: 'adi.rinjani', displayName: 'Adi Saputra', initials: 'AS', color: '#205785', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', location: 'Sembalun, East Lombok', role: 'guide', online: true },
+  { id: 'guide-nur', username: 'nur.gilis', displayName: 'Nur Aisyah', initials: 'NA', color: '#8b5d45', bio: 'Island and waterfall guide who loves sharing local stories.', location: 'North Lombok & Gili Islands', role: 'guide', online: true },
+  { id: 'guide-lalu', username: 'lalu.lombok', displayName: 'Lalu Pratama', initials: 'LP', color: '#5f6f54', bio: 'Cultural guide for village visits and local craft experiences.', location: 'Central Lombok', role: 'guide', online: false },
+];
 
 export function createSeedSocialState() {
   return {
@@ -45,7 +50,7 @@ function persist() {
 }
 
 export function activeSocialUser() { return socialState().users.find((user) => user.id === socialState().activeUserId); }
-export function socialUser(id) { return socialState().users.find((user) => user.id === id); }
+export function socialUser(id) { return socialState().users.find((user) => user.id === id) || guideChatUsers.find((user) => user.id === id); }
 export function socialPost(id) { return socialState().posts.find((post) => post.id === id && post.status === 'published'); }
 export function visibleSocialPosts() { return [...socialState().posts].filter((post) => post.status === 'published').sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
 export function socialPostsForExperience(experienceId) { return visibleSocialPosts().filter((post) => post.experienceId === experienceId); }

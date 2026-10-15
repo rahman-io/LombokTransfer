@@ -42,6 +42,8 @@ function read() {
       if (!request.payoutStatus) { request.payoutStatus = request.status === 'completed' && request.paymentStatus === 'paid' ? 'paid' : 'not_due'; migrated = true; }
       if (request.paymentStatus === 'paid' && !request.paidAt) { request.paidAt = request.createdAt || new Date().toISOString(); migrated = true; }
       if (request.payoutStatus === 'paid' && !request.payoutReleasedAt) { request.payoutReleasedAt = request.updatedAt || request.createdAt || new Date().toISOString(); migrated = true; }
+      if (request.paymentStatus === 'paid' && request.status === 'accepted' && !request.bookingStatus) { request.bookingStatus = 'confirmed'; migrated = true; }
+      if (request.status === 'completed' && !request.bookingStatus) { request.bookingStatus = 'completed'; migrated = true; }
     });
     if (migrated) write(data);
     return data;
@@ -121,7 +123,7 @@ export function createGuideRequest({ experienceId, packageId, guideId, date, tim
   const unitPrice = packagePrice(guide, option);
   if (Number(expectedUnitPrice) !== unitPrice) return null;
   const split = priceSplit(unitPrice * travelers);
-  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 2, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), notes: String(notes || '').trim().slice(0, 1000), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', status: 'pending', createdAt: new Date().toISOString(), review: null };
+  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 2, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), notes: String(notes || '').trim().slice(0, 1000), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', bookingStatus: 'request_sent', status: 'pending', createdAt: new Date().toISOString(), review: null };
   data.requests.unshift(request); write(data); return request;
 }
 export function updateGuideRequest(id, guideId, status) {
@@ -130,6 +132,8 @@ export function updateGuideRequest(id, guideId, status) {
   if (!request || !({ pending: ['accepted', 'declined'], accepted: ['completed'] }[request.status] || []).includes(status)) return false;
   if (status === 'accepted' && !availableGuides(request.experienceId, request.packageId, request.date, request.travelers).some((guide) => guide.id === guideId)) return false;
   request.status = status;
+  if (status === 'accepted' && request.paymentStatus === 'paid') request.bookingStatus = 'confirmed';
+  if (status === 'completed') request.bookingStatus = 'completed';
   request.updatedAt = new Date().toISOString();
   if (status === 'declined' && request.paymentStatus === 'paid') { request.paymentStatus = 'refunded'; request.refundedAt = request.updatedAt; request.payoutStatus = 'not_due'; }
   if (status === 'completed' && request.paymentStatus === 'paid') request.payoutStatus = 'pending';
@@ -140,6 +144,8 @@ export function markGuideRequestPaid(id, email = '') {
   const request = data.requests.find((entry) => entry.id === id && (!email || entry.travelerEmail === String(email).trim().toLowerCase()));
   if (!request || !['pending', 'accepted'].includes(request.status) || request.paymentStatus !== 'unpaid') return false;
   request.paymentStatus = 'paid'; request.paidAt = new Date().toISOString();
+  request.bookingStatus = request.status === 'completed' ? 'completed' : 'confirmed';
+  request.confirmedAt = request.paidAt;
   if (request.status === 'completed') request.payoutStatus = 'pending';
   write(data); return true;
 }

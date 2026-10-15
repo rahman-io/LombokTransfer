@@ -51,15 +51,18 @@ export function findChatThreadWith(userId) {
   const selfId = activeSocialUser().id;
   return messagingState().threads.find((thread) => thread.status === 'active' && thread.participantIds.includes(selfId) && thread.participantIds.includes(userId));
 }
-export function getOrCreateChatThread(userId) {
+export function getOrCreateChatThread(userId, context = null) {
   const selfId = activeSocialUser().id;
   if (!socialUser(userId) || userId === selfId) return null;
   const existing = findChatThreadWith(userId);
-  if (existing) return existing.id;
+  if (existing) {
+    if (context && !existing.context) { existing.context = context; existing.updatedAt = now(); persist(); }
+    return existing.id;
+  }
   const thread = {
     id: `thread-${selfId}-${userId}`,
     participantIds: [selfId, userId],
-    context: null,
+    context,
     createdAt: now(),
     updatedAt: now(),
     lastMessageId: null,
