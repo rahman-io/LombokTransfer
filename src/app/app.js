@@ -30,6 +30,7 @@ let suppressGalleryClick = false;
 let suppressSocialMediaClick = false;
 let socialMediaTap = null;
 let socialCarouselDrag = null;
+let socialHorizontalDrag = null;
 let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let chatPinchPointers = new Map();
@@ -46,6 +47,7 @@ let chatAudioStream = null;
 let chatAudioChunks = [];
 let chatViewportFrame = 0;
 let suppressMainSwipeClick = false;
+let suppressSocialHorizontalClick = false;
 let devBrowserPreview = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
@@ -53,7 +55,7 @@ const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
-  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
+  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,.social-topic-row,.social-people-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
 }
 function navigateMainSwipe(distance) {
   const currentIndex = mainNavigationIndex();
@@ -569,6 +571,7 @@ export function startApp() {
   window.visualViewport?.addEventListener('scroll', syncChatViewport, { passive: true });
   root.addEventListener('click', (event) => {
     if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
+    if (suppressSocialHorizontalClick) { event.preventDefault(); suppressSocialHorizontalClick = false; return; }
     if (!event.target.closest('.chat-message-menu')) closeChatMenus();
     const chatImage = event.target.closest('.chat-image-attachment');
     if (chatImage) {
@@ -667,6 +670,8 @@ export function startApp() {
     if (track && event.pointerType === 'mouse') galleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
     const carousel = event.target.closest('[data-social-carousel]');
     if (carousel) socialCarouselDrag = { track: carousel, pointerId: event.pointerId, x: event.clientX, left: carousel.scrollLeft, moved: false };
+    const socialRow = event.target.closest('.social-stories,.social-topic-row,.social-people-row');
+    if (socialRow) socialHorizontalDrag = { track: socialRow, pointerId: event.pointerId, x: event.clientX, left: socialRow.scrollLeft, moved: false };
     const socialMedia = event.target.closest('[data-social-media]');
     if (socialMedia && event.pointerType !== 'mouse') {
       socialPinchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY, postId: socialMedia.dataset.socialMedia, index: socialMedia.dataset.mediaIndex || 0 });
@@ -762,6 +767,11 @@ export function startApp() {
       if (Math.abs(distance) > 6 && !socialCarouselDrag.moved) { socialCarouselDrag.moved = true; socialCarouselDrag.track.style.scrollSnapType = 'none'; socialCarouselDrag.track.setPointerCapture?.(event.pointerId); }
       if (socialCarouselDrag.moved) { event.preventDefault(); socialCarouselDrag.track.scrollLeft = socialCarouselDrag.left - distance; }
     }
+    if (socialHorizontalDrag && socialHorizontalDrag.pointerId === event.pointerId) {
+      const distance = event.clientX - socialHorizontalDrag.x;
+      if (Math.abs(distance) > 6 && !socialHorizontalDrag.moved) { socialHorizontalDrag.moved = true; socialHorizontalDrag.track.setPointerCapture?.(event.pointerId); socialHorizontalDrag.track.classList.add('is-dragging'); }
+      if (socialHorizontalDrag.moved) { event.preventDefault(); socialHorizontalDrag.track.scrollLeft = socialHorizontalDrag.left - distance; }
+    }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
     const distance = event.clientX - galleryDrag.x;
     if (Math.abs(distance) > 6 && !galleryDrag.moved) {
@@ -812,6 +822,14 @@ export function startApp() {
         setTimeout(() => { suppressSocialMediaClick = false; }, 180);
       }
       socialCarouselDrag = null;
+    }
+    if (socialHorizontalDrag?.pointerId === event.pointerId) {
+      if (socialHorizontalDrag.moved) {
+        socialHorizontalDrag.track.classList.remove('is-dragging');
+        suppressSocialHorizontalClick = true;
+        setTimeout(() => { suppressSocialHorizontalClick = false; }, 180);
+      }
+      socialHorizontalDrag = null;
     }
     if (!galleryDrag || galleryDrag.pointerId !== event.pointerId) return;
     if (galleryDrag.moved) {
