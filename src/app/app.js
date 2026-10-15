@@ -32,6 +32,7 @@ let socialMediaTap = null;
 let socialCarouselDrag = null;
 let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
+let suppressChatPhotoClick = false;
 let chatPinchPointers = new Map();
 let chatGalleryDrag = null;
 let chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
@@ -507,6 +508,7 @@ export function startApp() {
     const chatImage = event.target.closest('.chat-image-attachment');
     if (chatImage) {
       event.preventDefault();
+      if (suppressChatPhotoClick) { suppressChatPhotoClick = false; return; }
       clickAction('chat-open-gallery', chatImage);
       return;
     }
@@ -597,6 +599,14 @@ export function startApp() {
       zoomStage.dataset.pointerId = event.pointerId;
       zoomStage._socialPointer = { x: event.clientX, y: event.clientY };
     }
+  });
+  root.addEventListener('pointerup', (event) => {
+    const chatImage = event.target.closest('.chat-image-attachment');
+    if (!chatImage) return;
+    event.preventDefault();
+    suppressChatPhotoClick = true;
+    setTimeout(() => { suppressChatPhotoClick = false; }, 500);
+    clickAction('chat-open-gallery', chatImage);
   });
   root.addEventListener('pointermove', (event) => {
     if (mainSwipe?.pointerId === event.pointerId) {
