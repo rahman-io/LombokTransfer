@@ -50,6 +50,7 @@ let suppressSocialHorizontalClick = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
 let activeMap = null;
+let activeMapMarkers = null;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
@@ -153,15 +154,31 @@ function initializeMap() {
     activeMap = window.L.map(container, { zoomControl: false }).setView([center.latitude, center.longitude], center.zoom);
     window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(activeMap);
     window.L.control.zoom({ position: 'bottomright' }).addTo(activeMap);
-    points.forEach((point) => {
-      const marker = window.L.marker(point.coordinates).addTo(activeMap);
-      marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}</small><a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`);
-    });
+    activeMapMarkers = window.L.layerGroup().addTo(activeMap);
+    renderMapArea('all');
     container.classList.add('is-ready');
     requestAnimationFrame(() => activeMap?.invalidateSize());
   };
   if (window.L) mount();
   else document.querySelector('script[src*="leaflet.js"]')?.addEventListener('load', mount, { once: true });
+}
+function renderMapArea(area = 'all') {
+  const container = root.querySelector('[data-map-canvas]');
+  if (!container || !activeMap || !activeMapMarkers) return;
+  let points;
+  try { points = JSON.parse(container.dataset.mapPoints); } catch { return; }
+  const visiblePoints = area === 'all' ? points : points.filter((point) => point.area === area);
+  activeMapMarkers.clearLayers();
+  visiblePoints.forEach((point) => {
+    const marker = window.L.marker(point.coordinates).addTo(activeMapMarkers);
+    marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}</small><a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`);
+  });
+  root.querySelectorAll('[data-action="map-area-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === area));
+  root.querySelectorAll('[data-map-result-area]').forEach((item) => { item.hidden = area !== 'all' && item.dataset.mapResultArea !== area; });
+  const empty = root.querySelector('[data-map-empty]');
+  if (empty) empty.hidden = visiblePoints.length > 0;
+  if (visiblePoints.length > 1) activeMap.fitBounds(window.L.latLngBounds(visiblePoints.map((point) => point.coordinates)), { padding: [50, 50], maxZoom: 14 });
+  else if (visiblePoints.length === 1) activeMap.setView(visiblePoints[0].coordinates, 15);
 }
 function currentView() {
   const { path, params } = route();
@@ -201,7 +218,7 @@ export function render() {
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
-  if (activeMap) { activeMap.remove(); activeMap = null; }
+  if (activeMap) { activeMap.remove(); activeMap = null; activeMapMarkers = null; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
@@ -457,6 +474,7 @@ function clickAction(action, el) {
     case 'set-filter': state.filter = value; render(); break;
     case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Rome')); break;
     case 'map-marker': navigate('/experience/pantheon'); break;
+    case 'map-area-filter': renderMapArea(value); break;
     case 'map-locate': {
       if (!activeMap || !navigator.geolocation) { announce('Location is not available on this device'); break; }
       navigator.geolocation.getCurrentPosition(({ coords }) => {

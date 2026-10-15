@@ -19,6 +19,8 @@ const experienceCoordinates = {
   basilica: [41.9022, 12.4539],
   arena: [41.8902, 12.4922],
 };
+const mapAreas = [['all', 'All areas'], ['historic-center', 'Historic Center'], ['vatican-city', 'Vatican City']];
+const experienceAreas = { pantheon: 'historic-center', colosseum: 'historic-center', vatican: 'vatican-city' };
 export function searchView() {
   return mainLayout(`
     ${header('Search')}
@@ -52,15 +54,17 @@ export function mapView(city = 'Rome') {
     title: item.title,
     city: item.city,
     price: item.price,
+    area: experienceAreas[item.id] || 'historic-center',
     coordinates: experienceCoordinates[item.id] || [center.latitude, center.longitude],
   }));
   return mainLayout(`
     <div class="map-canvas" data-map-canvas data-map-city="${escapeHtml(city)}" data-map-center="${escapeHtml(JSON.stringify(center))}" data-map-points="${escapeHtml(JSON.stringify(points))}">
       <div class="map-toolbar"><button class="round-white" data-action="back">${icon('close')}</button><a href="#/search" class="map-search">${icon('search', 19)}<span>Search for a place or address</span></a></div>
+      <div class="map-area-filter"><strong>Filter area</strong><div class="chip-row map-area-chips" aria-label="Filter map by area">${mapAreas.map(([value, label], index) => `<button class="chip ${index === 0 ? 'selected' : ''}" data-action="map-area-filter" data-value="${value}">${label}</button>`).join('')}</div></div>
       <div class="chip-row map-chips"><button class="chip selected" data-action="filter-sheet">${icon('sliders', 19)} 1</button><button class="chip selected" data-action="set-filter" data-value="Guided tours">♧ Guided tours ×</button><button class="chip">♧ Entry tickets</button></div>
       <button class="map-locate" data-action="map-locate" aria-label="Show my location">${icon('location', 19)}</button>
       <div class="map-loading" data-map-loading>Loading live map…</div>
     </div>
-    <div class="map-results"><div class="sheet-handle"></div>${mapItems.map((item) => experienceCard(item)).join('')}<a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
+    <div class="map-results"><div class="sheet-handle"></div>${mapItems.map((item) => `<div class="map-result-item" data-map-result-area="${experienceAreas[item.id] || 'historic-center'}">${experienceCard(item)}</div>`).join('')}<p class="map-empty" data-map-empty hidden>No activities in this area yet.</p><a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
   `, 'Discover', { className: 'map-page' });
 }
