@@ -550,6 +550,12 @@ export function startApp() {
       clickAction('chat-open-gallery', chatImage);
       return;
     }
+    const sharedChatContent = event.target.closest('.chat-shared-post');
+    if (sharedChatContent) {
+      event.preventDefault();
+      if (window.confirm('Open this shared content?')) navigate(sharedChatContent.getAttribute('href').replace(/^#/, ''));
+      return;
+    }
     const socialMedia = event.target.closest('[data-social-media]');
     if (socialMedia) {
       event.preventDefault();
