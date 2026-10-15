@@ -6,6 +6,10 @@ const intentRules = [
 
 const normalize = (value) => String(value || '').toLowerCase();
 
+export function packageOptionForDays(item, days) {
+  return (item.packageOptions || []).slice().sort((a, b) => Math.abs(Number(a.days || 1) - Number(days)) - Math.abs(Number(b.days || 1) - Number(days)))[0] || null;
+}
+
 export function getTripIntent(userState = {}, catalog = [], socialContext = {}) {
   const wishlistItems = catalog.filter((item) => (userState.wishlist || []).includes(item.id));
   const socialPosts = socialContext.posts || [];
@@ -29,8 +33,12 @@ export function buildTripItinerary({ destination = '', days = 3, budget = 'mid',
   const candidates = catalog.filter((item) => item.city === city && item.price <= maxPrice).sort((a, b) => (preferredIds.has(b.id) ? 1 : 0) - (preferredIds.has(a.id) ? 1 : 0) || Number(b.rating) - Number(a.rating));
   const fallback = catalog.filter((item) => item.city === city).sort((a, b) => Number(b.rating) - Number(a.rating));
   const selected = [...new Map([...candidates, ...fallback].map((item) => [item.id, item])).values()].slice(0, Math.max(1, Number(days) || 3));
-  const itinerary = selected.map((experience, index) => ({ day: index + 1, experienceId: experience.id, title: experience.title, city: experience.city, duration: experience.duration, price: experience.price }));
-  return { intent, destination: city, days: Number(days) || 3, budget, itinerary, total: itinerary.reduce((sum, item) => sum + item.price, 0), generatedAt: new Date().toISOString(), schemaVersion: 1 };
+  const tripDays = Number(days) || 3;
+  const itinerary = selected.map((experience, index) => {
+    const packageOption = packageOptionForDays(experience, tripDays);
+    return { day: index + 1, experienceId: experience.id, title: experience.title, city: experience.city, duration: experience.duration, price: experience.price, packageOption: packageOption ? { id: packageOption.id, name: packageOption.name, duration: packageOption.duration, price: packageOption.price, currency: packageOption.currency, pricingUnit: packageOption.pricingUnit } : null };
+  });
+  return { intent, destination: city, days: tripDays, budget, itinerary, total: itinerary.reduce((sum, item) => sum + item.price, 0), packageCount: itinerary.filter((item) => item.packageOption).length, generatedAt: new Date().toISOString(), schemaVersion: 1 };
 }
 
 export function toTripItineraryFirebaseFixture(itinerary) {

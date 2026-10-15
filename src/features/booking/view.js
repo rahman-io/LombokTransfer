@@ -1,12 +1,13 @@
-import { getExperience } from '../experiences/data.js';
+import { getExperience, getPackageOption } from '../experiences/data.js';
 import { state } from '../../app/store.js';
 import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { formatDate, escapeHtml } from '../../utils/html.js';
-import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
+import { calculateDemoQuote, formatDemoPrice, formatListedPrice, getDemoBooking } from '../experiences/booking-demo.js';
 export function bookingView(id) {
   const item = getExperience(id);
+  const selectedPackage = getPackageOption(item, state.selectedPackageExperienceId === item.id ? state.selectedPackageOptionId : '');
   const dateText = state.date ? formatDate(state.date) : 'Select a date';
   const quote = calculateDemoQuote(item, state);
   const total = quote.total.toFixed(2);
@@ -19,7 +20,7 @@ export function bookingView(id) {
         <button data-action="language">${icon('user', 22)} English${icon('down', 20)}</button>
       </div>
       <h2>1 option available</h2>
-      <article class="option-card"><h3>${item.title}</h3><div class="option-fact">${icon('clock', 21)} Duration: ${item.duration}</div><div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div><button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
+      <article class="option-card"><h3>${selectedPackage?.name || item.title}</h3>${selectedPackage ? `<div class="option-fact">${icon('tickets', 21)} Package price: ${formatListedPrice({ listedPrice: selectedPackage.price, listedPriceCurrency: selectedPackage.currency })} ${escapeHtml(selectedPackage.pricingUnit || 'per person')}</div>` : ''}<div class="option-fact">${icon('clock', 21)} Duration: ${selectedPackage?.duration || item.duration}</div><div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div><button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
         <hr /><h3>Starting time</h3><p>${dateText}</p>${getDemoBooking(item).timeOptions.map((time) => `<button class="time-button ${state.selectedTime === time ? 'active' : ''}" data-action="select-time" data-value="${escapeHtml(time)}">${escapeHtml(time)}</button>`).join('')}
         <p class="urgency">${icon('info', 17)} Only 21 hours left to book</p><hr /><strong class="option-price">$${total}</strong><small>${state.adults} Adult × ${formatDemoPrice(quote.adultPrice)}${state.children ? `<br/>${state.children} Child × ${formatDemoPrice(quote.childPrice)}` : ''}<br/>Demo price · All taxes and fees included</small><a class="primary-button full" href="#/checkout/${item.id}">Continue</a>
       </article>
@@ -33,9 +34,10 @@ function progress(step) {
 }
 export function checkoutView(id) {
   const item = getExperience(id);
+  const selectedPackage = getPackageOption(item, state.selectedPackageExperienceId === item.id ? state.selectedPackageOptionId : '');
   const step = state.checkoutStep;
   const total = calculateDemoQuote(item, state).total.toFixed(2);
-  const summary = `<div class="checkout-summary"><strong>${item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${state.selectedTime} · Instructor: English · Demo price</small></div>`;
+  const summary = `<div class="checkout-summary"><strong>${selectedPackage?.name || item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${state.selectedTime} · Instructor: English · ${selectedPackage ? `Package price: ${formatListedPrice({ listedPrice: selectedPackage.price, listedPriceCurrency: selectedPackage.currency })} ${selectedPackage.pricingUnit || 'per person'} · ` : ''}Demo price</small></div>`;
   const contact = `
     <h1>Enter your personal details</h1>
     <label class="form-label"><span>Full name</span><input id="checkout-name" autocomplete="name" placeholder="Full name" value="${escapeHtml(state.guestName)}" required /></label>

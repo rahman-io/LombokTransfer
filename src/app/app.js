@@ -395,6 +395,7 @@ function clickAction(action, el) {
   switch (action) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
+    case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value }); render(); break;
     case 'open-dates': openModal('dates'); break;
     case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
     case 'join-travelers': { const joined = state.joinedExperiences.includes(id); if (joined) { update({ joinedExperiences: state.joinedExperiences.filter((experienceId) => experienceId !== id) }); announce('You left this group'); break; } const experience = getExperience(id); const booking = experience ? getDemoBooking(experience) : null; const groupLabel = experience ? `${experience.city} · ${experience.title}` : 'Travel group'; const threadId = getOrCreateTravelGroupThread(id, booking?.bookedTravelers?.map((traveler) => traveler.id) || [], groupLabel); update({ joinedExperiences: [...state.joinedExperiences, id], travelerGroupThreads: { ...state.travelerGroupThreads, [id]: threadId } }); announce('You joined the travelers. Open the group chat below.'); break; }

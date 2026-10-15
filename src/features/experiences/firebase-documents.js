@@ -30,6 +30,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
       ...(item.listedPrice != null ? { listedCurrency: item.listedPriceCurrency || 'IDR', listedAmount: item.listedPrice, listedNote: item.priceNote || null } : {}),
       weekdayMultiplierBasisPoints: Object.fromEntries(Object.entries(booking?.weekdayMultipliers || {}).map(([day, multiplier]) => [day, Math.round(multiplier * 10000)])),
     },
+    ...(item.packageOptions?.length ? { packageType: item.packageType || 'Package', packages: item.packageOptions.map((option) => ({ id: option.id, name: option.name, durationLabel: option.duration, days: option.days || null, nights: option.nights || null, pricing: { currency: option.currency || 'IDR', amount: option.price, unit: option.pricingUnit || 'per person' }, includes: [...(option.includes || [])] })) } : {}),
     popularDays: [...(booking?.popularDays || [])],
     demoTimeOptions: [...(booking?.timeOptions || [])],
     rating: { average: Number(item.rating), count: Number(String(item.reviews).replaceAll(',', '')) },

@@ -12,6 +12,8 @@ export const state = {
   adults: saved.adults || 1,
   children: saved.children || 0,
   selectedExperience: saved.selectedExperience || 'kayaking',
+  selectedPackageExperienceId: saved.selectedPackageExperienceId || '',
+  selectedPackageOptionId: saved.selectedPackageOptionId || '',
   selectedTime: saved.selectedTime || '6:00 PM',
   availabilityChecked: false,
   paymentMethod: saved.paymentMethod || 'card',
@@ -48,8 +50,8 @@ export const state = {
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
-  writeSavedState({ wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
+  const { wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
+  writeSavedState({ wishlist, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageExperienceId, selectedPackageOptionId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
 }
 
 export function toggleWishlist(id) {

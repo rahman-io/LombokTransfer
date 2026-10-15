@@ -261,6 +261,9 @@ const articleExperiences = [
     id: 'desa-sade', title: 'Sade Traditional Village', city: 'Lombok', duration: '1 day', image: tripadvisorImages.tetebatu,
     rating: '4.7', reviews: '128', price: 35, listedPrice: 1363500, listedPriceCurrency: 'IDR', priceNote: 'Sade and Banyumulek one-day tour starting price',
     badge: '', label: 'Cultural experience', category: 'Culture',
+    packageType: 'Cultural day tour', packageOptions: [
+      { id: 'sade-banyumulek-day-tour', name: 'Sade & Banyumulek cultural day package', days: 1, duration: '1 day', price: 1363500, currency: 'IDR', pricingUnit: 'per person', includes: ['Village visit', 'Local cultural experience', 'Booking confirmation'] },
+    ],
     description: 'Discover Sasak traditions in Sade Traditional Village, including local weaving and the community’s cultural performances.',
     location: 'Rembitan, Pujut, Central Lombok, West Nusa Tenggara', openingHours: '07:00–18:00 WITA',
     highlights: ['Learn about Sasak traditions', 'Try traditional weaving', 'See a local peresean performance'],
@@ -303,6 +306,10 @@ export const experiences = [
     id: 'arena', title: 'Lombok: Mount Rinjani National Park & Sembalun Tour',
     city: 'Lombok', duration: '2.5 - 3 hours', image: images.arena, rating: '4.5', reviews: '29,044',
     price: 44, oldPrice: 87, listedPrice: 1691750, listedPriceCurrency: 'IDR', priceNote: 'Sembalun and Sindang Gile full-day tour starting price', badge: 'Certified', label: 'Skip the line',
+    packageType: 'Multi-day trek', packageOptions: [
+      { id: 'rinjani-2d1n', name: 'Mount Rinjani 2D/1N hiking package', days: 2, nights: 1, duration: '2 days · 1 night', price: 2531969, currency: 'IDR', pricingUnit: 'per person', includes: ['Local trekking guide', 'Trekking route support', 'Booking confirmation'] },
+      { id: 'rinjani-3d2n', name: 'Rinjani summit, lake & hot springs', days: 3, nights: 2, duration: '3 days · 2 nights', price: 4518806, currency: 'IDR', pricingUnit: 'per person', includes: ['Local trekking guide', 'Camping and route support', 'Booking confirmation'] },
+    ],
     description: 'Discover the foothills and viewpoints around Mount Rinjani National Park with a local guide based near Sembalun.',
     highlights: ['Explore Rinjani landscapes', 'Visit Sembalun viewpoints', 'Enjoy stories from a local guide'],
   },
@@ -310,6 +317,9 @@ export const experiences = [
     id: 'vatican', title: 'Lombok: Sendang Gile & Tiu Kelep Waterfalls Tour',
     city: 'Lombok', duration: '2 - 3 hours', image: images.vaticanTour, rating: '4.3', reviews: '85,818',
     price: 66, oldPrice: 132, listedPrice: 1582775, listedPriceCurrency: 'IDR', priceNote: 'Sendang Gile full-day tour starting price', badge: 'Certified', label: 'Skip the line',
+    packageType: 'Day tour', packageOptions: [
+      { id: 'sendang-gile-full-day', name: 'Sendang Gile waterfall full-day package', days: 1, duration: '1 day', price: 1582775, currency: 'IDR', pricingUnit: 'per person', includes: ['Local guide', 'Waterfall visit', 'Booking confirmation'] },
+    ],
     description: 'Travel through North Lombok to discover Sendang Gile and Tiu Kelep, two of the island’s best-known waterfalls.',
     highlights: ['Visit Sendang Gile Waterfall', 'Discover Tiu Kelep Waterfall', 'Explore North Lombok with a guide'],
   },
@@ -317,6 +327,9 @@ export const experiences = [
     id: 'basilica', title: 'Lombok: Benang Stokel & Benang Kelambu Waterfalls Tour',
     city: 'Lombok', duration: '2 - 4 hours', image: images.basilica, rating: '4.7', reviews: '18,880',
     price: 72, oldPrice: 119, listedPrice: 1559222, listedPriceCurrency: 'IDR', priceNote: 'Private full-day tour starting price', badge: 'Certified', label: 'Skip the line',
+    packageType: 'Private day tour', packageOptions: [
+      { id: 'benang-waterfalls-private', name: 'Benang Stokel & Kelambu private package', days: 1, duration: '1 day', price: 1559222, currency: 'IDR', pricingUnit: 'per person', includes: ['Private transport', 'Local guide', 'Waterfall visits'] },
+    ],
     description: 'Explore Central Lombok’s Benang Stokel and Benang Kelambu waterfalls with time to enjoy the surrounding forest.',
     highlights: ['Visit Benang Stokel Waterfall', 'Discover Benang Kelambu Waterfall', 'Walk through the surrounding forest'],
   },
@@ -324,6 +337,10 @@ export const experiences = [
     id: 'pantheon', title: 'Lombok: Gili Islands Island-Hopping Experience',
     city: 'Lombok', duration: '1 day', image: images.pantheon, gallery: [images.pantheon, images.pantheonThumbA, images.pantheonThumbB], cardImage: images.pantheonCard, rating: '4.1', reviews: '40', featured: true,
     price: 8, oldPrice: 13, listedPrice: 170818, listedPriceCurrency: 'IDR', priceNote: 'Gili island-hopping snorkeling trip starting price', location: 'Gili Indah, Pemenang, North Lombok, West Nusa Tenggara', openingHours: '08:00–17:00 WITA', badge: 'Likely to sell out', label: 'Audio guide',
+    packageType: 'Shared or private day tour', packageOptions: [
+      { id: 'gili-shared-snorkeling', name: 'Shared snorkeling tour to 3 Gilis', days: 1, duration: '1 day', price: 164872, currency: 'IDR', pricingUnit: 'per person', includes: ['Shared boat', 'Snorkeling equipment', 'Local guide'] },
+      { id: 'gili-island-hopping', name: 'Gili island-hopping snorkeling trip', days: 1, duration: '1 day', price: 170818, currency: 'IDR', pricingUnit: 'per person', includes: ['Island-hopping boat', 'Snorkeling stops', 'Booking confirmation'] },
+    ],
     description: 'Spend a day exploring the Gili Islands, with time for the sea, beaches, and relaxed island views off Lombok’s northwest coast.',
     cancellation: { title: 'Cancellation policy', text: 'This activity is non-refundable' }, validity: 'Valid 1 day',
     includes: ['Island-hopping experience', 'Local guide', 'Booking confirmation'],
@@ -362,6 +379,10 @@ export const experiences = [
     id: 'sumo', title: 'Sembalun: Pergasingan Hill Sunrise Trek',
     city: 'Sembalun', duration: '75 minutes - 1.5 hours', image: images.sumo, rating: '4.9', reviews: '9,101', featured: true,
     price: 35, oldPrice: null, listedPrice: 3354597, listedPriceCurrency: 'IDR', priceNote: 'Pergasingan Hill one-day trip starting price', badge: 'Likely to sell out', label: 'Scenic viewpoint', category: 'Nature',
+    packageType: 'Outdoor day activity', packageOptions: [
+      { id: 'pergasingan-sunrise', name: 'Pergasingan Hill sunrise hiking package', days: 1, duration: '1 day', price: 1707607, currency: 'IDR', pricingUnit: 'per person', includes: ['Local hiking guide', 'Sunrise route support', 'Booking confirmation'] },
+      { id: 'sembalun-atv', name: 'Sembalun ATV adventure package', days: 1, duration: '1 day', price: 647713, currency: 'IDR', pricingUnit: 'per person', includes: ['ATV ride', 'Safety briefing', 'Local support'] },
+    ],
     description: 'Climb Pergasingan Hill near Sembalun for a sunrise view across the valleys and farmland of East Lombok.',
     highlights: ['Trek to Pergasingan Hill', 'Watch the sunrise over Sembalun', 'Take a memorable landscape photo'],
   },
@@ -381,6 +402,7 @@ export const experienceCategories = [
 
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];
 export const getExperienceGallery = (item) => item.gallery?.length ? item.gallery : [item.image];
+export const getPackageOption = (item, optionId = '') => item?.packageOptions?.find((option) => option.id === optionId) || item?.packageOptions?.[0] || null;
 export const getFeaturedExperiences = () => experiences.filter((item) => item.featured);
 export const getPopularExperiences = () => experiences.filter((item) => item.popularSearch);
 export const getExperiencesByCity = (city, category = '') => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase() && (!category || item.category === category || item.categories?.includes(category)));

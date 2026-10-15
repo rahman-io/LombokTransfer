@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildTripItinerary, getTripIntent, toTripItineraryFirebaseFixture } from '../src/features/trip-intelligence/repository.js';
+import { buildTripItinerary, getTripIntent, packageOptionForDays, toTripItineraryFirebaseFixture } from '../src/features/trip-intelligence/repository.js';
 
 test('smart trip intent and itinerary use saved and social travel signals', () => {
   const experiences = [
@@ -18,4 +18,12 @@ test('smart trip intent and itinerary use saved and social travel signals', () =
   assert.equal(itinerary.schemaVersion, 1);
   assert.equal(itinerary.itinerary.length, 3);
   assert.equal(toTripItineraryFirebaseFixture(itinerary).status, 'draft');
+});
+
+test('smart itinerary recommends the package variant closest to the trip length', () => {
+  const item = { id: 'rinjani', city: 'Lombok', title: 'Mount Rinjani trek', price: 120, duration: '2 days', rating: '4.8', packageOptions: [{ id: 'two-day', name: 'Two-day trek', days: 2, duration: '2 days · 1 night', price: 2500000, currency: 'IDR', pricingUnit: 'per person' }, { id: 'three-day', name: 'Three-day trek', days: 3, duration: '3 days · 2 nights', price: 4500000, currency: 'IDR', pricingUnit: 'per person' }] };
+  assert.equal(packageOptionForDays(item, 3).id, 'three-day');
+  const plan = buildTripItinerary({ destination: 'Lombok', days: 3, budget: 'mid', catalog: [item] });
+  assert.equal(plan.packageCount, 1);
+  assert.equal(plan.itinerary[0].packageOption.id, 'three-day');
 });

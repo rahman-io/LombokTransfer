@@ -33,3 +33,10 @@ test('destination and attraction tiles keep numeric counts and matching media ID
   assert.equal(toDestinationDocument(tile, 'attraction').activityCount, 530);
   assert.equal(toDestinationDocument(tile, 'attraction').mediaId, toTileMediaDocument(tile, 'attraction').id);
 });
+
+test('experience packages are serialized for the future Firebase collection', () => {
+  const doc = toExperienceDocument({ ...experience, packageType: 'Day tour', packageOptions: [{ id: 'day-tour', name: 'Day tour package', days: 1, duration: '1 day', price: 250000, currency: 'IDR', pricingUnit: 'per person', includes: ['Guide'] }] }, booking);
+  assert.equal(doc.packageType, 'Day tour');
+  assert.deepEqual(doc.packages[0].pricing, { currency: 'IDR', amount: 250000, unit: 'per person' });
+  assert.deepEqual(doc.packages[0].includes, ['Guide']);
+});
