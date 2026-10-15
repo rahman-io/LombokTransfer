@@ -38,6 +38,7 @@ let chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let chatMessageSwipe = null;
 let suppressChatMessageClick = false;
 let chatGalleryHistoryEntry = false;
+let chatGalleryReturnScrollTop = null;
 let mainSwipe = null;
 let mainTouchSwipe = null;
 let chatRecorder = null;
@@ -176,7 +177,9 @@ export function render() {
   if (state.modal === 'chat-gallery') requestAnimationFrame(() => { const track = root.querySelector('[data-chat-gallery-track]'); if (track) track.scrollTo({ left: state.chatGalleryIndex * track.clientWidth, behavior: 'instant' }); applyChatZoom(); });
   if (path.startsWith('/inbox/chat/')) {
     syncChatViewport();
-    scrollChatToLatest();
+    if (state.modal === 'chat-gallery') scrollChatToLatest();
+    else if (chatGalleryReturnScrollTop !== null) { const scrollTop = chatGalleryReturnScrollTop; chatGalleryReturnScrollTop = null; scrollChatToLatest(scrollTop); }
+    else scrollChatToLatest();
   }
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
@@ -237,11 +240,11 @@ function copyChatText(text) {
   input.remove();
   return copied ? Promise.resolve() : Promise.reject(new Error('Copy failed'));
 }
-function scrollChatToLatest() {
+function scrollChatToLatest(scrollTop = null) {
   cancelAnimationFrame(chatViewportFrame);
   const align = () => {
     const messages = root.querySelector('.chat-messages');
-    if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
+    if (messages) messages.scrollTo({ top: scrollTop === null ? messages.scrollHeight : scrollTop, behavior: 'instant' });
   };
   chatViewportFrame = requestAnimationFrame(() => {
     align();
@@ -380,6 +383,7 @@ function clickAction(action, el) {
     case 'reply-chat': state.chatReplyMessageId = id; state.chatEditMessageId = ''; render(); break;
     case 'open-chat-menu': { const menu = el.closest('.chat-message')?.querySelector('.chat-message-menu'); if (menu) { closeChatMenus(); menu.open = true; requestAnimationFrame(() => positionChatMenu(menu)); } break; }
     case 'copy-chat': { const message = chatMessage(route().path.split('/')[3], id); if (message?.text) copyChatText(message.text).then(() => announce('Text copied')).catch(() => announce('Unable to copy text')); break; }
+    case 'copy-chat-selection': { const text = window.getSelection?.()?.toString().trim(); if (text) copyChatText(text).then(() => { root.querySelector('.chat-selection-copy')?.remove(); announce('Text copied'); }).catch(() => announce('Unable to copy text')); break; }
     case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
     case 'cancel-chat-compose': state.chatReplyMessageId = ''; state.chatEditMessageId = ''; render(); break;
     case 'delete-chat': if (window.confirm('Delete this message?') && deleteChatMessage(route().path.split('/')[3], id)) render(); break;
@@ -390,7 +394,7 @@ function clickAction(action, el) {
     case 'chat-collection': state.chatCollectionThreadId = route().path.split('/')[3]; state.chatCollectionKind = value; openModal('chat-collection'); break;
     case 'forward-chat': state.chatForwardMessageId = id; openModal('forward-chat'); break;
     case 'forward-chat-message': { const message = chatMessage(route().path.split('/')[3], state.chatForwardMessageId); const threadId = getOrCreateChatThread(id); if (message && threadId && sendChatMessage(threadId, `Forwarded: ${message.text || 'Photo'}`, message.attachment || null)) { state.chatForwardMessageId = ''; state.modal = ''; navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } break; }
-    case 'chat-open-gallery': { const threadId = route().path.split('/')[3]; const photos = chatGalleryPhotos(threadId); const index = Math.max(0, photos.findIndex((message) => message.id === id)); state.chatGalleryThreadId = threadId; state.chatGalleryIndex = index; resetChatZoom(); openModal('chat-gallery'); break; }
+    case 'chat-open-gallery': { const threadId = route().path.split('/')[3]; const photos = chatGalleryPhotos(threadId); const index = Math.max(0, photos.findIndex((message) => message.id === id)); chatGalleryReturnScrollTop = root.querySelector('.chat-messages')?.scrollTop ?? null; state.chatGalleryThreadId = threadId; state.chatGalleryIndex = index; resetChatZoom(); openModal('chat-gallery'); break; }
     case 'chat-gallery-prev': selectChatGalleryIndex(state.chatGalleryIndex - 1); break;
     case 'chat-gallery-next': selectChatGalleryIndex(state.chatGalleryIndex + 1); break;
     case 'chat-tools': root.querySelector('.chat-compose-tools')?.classList.toggle('open'); break;
@@ -596,6 +600,26 @@ export function startApp() {
     if (el.classList.contains('modal-backdrop') && event.target !== el) return;
     clickAction(el.dataset.action, el);
   });
+  document.addEventListener('selectionchange', () => {
+    const selection = window.getSelection?.();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    const commonNode = range?.commonAncestorContainer;
+    const commonElement = commonNode?.nodeType === 1 ? commonNode : commonNode?.parentElement;
+    const bubble = range && root.contains(commonNode) ? (commonElement?.closest('.chat-message-bubble') || range.startContainer.parentElement?.closest('.chat-message-bubble')) : null;
+    const text = selection?.toString().trim();
+    const existing = root.querySelector('.chat-selection-copy');
+    if (!text || !bubble) { existing?.remove(); return; }
+    const rect = range.getBoundingClientRect();
+    const button = existing || document.createElement('button');
+    button.className = 'chat-selection-copy';
+    button.dataset.action = 'copy-chat-selection';
+    button.type = 'button';
+    button.textContent = 'Copy';
+    button.style.left = `${Math.max(8, Math.min(window.innerWidth - 72, rect.left))}px`;
+    button.style.top = `${Math.max(8, rect.top - 42)}px`;
+    if (!existing) { button.addEventListener('pointerdown', (event) => event.preventDefault()); root.append(button); }
+  });
+  root.addEventListener('contextmenu', (event) => { if (event.target.closest('.chat-message-bubble')) event.preventDefault(); });
   root.addEventListener('toggle', (event) => {
     if (event.target.matches?.('.chat-message-menu') && event.target.open) { closeChatMenus(event.target); requestAnimationFrame(() => positionChatMenu(event.target)); }
   }, true);
