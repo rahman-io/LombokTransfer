@@ -35,6 +35,9 @@ let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let chatPinchPointers = new Map();
 let chatGalleryDrag = null;
 let chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
+let chatMessageSwipe = null;
+let suppressChatMessageClick = false;
+let chatGalleryHistoryEntry = false;
 let mainSwipe = null;
 let mainTouchSwipe = null;
 let chatRecorder = null;
@@ -221,6 +224,19 @@ function announce(message) {
   render();
   setTimeout(() => { state.toast = ''; render(); }, 2200);
 }
+function copyChatText(text) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  const input = document.createElement('textarea');
+  input.value = text;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.append(input);
+  input.select();
+  const copied = document.execCommand('copy');
+  input.remove();
+  return copied ? Promise.resolve() : Promise.reject(new Error('Copy failed'));
+}
 function scrollChatToLatest() {
   cancelAnimationFrame(chatViewportFrame);
   const align = () => {
@@ -299,8 +315,25 @@ function toggleChatVoice(threadId, button) {
     announce('Recording voice message… tap the microphone again to send');
   }).catch(() => announce('Microphone permission is required'));
 }
-function closeModal() { state.modal = ''; render(); }
-function openModal(name) { state.modal = name; render(); }
+function closeModal() {
+  const closingChatGallery = state.modal === 'chat-gallery';
+  state.modal = '';
+  if (closingChatGallery && chatGalleryHistoryEntry) {
+    chatGalleryHistoryEntry = false;
+    history.back();
+    render();
+    return;
+  }
+  render();
+}
+function openModal(name) {
+  if (name === 'chat-gallery' && !chatGalleryHistoryEntry) {
+    history.pushState({ chatGallery: true }, '', location.href);
+    chatGalleryHistoryEntry = true;
+  }
+  state.modal = name;
+  render();
+}
 function resetSocialZoom() { socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false }; }
 function applySocialZoom() {
   const image = root.querySelector('[data-social-zoom-image]');
@@ -345,6 +378,8 @@ function clickAction(action, el) {
     case 'leave-travel-group': if (leaveTravelGroupThread(id)) { const experienceId = route().path.split('/')[3]?.replace(/^group-/, '').split('-')[0]; update({ joinedExperiences: experienceId ? state.joinedExperiences.filter((item) => item !== experienceId) : state.joinedExperiences }); navigate('/inbox'); announce('You left the traveler group'); } break;
     case 'view-group-members': state.travelerGroupThreadId = id; openModal('travel-group-members'); break;
     case 'reply-chat': state.chatReplyMessageId = id; state.chatEditMessageId = ''; render(); break;
+    case 'open-chat-menu': { const menu = el.closest('.chat-message')?.querySelector('.chat-message-menu'); if (menu) { closeChatMenus(); menu.open = true; requestAnimationFrame(() => positionChatMenu(menu)); } break; }
+    case 'copy-chat': { const message = chatMessage(route().path.split('/')[3], id); if (message?.text) copyChatText(message.text).then(() => announce('Text copied')).catch(() => announce('Unable to copy text')); break; }
     case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
     case 'cancel-chat-compose': state.chatReplyMessageId = ''; state.chatEditMessageId = ''; render(); break;
     case 'delete-chat': if (window.confirm('Delete this message?') && deleteChatMessage(route().path.split('/')[3], id)) render(); break;
@@ -496,6 +531,7 @@ export function startApp() {
     setTimeout(() => navigate('/login'), 850);
   } else render();
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
+  window.addEventListener('popstate', () => { if (chatGalleryHistoryEntry) { chatGalleryHistoryEntry = false; if (state.modal === 'chat-gallery') { state.modal = ''; render(); } } });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
   syncChatViewport();
   window.addEventListener('resize', syncChatViewport, { passive: true });
@@ -549,6 +585,8 @@ export function startApp() {
     }
     const el = event.target.closest('[data-action]');
     if (!el) return;
+    if (suppressChatMessageClick && el.dataset.action === 'open-chat-menu') { suppressChatMessageClick = false; return; }
+    if (el.dataset.action === 'open-chat-menu' && window.getSelection?.()?.toString()) return;
     if (suppressGalleryClick && el.dataset.action === 'gallery') {
       event.preventDefault();
       suppressGalleryClick = false;
@@ -591,6 +629,12 @@ export function startApp() {
       chatZoomStage.dataset.pointerId = event.pointerId;
       chatZoomStage._chatPointer = { x: event.clientX, y: event.clientY };
     }
+    const chatMessageBubble = event.target.closest('.chat-message-bubble');
+    if (chatMessageBubble && !event.target.closest('.chat-image-attachment,button,a,input,textarea,select,summary')) {
+      const message = chatMessageBubble.closest('.chat-message');
+      chatMessageSwipe = { pointerId: event.pointerId, messageId: chatMessageBubble.dataset.id, x: event.clientX, y: event.clientY, moved: false };
+      if (!chatMessageSwipe.messageId) chatMessageSwipe.messageId = message?.querySelector('[data-action="open-chat-menu"]')?.dataset.id || '';
+    }
     const zoomStage = event.target.closest('[data-social-zoom-stage]');
     if (zoomStage) {
       zoomStage.setPointerCapture?.(event.pointerId);
@@ -599,6 +643,14 @@ export function startApp() {
     }
   });
   root.addEventListener('pointermove', (event) => {
+    if (chatMessageSwipe?.pointerId === event.pointerId) {
+      const distanceX = event.clientX - chatMessageSwipe.x;
+      const distanceY = event.clientY - chatMessageSwipe.y;
+      if (Math.abs(distanceX) > 10 && Math.abs(distanceX) > Math.abs(distanceY)) {
+        chatMessageSwipe.moved = true;
+        event.preventDefault();
+      }
+    }
     if (mainSwipe?.pointerId === event.pointerId) {
       const distanceX = event.clientX - mainSwipe.x;
       const distanceY = event.clientY - mainSwipe.y;
@@ -676,6 +728,17 @@ export function startApp() {
     if (!socialPinchPointers.size) socialZoom.pinchStart = null;
     chatPinchPointers.delete(event.pointerId);
     if (!chatPinchPointers.size) chatZoom.pinchStart = null;
+    if (chatMessageSwipe?.pointerId === event.pointerId) {
+      const distanceX = event.clientX - chatMessageSwipe.x;
+      if (chatMessageSwipe.moved && Math.abs(distanceX) >= 60 && chatMessageSwipe.messageId) {
+        state.chatReplyMessageId = chatMessageSwipe.messageId;
+        state.chatEditMessageId = '';
+        suppressChatMessageClick = true;
+        setTimeout(() => { suppressChatMessageClick = false; }, 0);
+        render();
+      }
+      chatMessageSwipe = null;
+    }
     if (chatGalleryDrag && chatPinchPointers.size === 0) {
       if (chatGalleryDrag.moved) {
         chatGalleryDrag.track.style.scrollSnapType = '';
