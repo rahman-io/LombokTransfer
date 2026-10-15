@@ -30,12 +30,13 @@ export const state = {
   shareTarget: null,
   socialGalleryPostId: '',
   socialGalleryIndex: 0,
+  joinedExperiences: saved.joinedExperiences || [],
 };
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod } = state;
-  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod });
+  const { wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences } = state;
+  writeSavedState({ wishlist, guestName, email, currency, language, date, adults, children, selectedExperience, selectedTime, paymentMethod, joinedExperiences });
 }
 
 export function toggleWishlist(id) {

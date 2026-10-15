@@ -230,6 +230,7 @@ function clickAction(action, el) {
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
     case 'open-dates': openModal('dates'); break;
     case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
+    case 'join-travelers': { const joined = state.joinedExperiences.includes(id); update({ joinedExperiences: joined ? state.joinedExperiences.filter((experienceId) => experienceId !== id) : [...state.joinedExperiences, id] }); announce(joined ? 'You left this group' : 'You joined the travelers'); break; }
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
     case 'select-date': update({ date: value }); closeModal(); break;
     case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10) }); closeModal(); break; }

@@ -30,6 +30,9 @@ export function experienceView(id) {
   const smartBundle = getSmartBundle(item, experiences, state);
   const bookingAlerts = getPriceAvailabilityAlerts(item, booking);
   const reviewIntelligence = getSmartReviewIntelligence(item, reviews.featured);
+  const joined = state.joinedExperiences.includes(item.id);
+  const travelerCount = Number(booking?.travelersBooked || 0) + (joined ? 1 : 0);
+  const travelerStack = joined ? [{ initials: 'AR', color: '#234e70' }, ...(booking?.bookedTravelers || [])] : (booking?.bookedTravelers || []);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const detail = `
     <header class="detail-sticky-header" data-detail-sticky-header>
@@ -48,6 +51,7 @@ export function experienceView(id) {
       <h1>${escapeHtml(item.title)}</h1>
       <div class="detail-rating">${item.badge ? `<span class="red-badge">${escapeHtml(item.badge)}</span>` : ''}<span class="star-large">★</span> ${escapeHtml(item.rating)} <button data-action="reviews">${escapeHtml(item.reviews)} reviews</button></div>
       <p class="detail-intro">${escapeHtml(item.description)}</p>
+      ${booking?.travelersBooked ? `<section class="detail-booking-social-proof"><div class="detail-traveler-stack">${travelerStack.slice(0, 5).map((traveler) => `<span class="detail-traveler-avatar" style="--avatar-color:${escapeHtml(traveler.color)}">${escapeHtml(traveler.initials)}</span>`).join('')}</div><strong>${travelerCount} traveler${travelerCount === 1 ? '' : 's'} booked</strong><button class="detail-join-button ${joined ? 'joined' : ''}" data-action="join-travelers" data-id="${escapeHtml(item.id)}" aria-pressed="${joined}">${joined ? 'Joined' : 'Join'}</button></section>` : ''}
       ${communitySignal ? `<a class="detail-social-proof" href="#/social/explore?topic=${encodeURIComponent(communitySignal.topics[0] || item.city.toLowerCase())}">${icon('sparkle', 17)} Shared by ${communitySignal.posts} traveler${communitySignal.posts === 1 ? '' : 's'} on Vibes · See why it is trending</a>` : ''}
       <a class="detail-community-link" href="#/social/create?experience=${encodeURIComponent(item.id)}">${icon('community', 18)} Recommend this on Vibes</a>
       ${item.lovedByEnglishSpeakers ? `<div class="loved-card"><span>🏆</span><div><strong>Loved by English speakers</strong><small>91% of English-speaking travelers gave this activity a perfect score</small></div></div>` : ''}
