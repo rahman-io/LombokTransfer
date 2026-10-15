@@ -11,7 +11,7 @@ test('traveler requests reach the guide and keep the agreed price split through 
     const guideViews = await vite.ssrLoadModule('/src/features/guides/view.js');
     const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const nextDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-    const { activeGuide, availableGuides, createGuideRequest, decideGuidePrice, financeBreakdown, financeDashboardView, guideDemoData, markGuideRequestPaid, packagePrice, priceSplit, proposeGuidePrice, publicPackagePrice, releaseGuidePayout, reviewGuideRequest, toggleGuideDate, toggleGuideExperience, updateGuideRequest } = { ...guideRepo, financeDashboardView: guideViews.financeDashboardView };
+    const { activeGuide, availableGuides, bookingQrPayload, createGuideRequest, decideGuidePrice, financeBreakdown, financeDashboardView, guideDemoData, markGuideRequestPaid, packagePrice, priceSplit, proposeGuidePrice, publicPackagePrice, releaseGuidePayout, reviewGuideRequest, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } = { ...guideRepo, financeDashboardView: guideViews.financeDashboardView };
     const option = (await vite.ssrLoadModule('/src/features/experiences/data.js')).getExperience('arena').packageOptions[0];
     assert.deepEqual(priceSplit(2500000), { travelerTotal: 2500000, guideShare: 2250000, platformShare: 250000 });
     assert.deepEqual(financeBreakdown(2500000), { schemaVersion: 1, travelerTotal: 2500000, guideShare: 2250000, platformShare: 250000, paymentFee: 75000, platformNet: 175000 });
@@ -28,6 +28,9 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: 2600000 }), null);
     const request = createGuideRequest({ experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', notes: 'Needs a steady pace and an early briefing.', expectedUnitPrice: 2500000 });
     assert.equal(request.status, 'pending');
+    assert.match(request.bookingId, /^LT-\d{2}-[A-Z0-9]{6}$/);
+    assert.equal(request.verificationCode.length, 6);
+    assert.match(bookingQrPayload(request), new RegExp(request.bookingId));
     assert.equal(request.unitPrice, 2500000);
     assert.equal(request.guideShare, 2250000);
     assert.equal(request.platformShare, 250000);
@@ -45,6 +48,8 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.match(guideViews.guideDashboardView(), /Traveler notes/);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'accepted'), true);
     assert.equal(markGuideRequestPaid(request.id, 'traveler@example.com'), true);
+    assert.equal(verifyBooking(request.id, request.verificationCode), true);
+    assert.equal(guideDemoData().requests.find((entry) => entry.id === request.id).verificationStatus, 'verified');
     assert.equal(guideDemoData().requests[0].paymentStatus, 'paid');
     assert.equal(availableGuides('arena', 'rinjani-2d1n', date, activeGuide().capacity).length, 0);
     assert.equal(toggleGuideDate('guide-adi', date), false);

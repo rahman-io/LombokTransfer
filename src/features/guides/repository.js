@@ -6,6 +6,13 @@ const paymentRate = 0.03;
 const financeSchemaVersion = 1;
 export function financeConfig() { return { platformRate: commissionRate, paymentRate, currency: 'IDR' }; }
 const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
+function bookingIdentity(id, createdAt = '') {
+  const compact = String(id || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  const suffix = (compact.slice(-6) || 'DEMO01').padStart(6, '0');
+  const year = String(new Date(createdAt || Date.now()).getFullYear()).slice(-2);
+  return { bookingId: `LT-${year}-${suffix}`, verificationCode: suffix };
+}
+export function bookingQrPayload(request) { return request?.bookingId && request?.verificationCode ? `lomboktransfer://booking/${encodeURIComponent(request.bookingId)}?code=${encodeURIComponent(request.verificationCode)}` : ''; }
 const seedGuides = [
   { id: 'guide-adi', name: 'Adi Saputra', initials: 'AS', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', experienceIds: ['arena', 'sumo'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-nur', name: 'Nur Aisyah', initials: 'NA', area: 'North Lombok & Gili Islands', languages: 'Indonesian, English', bio: 'Island and waterfall guide who loves sharing local stories.', experienceIds: ['pantheon', 'vatican', 'basilica'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },
@@ -18,8 +25,8 @@ const emptyData = () => ({
   activeGuideId: 'guide-adi',
   guides: seedGuides.map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })),
   requests: [
-    { id: 'demo-rinjani-pending', schemaVersion: 2, experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), time: '5:00 AM', adults: 1, children: 0, travelers: 1, travelerName: 'Maya Putri', travelerEmail: 'maya.demo@example.com', notes: 'I would like a steady pace and an early briefing before the hike.', unitPrice: 2531969, currency: 'IDR', ...priceSplit(2531969), status: 'pending', paymentStatus: 'unpaid', payoutStatus: 'not_due', createdAt: new Date().toISOString(), review: null },
-    { id: 'demo-gili-completed', schemaVersion: 2, experienceId: 'pantheon', packageId: 'gili-shared-snorkeling', guideId: 'guide-nur', date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), time: '8:00 AM', adults: 2, children: 0, travelers: 2, travelerName: 'Sophie Walker', travelerEmail: 'sophie.demo@example.com', notes: 'Please recommend a calm snorkeling spot for first-time swimmers.', unitPrice: 164872, currency: 'IDR', ...priceSplit(329744), status: 'completed', paymentStatus: 'paid', payoutStatus: 'paid', paidAt: new Date(Date.now() - 7 * 86400000).toISOString(), payoutReleasedAt: new Date(Date.now() - 2 * 86400000).toISOString(), createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), review: { stars: 5, comment: 'Lovely day around the Gilis.', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() } },
+    { id: 'demo-rinjani-pending', schemaVersion: 2, ...bookingIdentity('demo-rinjani-pending'), verificationStatus: 'unverified', experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), time: '5:00 AM', adults: 1, children: 0, travelers: 1, travelerName: 'Maya Putri', travelerEmail: 'maya.demo@example.com', notes: 'I would like a steady pace and an early briefing before the hike.', unitPrice: 2531969, currency: 'IDR', ...priceSplit(2531969), status: 'pending', paymentStatus: 'unpaid', payoutStatus: 'not_due', createdAt: new Date().toISOString(), review: null },
+    { id: 'demo-gili-completed', schemaVersion: 2, ...bookingIdentity('demo-gili-completed', new Date(Date.now() - 7 * 86400000).toISOString()), verificationStatus: 'unverified', experienceId: 'pantheon', packageId: 'gili-shared-snorkeling', guideId: 'guide-nur', date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), time: '8:00 AM', adults: 2, children: 0, travelers: 2, travelerName: 'Sophie Walker', travelerEmail: 'sophie.demo@example.com', notes: 'Please recommend a calm snorkeling spot for first-time swimmers.', unitPrice: 164872, currency: 'IDR', ...priceSplit(329744), status: 'completed', paymentStatus: 'paid', payoutStatus: 'paid', paidAt: new Date(Date.now() - 7 * 86400000).toISOString(), payoutReleasedAt: new Date(Date.now() - 2 * 86400000).toISOString(), createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), review: { stars: 5, comment: 'Lovely day around the Gilis.', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() } },
   ],
 });
 function read() {
@@ -40,6 +47,10 @@ function read() {
       });
     });
     data.requests.forEach((request) => {
+      const identity = bookingIdentity(request.id, request.createdAt);
+      if (!request.bookingId) { request.bookingId = identity.bookingId; migrated = true; }
+      if (!request.verificationCode) { request.verificationCode = identity.verificationCode; migrated = true; }
+      if (!request.verificationStatus) { request.verificationStatus = 'unverified'; migrated = true; }
       if (!request.finance) { request.finance = financeBreakdown(request.travelerTotal || Number(request.unitPrice) * Number(request.travelers || 1)); migrated = true; }
       if (typeof request.notes !== 'string') { request.notes = ''; migrated = true; }
       if (!request.paymentStatus) { request.paymentStatus = request.status === 'completed' ? 'paid' : 'unpaid'; migrated = true; }
@@ -127,8 +138,21 @@ export function createGuideRequest({ experienceId, packageId, guideId, date, tim
   const unitPrice = packagePrice(guide, option);
   if (Number(expectedUnitPrice) !== unitPrice) return null;
   const split = priceSplit(unitPrice * travelers);
-  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 2, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), notes: String(notes || '').trim().slice(0, 1000), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', bookingStatus: 'request_sent', status: 'pending', createdAt: new Date().toISOString(), review: null };
+  const id = globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`;
+  const createdAt = new Date().toISOString();
+  const identity = bookingIdentity(id, createdAt);
+  const request = { id, schemaVersion: 2, ...identity, verificationStatus: 'unverified', experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), notes: String(notes || '').trim().slice(0, 1000), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', bookingStatus: 'request_sent', status: 'pending', createdAt, review: null };
   data.requests.unshift(request); write(data); return request;
+}
+export function verifyBooking(id, code) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const normalizedCode = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!request || request.paymentStatus !== 'paid' || normalizedCode !== request.verificationCode) return false;
+  request.verificationStatus = 'verified';
+  request.verifiedAt = new Date().toISOString();
+  write(data);
+  return true;
 }
 export function updateGuideRequest(id, guideId, status) {
   const data = read();

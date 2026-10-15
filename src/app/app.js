@@ -19,10 +19,11 @@ import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getO
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
-import { activeGuide, applyAsGuide, availableGuides, createGuideRequest, decideGuidePrice, guideDemoData, markGuideRequestPaid, proposeGuidePrice, releaseGuidePayout, reviewGuideRequest, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest } from '../features/guides/repository.js';
+import { activeGuide, applyAsGuide, availableGuides, createGuideRequest, decideGuidePrice, guideDemoData, markGuideRequestPaid, proposeGuidePrice, releaseGuidePayout, reviewGuideRequest, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 import { escapeHtml } from '../utils/html.js';
+import QRCode from 'qrcode';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -92,6 +93,13 @@ function shareTargetForRoute() {
   const { path } = route();
   if (path.startsWith('/experience/') || path.startsWith('/booking/') || path.startsWith('/checkout/')) return experienceShareTarget(getExperience(path.split('/')[2]));
   return null;
+}
+function setupBookingQrCodes() {
+  root.querySelectorAll('[data-booking-qr]').forEach((canvas) => {
+    const value = canvas.dataset.qrValue;
+    if (!value) return;
+    QRCode.toCanvas(canvas, value, { width: 180, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#152748', light: '#ffffff' } }).catch(() => {});
+  });
 }
 function shareOutside(target) {
   const url = target?.url || location.href;
@@ -185,7 +193,10 @@ export function render() {
   const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
   maybeShowInstallInfo();
   const account = activeSocialUser();
-  if (account && state.accountUserId !== account.id) update({ accountUserId: account.id, guestName: account.displayName, email: account.accountEmail || `${account.username.replace(/[^a-z0-9]+/gi, '.')}@demo.example.com` });
+  if (account) {
+    if (state.accountUserId !== account.id) update({ accountUserId: account.id, guestName: account.displayName, email: account.accountEmail || `${account.username.replace(/[^a-z0-9]+/gi, '.')}@demo.example.com` });
+    if (account.role === 'guide' && activeGuide().id !== (account.guideId || account.id)) switchGuide(account.guideId || account.id);
+  }
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
@@ -193,6 +204,7 @@ export function render() {
   if (retainedMap) retainedMap.remove();
   else { discoverMap?.destroy(); discoverMap = null; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
+  setupBookingQrCodes();
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
@@ -415,6 +427,7 @@ function clickAction(action, el) {
     case 'guide-request-decline':
     case 'guide-request-complete': { const status = action === 'guide-request-accept' ? 'accepted' : action === 'guide-request-decline' ? 'declined' : 'completed'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
     case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) navigate(`/bookings/${encodeURIComponent(id)}`); else announce('Payment cannot be recorded for this booking'); break;
+    case 'verify-booking': { const code = el.closest('[data-booking-verification]')?.querySelector('[data-booking-code]')?.value || ''; if (verifyBooking(id, code)) { announce('Booking verified'); render(); } else announce('Booking code is invalid or payment is not confirmed'); break; }
     case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, { experienceId: request.experienceId, label: `Booking · ${request.date}` }); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); else announce('Guide chat is unavailable'); break; }
     case 'admin-record-payment': announce(markGuideRequestPaid(id) ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break;
     case 'admin-release-payout': announce(releaseGuidePayout(id) ? 'Guide payout released in the demo ledger' : 'Payout cannot be released yet'); break;
