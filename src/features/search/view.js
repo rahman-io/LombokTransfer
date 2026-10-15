@@ -1,4 +1,5 @@
-import { destinations, experiences, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
+import { destinations, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
+import { mapActivities, mapDestinations } from './map-data.js';
 import { experienceCard } from '../../components/cards.js';
 import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
@@ -7,20 +8,6 @@ import { escapeHtml } from '../../utils/html.js';
 import { state } from '../../app/store.js';
 
 const filters = ['Golf carts', 'Entry tickets', 'Nightlife', 'Cooking classes', 'Guided tours'];
-const mapCenters = {
-  Rome: { latitude: 41.9028, longitude: 12.4964, zoom: 13 },
-  Paris: { latitude: 48.8566, longitude: 2.3522, zoom: 13 },
-  London: { latitude: 51.5072, longitude: -0.1276, zoom: 13 },
-};
-const experienceCoordinates = {
-  colosseum: [41.8902, 12.4922],
-  pantheon: [41.8986, 12.4768],
-  vatican: [41.9029, 12.4534],
-  basilica: [41.9022, 12.4539],
-  arena: [41.8902, 12.4922],
-};
-const mapAreas = [['all', 'All areas'], ['historic-center', 'Historic Center'], ['vatican-city', 'Vatican City']];
-const experienceAreas = { pantheon: 'historic-center', colosseum: 'historic-center', vatican: 'vatican-city' };
 export function searchView() {
   return mainLayout(`
     ${header('Search')}
@@ -47,25 +34,32 @@ export function resultsView(city = 'Rome') {
   `, 'Discover', { className: 'results-page' });
 }
 export function mapView(city = 'Rome') {
-  const center = mapCenters[city] || mapCenters.Rome;
-  const mapItems = [experiences[4], experiences[0], experiences[2]];
-  const points = mapItems.map((item) => ({
-    id: item.id,
-    title: item.title,
-    city: item.city,
-    price: item.price,
-    area: experienceAreas[item.id] || 'historic-center',
-    coordinates: experienceCoordinates[item.id] || [center.latitude, center.longitude],
-  }));
+  const destination = Object.keys(mapDestinations).find((name) => name.toLowerCase() === city.toLowerCase());
+  if (!destination) return mainLayout(`${header('Map')}<div class="empty-state"><h2>Map unavailable for this destination</h2><p>Choose a supported destination to explore its map.</p><a class="outline-button" href="#/search">Choose destination</a></div>`, 'Discover');
+  const config = mapDestinations[destination];
+  const mapItems = getExperiencesByCity(destination).filter((item) => mapActivities[item.id]);
+  const points = mapItems.map((item) => ({ id: item.id, title: item.title, city: item.city, price: item.price, ...mapActivities[item.id] }));
   return mainLayout(`
-    <div class="map-canvas" data-map-canvas data-map-city="${escapeHtml(city)}" data-map-center="${escapeHtml(JSON.stringify(center))}" data-map-points="${escapeHtml(JSON.stringify(points))}">
-      <div class="map-toolbar"><button class="round-white" data-action="back">${icon('close')}</button><a href="#/search" class="map-search">${icon('search', 19)}<span>Search for a place or address</span></a></div>
-      <div class="map-area-filter"><strong>Filter area</strong><div class="chip-row map-area-chips" aria-label="Filter map by area">${mapAreas.map(([value, label], index) => `<button class="chip ${index === 0 ? 'selected' : ''}" data-action="map-area-filter" data-value="${value}">${label}</button>`).join('')}</div></div>
-      <div class="map-place-filter"><strong>Nearby places</strong><div class="chip-row map-place-chips" aria-label="Filter nearby places"><button class="chip selected" data-action="map-place-filter" data-value="all">All</button><button class="chip" data-action="map-place-filter" data-value="restaurant">Restaurants</button><button class="chip" data-action="map-place-filter" data-value="hotel">Hotels</button></div></div>
-      <div class="chip-row map-chips"><button class="chip selected" data-action="filter-sheet">${icon('sliders', 19)} 1</button><button class="chip selected" data-action="set-filter" data-value="Guided tours">♧ Guided tours ×</button><button class="chip">♧ Entry tickets</button></div>
-      <div class="map-location-actions"><button class="map-locate" data-action="map-locate" aria-label="Show my location">${icon('location', 19)}</button><button class="map-track-location" data-action="map-track-location" aria-label="Track my location" aria-pressed="false">${icon('location', 19)}</button></div>
-      <div class="map-loading" data-map-loading>Loading live map…</div>
+    <div class="map-controls">
+      <div class="map-toolbar"><button class="round-white" data-action="back" aria-label="Close map">${icon('close', 22)}</button><a href="#/search" class="map-search">${icon('search', 19)}<span><strong>${escapeHtml(destination)}</strong><small>Change destination</small></span></a></div>
+      <div class="map-filter-fields">
+        <label>Area<select data-map-area aria-label="Filter map by area"><option value="all">All of ${escapeHtml(destination)}</option>${config.areas.map((area) => `<option value="${area.id}">${escapeHtml(area.name)}</option>`).join('')}<option value="view">Current map view</option></select></label>
+        <label>Activities<select data-map-category aria-label="Filter activity type"><option value="all">All activities</option><option value="tour">Guided tours</option><option value="ticket">Entry tickets</option></select></label>
+      </div>
+      <div class="chip-row map-place-chips" aria-label="Places to display">${[['all', 'All'], ['activity', 'Activities'], ['restaurant', 'Restaurants'], ['hotel', 'Hotels']].map(([value, label]) => `<button class="chip ${value === 'all' ? 'selected' : ''}" data-action="map-place-filter" data-value="${value}" aria-pressed="${value === 'all'}">${label}</button>`).join('')}</div>
     </div>
-    <div class="map-results"><div class="sheet-handle"></div><p class="map-distance-note" data-map-distance-note>Allow location access to see distances.</p><section class="map-nearby-list" data-map-nearby-list hidden></section>${mapItems.map((item) => `<div class="map-result-item" data-map-result-area="${experienceAreas[item.id] || 'historic-center'}"><small class="map-result-distance" data-map-result-distance="${item.id}" data-map-result-distance-coordinates="${escapeHtml(JSON.stringify(experienceCoordinates[item.id] || [center.latitude, center.longitude]))}"></small>${experienceCard(item)}</div>`).join('')}<p class="map-empty" data-map-empty hidden>No activities in this area yet.</p><a href="#/results?city=${encodeURIComponent(city)}" class="outline-button">View list</a></div>
+    <div class="map-canvas">
+      <div class="map-surface" data-map-surface data-map-config="${escapeHtml(JSON.stringify({ ...config, points }))}" role="region" aria-label="Interactive map of ${escapeHtml(destination)}"></div>
+      <div class="map-tile-status" data-map-tile-status role="status">Loading map…</div>
+    </div>
+    <div class="map-location-bar"><button data-action="map-locate">My location</button><button data-action="map-track-location" aria-pressed="false">Live location</button></div>
+    <div class="map-results">
+      <p class="map-distance-note" data-map-distance-note role="status">Use My location or Live location to see distances.</p>
+      <h2 data-map-activities-heading>Activities · ${mapItems.length}</h2>
+      ${mapItems.map((item) => `<div class="map-result-item" data-map-result="${item.id}"><small class="map-result-distance" data-map-result-distance></small>${experienceCard(item)}</div>`).join('')}
+      <p class="map-empty" data-map-empty ${mapItems.length ? 'hidden' : ''}>No catalog activities match this map area and filter.</p>
+      <section class="map-nearby-list" data-map-nearby-list aria-label="Nearby restaurants and hotels"></section>
+      <a href="#/results?city=${encodeURIComponent(destination)}" class="outline-button">View activity list</a>
+    </div>
   `, 'Discover', { className: 'map-page' });
 }

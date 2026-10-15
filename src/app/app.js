@@ -2,6 +2,7 @@ import { route, navigate, back, initializeNavigation, syncNavigation, consumeScr
 import { state, update, toggleWishlist } from './store.js';
 import { homeView } from '../features/home/view.js';
 import { searchView, resultsView, mapView } from '../features/search/view.js';
+import { createDiscoverMap } from '../features/search/map.js';
 import { wishlistView, favouritesView } from '../features/wishlist/view.js';
 import { bookingsView } from '../features/bookings/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
@@ -49,16 +50,7 @@ let suppressMainSwipeClick = false;
 let suppressSocialHorizontalClick = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
-let activeMap = null;
-let activeMapMarkers = null;
-let activeMapPoiMarkers = null;
-let activeMapPlaces = [];
-let activeUserPosition = null;
-let activeUserMarker = null;
-let mapLocationWatchId = null;
-let mapRequestController = null;
-let mapMoveTimer = null;
-let mapPlaceMode = 'all';
+let discoverMap = null;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
@@ -146,162 +138,6 @@ function setupHomeDestinationCarousel() {
   carousel.addEventListener('mouseleave', start, { passive: true });
   start();
 }
-function initializeMap() {
-  const container = root.querySelector('[data-map-canvas]');
-  if (!container) return;
-  const mount = () => {
-    if (!container.isConnected || !window.L || activeMap) return;
-    let center;
-    let points;
-    try {
-      center = JSON.parse(container.dataset.mapCenter);
-      points = JSON.parse(container.dataset.mapPoints);
-    } catch {
-      return;
-    }
-    activeMap = window.L.map(container, { zoomControl: false }).setView([center.latitude, center.longitude], center.zoom);
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(activeMap);
-    window.L.control.zoom({ position: 'bottomright' }).addTo(activeMap);
-    activeMapMarkers = window.L.layerGroup().addTo(activeMap);
-    activeMapPoiMarkers = window.L.layerGroup().addTo(activeMap);
-    mapPlaceMode = 'all';
-    renderMapArea('all');
-    renderMapPlaces();
-    activeMap.on('moveend', scheduleNearbyPlacesLoad);
-    loadNearbyPlaces();
-    container.classList.add('is-ready');
-    requestAnimationFrame(() => activeMap?.invalidateSize());
-  };
-  if (window.L) mount();
-  else document.querySelector('script[src*="leaflet.js"]')?.addEventListener('load', mount, { once: true });
-}
-function distanceLabel(coordinates) {
-  if (!activeUserPosition || !Array.isArray(coordinates) || coordinates.length < 2) return '';
-  const [latitude, longitude] = coordinates;
-  const toRadians = (value) => value * Math.PI / 180;
-  const earthRadius = 6371;
-  const latitudeDelta = toRadians(latitude - activeUserPosition.latitude);
-  const longitudeDelta = toRadians(longitude - activeUserPosition.longitude);
-  const haversine = Math.sin(latitudeDelta / 2) ** 2 + Math.cos(toRadians(activeUserPosition.latitude)) * Math.cos(toRadians(latitude)) * Math.sin(longitudeDelta / 2) ** 2;
-  const distance = earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-  return distance < 1 ? `${Math.max(1, Math.round(distance * 1000))} m away` : `${distance.toFixed(1)} km away`;
-}
-function experienceMapPopup(point) {
-  const distance = distanceLabel(point.coordinates);
-  return `<div class="map-popup"><strong>${escapeHtml(point.title)}</strong><small>${escapeHtml(point.city)} · From $${escapeHtml(String(point.price))}${distance ? ` · ${distance}` : ''}</small>${distance ? '' : '<small class="map-distance-prompt">Enable location to see distance</small>'}<a href="#/experience/${encodeURIComponent(point.id)}">View activity</a></div>`;
-}
-function nearbyMapPopup(place) {
-  const distance = distanceLabel([place.latitude, place.longitude]);
-  return `<div class="map-popup"><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · OpenStreetMap${distance ? ` · ${distance}` : ''}</small>${distance ? '' : '<small class="map-distance-prompt">Enable location to see distance</small>'}</div>`;
-}
-function renderMapPlaces() {
-  if (!activeMapPoiMarkers) return;
-  const visiblePlaces = mapPlaceMode === 'all' ? activeMapPlaces : activeMapPlaces.filter((place) => place.type === mapPlaceMode);
-  activeMapPoiMarkers.clearLayers();
-  visiblePlaces.forEach((place) => {
-    const marker = window.L.marker([place.latitude, place.longitude]).addTo(activeMapPoiMarkers);
-    marker.mapPlace = place;
-    marker.bindPopup(nearbyMapPopup(place));
-  });
-  root.querySelectorAll('[data-action="map-place-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === mapPlaceMode));
-  const list = root.querySelector('[data-map-nearby-list]');
-  if (!list) return;
-  list.hidden = visiblePlaces.length === 0;
-  list.innerHTML = visiblePlaces.slice(0, 8).map((place) => `<div class="map-nearby-item"><span class="map-nearby-icon">${place.type === 'restaurant' ? '🍽️' : '🏨'}</span><span><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · ${distanceLabel([place.latitude, place.longitude]) || 'Enable location for distance'}</small></span></div>`).join('');
-}
-function scheduleNearbyPlacesLoad() {
-  clearTimeout(mapMoveTimer);
-  mapMoveTimer = setTimeout(loadNearbyPlaces, 350);
-}
-async function loadNearbyPlaces() {
-  if (!activeMap || !activeMapPoiMarkers || !window.fetch) return;
-  const center = activeMap.getCenter();
-  const radius = Math.max(1200, Math.min(5000, Math.round(center.distanceTo(activeMap.getBounds().getNorthEast()) * 0.8)));
-  mapRequestController?.abort();
-  mapRequestController = new AbortController();
-  const query = `[out:json][timeout:10];(nwr["amenity"="restaurant"](around:${radius},${center.lat},${center.lng});nwr["tourism"="hotel"](around:${radius},${center.lat},${center.lng}););out center 60;`;
-  try {
-    const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, { signal: mapRequestController.signal });
-    if (!response.ok) throw new Error('Nearby places unavailable');
-    const data = await response.json();
-    const seen = new Set();
-    activeMapPlaces = data.elements.map((element) => {
-      const tags = element.tags || {};
-      const latitude = Number(element.lat ?? element.center?.lat);
-      const longitude = Number(element.lon ?? element.center?.lon);
-      const type = tags.amenity === 'restaurant' ? 'restaurant' : 'hotel';
-      return { id: `${type}-${element.id}`, name: tags.name, latitude, longitude, type };
-    }).filter((place) => place.name && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)).filter((place) => {
-      const key = `${place.type}-${place.name}-${place.latitude.toFixed(5)}-${place.longitude.toFixed(5)}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    renderMapPlaces();
-  } catch (error) {
-    if (error.name !== 'AbortError') { activeMapPlaces = []; renderMapPlaces(); }
-  }
-}
-function updateMapUserLocation(position, center = false) {
-  if (!activeMap || !window.L) return;
-  activeUserPosition = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-  const point = [position.coords.latitude, position.coords.longitude];
-  if (!activeUserMarker) activeUserMarker = window.L.circleMarker(point, { radius: 8, color: '#fff', weight: 3, fillColor: '#156ee8', fillOpacity: 1 }).addTo(activeMap).bindPopup('You are here');
-  else activeUserMarker.setLatLng(point);
-  updateMapDistances();
-  if (center) activeMap.setView(point, 15);
-}
-function updateMapDistances() {
-  root.querySelectorAll('[data-map-result-distance]').forEach((element) => { element.textContent = distanceLabel(JSON.parse(element.dataset.mapResultDistanceCoordinates || '[]')) || 'Enable location for distance'; });
-  const note = root.querySelector('[data-map-distance-note]');
-  if (note) note.textContent = activeUserPosition ? 'Distances update from your current location.' : 'Allow location access to see distances.';
-  activeMapMarkers?.eachLayer((marker) => { if (marker.mapPoint) marker.bindPopup(experienceMapPopup(marker.mapPoint)); });
-  renderMapPlaces();
-}
-function stopMapLocationTracking() {
-  if (mapLocationWatchId !== null) navigator.geolocation?.clearWatch(mapLocationWatchId);
-  mapLocationWatchId = null;
-  root.querySelector('[data-action="map-track-location"]')?.setAttribute('aria-pressed', 'false');
-  root.querySelector('[data-action="map-track-location"]')?.classList.remove('active');
-}
-function startMapLocationTracking() {
-  if (!navigator.geolocation) { announce('Location is not available on this device'); return; }
-  mapLocationWatchId = navigator.geolocation.watchPosition((position) => updateMapUserLocation(position, true), () => { stopMapLocationTracking(); announce('Location permission is required'); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
-  root.querySelector('[data-action="map-track-location"]')?.setAttribute('aria-pressed', 'true');
-  root.querySelector('[data-action="map-track-location"]')?.classList.add('active');
-}
-function teardownMap() {
-  stopMapLocationTracking();
-  clearTimeout(mapMoveTimer);
-  mapRequestController?.abort();
-  mapRequestController = null;
-  activeUserPosition = null;
-  activeUserMarker = null;
-  activeMapPlaces = [];
-  if (activeMap) activeMap.remove();
-  activeMap = null;
-  activeMapMarkers = null;
-  activeMapPoiMarkers = null;
-}
-function renderMapArea(area = 'all') {
-  const container = root.querySelector('[data-map-canvas]');
-  if (!container || !activeMap || !activeMapMarkers) return;
-  let points;
-  try { points = JSON.parse(container.dataset.mapPoints); } catch { return; }
-  const visiblePoints = area === 'all' ? points : points.filter((point) => point.area === area);
-  activeMapMarkers.clearLayers();
-  visiblePoints.forEach((point) => {
-    const marker = window.L.marker(point.coordinates).addTo(activeMapMarkers);
-    marker.mapPoint = point;
-    marker.bindPopup(experienceMapPopup(point));
-  });
-  root.querySelectorAll('[data-action="map-area-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === area));
-  root.querySelectorAll('[data-map-result-area]').forEach((item) => { item.hidden = area !== 'all' && item.dataset.mapResultArea !== area; });
-  const empty = root.querySelector('[data-map-empty]');
-  if (empty) empty.hidden = visiblePoints.length > 0;
-  if (visiblePoints.length > 1) activeMap.fitBounds(window.L.latLngBounds(visiblePoints.map((point) => point.coordinates)), { padding: [50, 50], maxZoom: 14 });
-  else if (visiblePoints.length === 1) activeMap.setView(visiblePoints[0].coordinates, 15);
-}
 function currentView() {
   const { path, params } = route();
   if (path === '/login') return loginView();
@@ -340,12 +176,15 @@ export function render() {
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
-  teardownMap();
+  const retainedMap = path === '/map' && discoverMap?.key === location.hash ? discoverMap.surface : null;
+  if (retainedMap) retainedMap.remove();
+  else { discoverMap?.destroy(); discoverMap = null; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
-  initializeMap();
+  if (retainedMap) { root.querySelector('[data-map-surface]')?.replaceWith(retainedMap); discoverMap.refresh(); }
+  else if (root.querySelector('[data-map-surface]')) discoverMap = createDiscoverMap(root);
   selectGalleryIndex(state.galleryIndex, false);
   if (state.modal === 'chat-gallery') requestAnimationFrame(() => { const track = root.querySelector('[data-chat-gallery-track]'); if (track) track.scrollTo({ left: state.chatGalleryIndex * track.clientWidth, behavior: 'instant' }); applyChatZoom(); });
   if (chatRoute) {
@@ -595,19 +434,13 @@ function clickAction(action, el) {
     case 'filter-sheet': openModal('filters'); break;
     case 'set-filter': state.filter = value; render(); break;
     case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Rome')); break;
-    case 'map-marker': navigate('/experience/pantheon'); break;
-    case 'map-area-filter': renderMapArea(value); break;
-    case 'map-place-filter': mapPlaceMode = value; renderMapPlaces(); break;
-    case 'map-locate': {
-      if (!activeMap || !navigator.geolocation) { announce('Location is not available on this device'); break; }
-      navigator.geolocation.getCurrentPosition((position) => updateMapUserLocation(position, true), () => announce('Location permission is required'));
-      break;
-    }
-    case 'map-track-location': {
-      if (mapLocationWatchId === null) startMapLocationTracking();
-      else stopMapLocationTracking();
-      break;
-    }
+    case 'map-place-filter':
+    case 'map-locate':
+    case 'map-track-location':
+    case 'map-retry-places':
+    case 'map-retry-tiles':
+    case 'map-more-places':
+    case 'map-place-open': discoverMap?.action(action, value); break;
     case 'new-list': openModal('new-list'); break;
     case 'create-list': { const input = document.getElementById('list-name'); if (input?.value.trim()) { state.listName = input.value.trim(); closeModal(); navigate('/wishlist'); } break; }
     case 'save-to-list': closeModal(); break;
