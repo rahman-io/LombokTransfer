@@ -219,28 +219,37 @@ function syncChatViewport() {
   const offset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
   document.documentElement.style.setProperty('--chat-viewport-height', `${height}px`);
   document.documentElement.style.setProperty('--chat-keyboard-offset', `${offset}px`);
+  if (root.querySelector('.chat-page')) closeChatMenus();
 }
 function closeChatMenus(except = null) {
-  root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) { panel.style.top = ''; panel.style.left = ''; } } });
+  root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) panel.removeAttribute('style'); } });
 }
 function positionChatMenu(menu) {
   const panel = menu.querySelector('div');
-  if (!panel) return;
+  const messages = menu.closest('.chat-messages');
+  if (!panel || !messages) return;
   const anchor = menu.getBoundingClientRect();
+  const bounds = messages.getBoundingClientRect();
   panel.style.position = 'fixed';
   panel.style.right = 'auto';
   panel.style.bottom = 'auto';
   panel.style.left = '0px';
   panel.style.top = '0px';
-  const size = panel.getBoundingClientRect();
+  panel.style.maxHeight = `${Math.max(96, bounds.height - 16)}px`;
+  let size = panel.getBoundingClientRect();
   const viewportWidth = window.visualViewport?.width || window.innerWidth;
-  const viewportHeight = window.visualViewport?.height || window.innerHeight;
   const margin = 8;
-  const left = Math.max(margin, Math.min(viewportWidth - size.width - margin, anchor.left));
+  const leftBound = Math.max(margin, bounds.left + margin);
+  const rightBound = Math.min(viewportWidth - margin, bounds.right - margin);
+  const left = Math.max(leftBound, Math.min(rightBound - size.width, anchor.left));
+  const topBound = bounds.top + margin;
+  const bottomBound = bounds.bottom - margin;
   const above = anchor.top - size.height - 6;
-  const top = above >= margin ? above : Math.min(viewportHeight - size.height - margin, anchor.bottom + 6);
+  const below = anchor.bottom + 6;
+  const preferredTop = above >= topBound ? above : below;
+  const top = Math.max(topBound, Math.min(bottomBound - size.height, preferredTop));
   panel.style.left = `${left}px`;
-  panel.style.top = `${Math.max(margin, top)}px`;
+  panel.style.top = `${top}px`;
 }
 function sendChatPhotoFiles(threadId, files) {
   Promise.all([...files].slice(0, 6).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { dataUrls.forEach((localImage) => sendChatMessage(threadId, 'Photo', { type: 'image', localImage })); render(); }).catch(() => announce('Could not send this photo'));
@@ -442,6 +451,7 @@ export function startApp() {
   syncChatViewport();
   window.addEventListener('resize', syncChatViewport, { passive: true });
   window.visualViewport?.addEventListener('resize', syncChatViewport, { passive: true });
+  window.visualViewport?.addEventListener('scroll', syncChatViewport, { passive: true });
   root.addEventListener('click', (event) => {
     if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
     if (!event.target.closest('.chat-message-menu')) closeChatMenus();
@@ -490,6 +500,7 @@ export function startApp() {
     if (event.target.matches?.('.chat-message-menu') && event.target.open) { closeChatMenus(event.target); requestAnimationFrame(() => positionChatMenu(event.target)); }
   }, true);
   root.addEventListener('pointerdown', (event) => {
+    if (!event.target.closest('.chat-message-menu')) closeChatMenus();
     const mainIndex = mainNavigationIndex();
     const swipeTarget = event.target.closest('.main-content');
     if (mainIndex >= 0 && swipeTarget && event.pointerType !== 'touch' && canStartMainSwipe(event.target)) {
@@ -653,6 +664,14 @@ export function startApp() {
     const index = Math.max(0, Math.min(galleryLength() - 1, Math.round(track.scrollLeft / track.clientWidth)));
     updateGalleryIndicators(index);
   }, true);
+  root.addEventListener('focusin', (event) => {
+    if (!event.target.closest('.chat-composer')) return;
+    closeChatMenus();
+    requestAnimationFrame(() => {
+      const messages = root.querySelector('.chat-messages');
+      if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'instant' });
+    });
+  });
   root.addEventListener('change', (event) => {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
       Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));
