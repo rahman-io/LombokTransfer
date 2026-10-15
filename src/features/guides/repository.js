@@ -2,6 +2,9 @@ import { experiences, getExperience } from '../experiences/data.js';
 
 const storageKey = 'lombok-guide-demo-v1';
 const commissionRate = 0.10;
+const paymentRate = 0.03;
+const financeSchemaVersion = 1;
+export function financeConfig() { return { platformRate: commissionRate, paymentRate, currency: 'IDR' }; }
 const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
 const seedGuides = [
   { id: 'guide-adi', name: 'Adi Saputra', initials: 'AS', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', experienceIds: ['arena', 'sumo'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
@@ -10,18 +13,20 @@ const seedGuides = [
 ];
 
 const emptyData = () => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   activeGuideId: 'guide-adi',
   guides: seedGuides.map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })),
   requests: [
-    { id: 'demo-rinjani-pending', schemaVersion: 1, experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), time: '5:00 AM', adults: 1, children: 0, travelers: 1, travelerName: 'Maya Putri', travelerEmail: 'maya.demo@example.com', unitPrice: 2531969, currency: 'IDR', ...priceSplit(2531969), status: 'pending', createdAt: new Date().toISOString(), review: null },
-    { id: 'demo-gili-completed', schemaVersion: 1, experienceId: 'pantheon', packageId: 'gili-shared-snorkeling', guideId: 'guide-nur', date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), time: '8:00 AM', adults: 2, children: 0, travelers: 2, travelerName: 'Sophie Walker', travelerEmail: 'sophie.demo@example.com', unitPrice: 164872, currency: 'IDR', ...priceSplit(329744), status: 'completed', createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), review: { stars: 5, comment: 'Lovely day around the Gilis.', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() } },
+    { id: 'demo-rinjani-pending', schemaVersion: 2, experienceId: 'arena', packageId: 'rinjani-2d1n', guideId: 'guide-adi', date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), time: '5:00 AM', adults: 1, children: 0, travelers: 1, travelerName: 'Maya Putri', travelerEmail: 'maya.demo@example.com', unitPrice: 2531969, currency: 'IDR', ...priceSplit(2531969), status: 'pending', paymentStatus: 'unpaid', payoutStatus: 'not_due', createdAt: new Date().toISOString(), review: null },
+    { id: 'demo-gili-completed', schemaVersion: 2, experienceId: 'pantheon', packageId: 'gili-shared-snorkeling', guideId: 'guide-nur', date: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10), time: '8:00 AM', adults: 2, children: 0, travelers: 2, travelerName: 'Sophie Walker', travelerEmail: 'sophie.demo@example.com', unitPrice: 164872, currency: 'IDR', ...priceSplit(329744), status: 'completed', paymentStatus: 'paid', payoutStatus: 'paid', paidAt: new Date(Date.now() - 7 * 86400000).toISOString(), payoutReleasedAt: new Date(Date.now() - 2 * 86400000).toISOString(), createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), review: { stars: 5, comment: 'Lovely day around the Gilis.', createdAt: new Date(Date.now() - 3 * 86400000).toISOString() } },
   ],
 });
 function read() {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!data || !Array.isArray(data.guides) || !Array.isArray(data.requests)) return emptyData();
+    let migrated = data.schemaVersion !== 2;
+    data.schemaVersion = 2;
     data.guides.forEach((guide) => {
       if (guide.priceAgreements) return;
       guide.priceAgreements = guide.status === 'verified' ? initialAgreements(guide) : {};
@@ -30,6 +35,14 @@ function read() {
         guide.priceAgreements[packageId].proposal = { amount: Number(amount), status: 'pending', submittedAt: new Date().toISOString() };
       });
     });
+    data.requests.forEach((request) => {
+      if (!request.finance) { request.finance = financeBreakdown(request.travelerTotal || Number(request.unitPrice) * Number(request.travelers || 1)); migrated = true; }
+      if (!request.paymentStatus) { request.paymentStatus = request.status === 'completed' ? 'paid' : 'unpaid'; migrated = true; }
+      if (!request.payoutStatus) { request.payoutStatus = request.status === 'completed' && request.paymentStatus === 'paid' ? 'paid' : 'not_due'; migrated = true; }
+      if (request.paymentStatus === 'paid' && !request.paidAt) { request.paidAt = request.createdAt || new Date().toISOString(); migrated = true; }
+      if (request.payoutStatus === 'paid' && !request.payoutReleasedAt) { request.payoutReleasedAt = request.updatedAt || request.createdAt || new Date().toISOString(); migrated = true; }
+    });
+    if (migrated) write(data);
     return data;
   } catch { return emptyData(); }
 }
@@ -48,8 +61,31 @@ export function approvedPackageLabel(experienceId, option) { const amount = publ
 export function approvedExperienceLabel(item) { const prices = (item.packageOptions || []).map((option) => publicPackagePrice(item.id, option)).filter((amount) => amount !== null); return prices.length ? `Rp${Math.min(...prices).toLocaleString('id-ID')}` : 'Awaiting guide approval'; }
 export function packageStartTimes(experience, option) { return experience?.id === 'arena' || option?.id === 'pergasingan-sunrise' ? ['5:00 AM', '6:00 AM'] : ['8:00 AM', '9:00 AM']; }
 export function priceSplit(amount) {
-  const platform = Math.round(Number(amount) * commissionRate);
-  return { travelerTotal: Number(amount), guideShare: Number(amount) - platform, platformShare: platform };
+  const breakdown = financeBreakdown(amount);
+  return { travelerTotal: breakdown.travelerTotal, guideShare: breakdown.guideShare, platformShare: breakdown.platformShare };
+}
+export function financeBreakdown(amount) {
+  const travelerTotal = Math.max(0, Math.round(Number(amount) || 0));
+  const platformShare = Math.round(travelerTotal * commissionRate);
+  const paymentFee = Math.round(travelerTotal * paymentRate);
+  return { schemaVersion: financeSchemaVersion, travelerTotal, guideShare: travelerTotal - platformShare, platformShare, paymentFee, platformNet: Math.max(0, platformShare - paymentFee) };
+}
+export function financeSummary() {
+  const requests = guideDemoData().requests;
+  const paid = requests.filter((request) => request.paymentStatus === 'paid');
+  const refunded = requests.filter((request) => request.paymentStatus === 'refunded');
+  const total = (list, key) => list.reduce((sum, request) => sum + Number(request.finance?.[key] || 0), 0);
+  return {
+    bookings: requests.filter((request) => request.status !== 'declined').length,
+    paidBookings: paid.length,
+    grossSales: total(paid, 'travelerTotal'),
+    platformGross: total(paid, 'platformShare'),
+    paymentFees: total(paid, 'paymentFee'),
+    platformNet: total(paid, 'platformNet'),
+    guidePayoutDue: paid.filter((request) => request.payoutStatus !== 'paid').reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0),
+    guidePayoutPaid: paid.filter((request) => request.payoutStatus === 'paid').reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0),
+    refunds: total(refunded, 'travelerTotal'),
+  };
 }
 function packageDates(date, option) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
@@ -80,7 +116,7 @@ export function createGuideRequest({ experienceId, packageId, guideId, date, tim
   const unitPrice = packagePrice(guide, option);
   if (Number(expectedUnitPrice) !== unitPrice) return null;
   const split = priceSplit(unitPrice * travelers);
-  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 1, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, status: 'pending', createdAt: new Date().toISOString(), review: null };
+  const request = { id: globalThis.crypto?.randomUUID?.() || `request-${Date.now()}`, schemaVersion: 2, experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', status: 'pending', createdAt: new Date().toISOString(), review: null };
   data.requests.unshift(request); write(data); return request;
 }
 export function updateGuideRequest(id, guideId, status) {
@@ -88,7 +124,25 @@ export function updateGuideRequest(id, guideId, status) {
   const request = data.requests.find((entry) => entry.id === id && entry.guideId === guideId);
   if (!request || !({ pending: ['accepted', 'declined'], accepted: ['completed'] }[request.status] || []).includes(status)) return false;
   if (status === 'accepted' && !availableGuides(request.experienceId, request.packageId, request.date, request.travelers).some((guide) => guide.id === guideId)) return false;
-  request.status = status; request.updatedAt = new Date().toISOString(); write(data); return true;
+  request.status = status;
+  request.updatedAt = new Date().toISOString();
+  if (status === 'declined' && request.paymentStatus === 'paid') { request.paymentStatus = 'refunded'; request.refundedAt = request.updatedAt; request.payoutStatus = 'not_due'; }
+  if (status === 'completed' && request.paymentStatus === 'paid') request.payoutStatus = 'pending';
+  write(data); return true;
+}
+export function markGuideRequestPaid(id, email = '') {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id && (!email || entry.travelerEmail === String(email).trim().toLowerCase()));
+  if (!request || !['pending', 'accepted'].includes(request.status) || request.paymentStatus !== 'unpaid') return false;
+  request.paymentStatus = 'paid'; request.paidAt = new Date().toISOString();
+  if (request.status === 'completed') request.payoutStatus = 'pending';
+  write(data); return true;
+}
+export function releaseGuidePayout(id) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  if (!request || request.status !== 'completed' || request.paymentStatus !== 'paid' || request.payoutStatus === 'paid') return false;
+  request.payoutStatus = 'paid'; request.payoutReleasedAt = new Date().toISOString(); write(data); return true;
 }
 export function reviewGuideRequest(id, email, stars, comment) {
   const data = read();

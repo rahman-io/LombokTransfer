@@ -5,7 +5,7 @@ import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { formatDate, escapeHtml } from '../../utils/html.js';
 import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
-import { availableGuides, packagePrice, packageStartTimes, priceSplit, publicPackagePrice } from '../guides/repository.js';
+import { availableGuides, financeBreakdown, packagePrice, packageStartTimes, priceSplit, publicPackagePrice } from '../guides/repository.js';
 import { guidePicker } from '../guides/view.js';
 export function bookingView(id) {
   const item = getExperience(id);
@@ -49,6 +49,7 @@ export function checkoutView(id) {
   const approvedUnitPrice = selectedPackage ? selectedGuide ? packagePrice(selectedGuide, selectedPackage) : publicPackagePrice(item.id, selectedPackage) : null;
   const packageTotal = approvedUnitPrice === null ? null : approvedUnitPrice * (state.adults + state.children);
   const split = priceSplit(packageTotal || 0);
+  const finance = financeBreakdown(packageTotal || 0);
   const idr = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
   const step = state.checkoutStep;
   const total = calculateDemoQuote(item, state).total.toFixed(2);
@@ -62,7 +63,7 @@ export function checkoutView(id) {
     <p class="muted">We'll only contact you with essential updates or changes to your booking</p>
     ${summary}
     <div class="checkout-total"><strong>${selectedPackage ? packageTotal === null ? 'Awaiting approved price' : idr(packageTotal) : `$${total}`}</strong><small>${selectedPackage ? 'Approved package estimate · no payment yet' : 'Total'}</small></div><button class="primary-button full" data-action="go-payment">${selectedPackage ? 'Review request' : 'Go to payment'}</button>`;
-  const packageReview = `<h1>Review your booking request</h1><p class="guide-caption">This request uses the admin-approved price. The guide will accept or decline it. No payment is taken in this demo.</p>${summary}${selectedGuide && packageTotal !== null ? `<div class="guide-request-split"><span>Traveler price <strong>${idr(split.travelerTotal)}</strong></span><span>Guide share <strong>${idr(split.guideShare)}</strong></span><span>Platform share <strong>${idr(split.platformShare)}</strong></span></div>` : ''}<button class="primary-button full" data-action="send-guide-request" data-id="${escapeHtml(item.id)}" data-unit-price="${approvedUnitPrice ?? ''}" ${selectedGuide && state.date && packageTotal !== null ? '' : 'disabled'}>Send booking request</button>${!selectedGuide ? '<p class="guide-caption">Choose an available guide with an approved price to continue.</p>' : ''}`;
+  const packageReview = `<h1>Review your booking request</h1><p class="guide-caption">This request uses the admin-approved price. The guide will accept or decline it. Payment is recorded only after the guide accepts.</p>${summary}${selectedGuide && packageTotal !== null ? `<div class="guide-request-split"><span>Traveler price <strong>${idr(split.travelerTotal)}</strong></span><span>Guide receives <strong>${idr(finance.guideShare)}</strong></span><span>Platform gross <strong>${idr(finance.platformShare)}</strong></span><span>Payment fee est. <strong>${idr(finance.paymentFee)}</strong></span><span>Platform net est. <strong>${idr(finance.platformNet)}</strong></span></div>` : ''}<button class="primary-button full" data-action="send-guide-request" data-id="${escapeHtml(item.id)}" data-unit-price="${approvedUnitPrice ?? ''}" ${selectedGuide && state.date && packageTotal !== null ? '' : 'disabled'}>Send booking request</button>${!selectedGuide ? '<p class="guide-caption">Choose an available guide with an approved price to continue.</p>' : ''}`;
   const payment = `
     <h2>Choose your currency</h2><p class="muted">Pay in your usual currency to avoid possible exchange rate fees from your bank.</p>
     <div class="radio-group"><label><input type="radio" name="currency" checked /> $${total}</label><label><input type="radio" name="currency" /> zł ${(Number(total) * 4).toFixed(2)} (demo)</label></div>
