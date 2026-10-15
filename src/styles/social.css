@@ -11,7 +11,7 @@
 .social-avatar{display:inline-grid;place-items:center;flex:none;width:38px;height:38px;border-radius:50%;background:var(--avatar-color);color:#fff;font-size:13px;font-weight:800;letter-spacing:-.03em;border:2px solid #fff;box-shadow:0 0 0 1px #e2e6ec}
 .social-avatar.tiny{width:29px;height:29px;font-size:10px}
 .social-avatar.small{width:34px;height:34px;font-size:11px}
-.social-avatar.story{width:57px;height:57px;font-size:17px;box-shadow:0 0 0 2px var(--coral);border:3px solid #fff}
+.social-avatar.story{position:relative;isolation:isolate;width:74px;height:74px;font-size:22px;box-shadow:none;border:3px solid #fff}.social-avatar.story::before{content:'';position:absolute;inset:-6px;z-index:-1;border-radius:50%;background:linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)}
 .social-avatar.large{width:84px;height:84px;font-size:27px;box-shadow:0 0 0 2px #e1e7ee}
 .social-switcher{position:relative}
 .social-switcher summary{list-style:none;cursor:pointer}
@@ -27,10 +27,9 @@
 .social-subnav a.active{color:var(--navy);border-bottom:2px solid var(--coral)}
 .social-demo-note{padding:8px 16px;background:#f3f7fa;color:#667387;font-size:10px;text-align:center}
 .social-intelligence-banner{display:flex;align-items:center;gap:9px;margin:13px 16px 0;padding:11px 13px;border:1px solid #dce9f5;border-radius:12px;background:linear-gradient(110deg,#eff7ff,#fff8f4);color:#5003C0}.social-intelligence-banner>span{display:flex;flex-direction:column;gap:2px}.social-intelligence-banner strong{font-size:12px;color:var(--navy)}.social-intelligence-banner small{font-size:10px;color:#708097}
-.social-stories{display:flex;gap:17px;padding:17px 18px 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid #eff1f4}
+.social-stories{display:flex;gap:16px;padding:19px 18px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid #eff1f4}
 .social-stories::-webkit-scrollbar{display:none}
-.social-stories a{display:flex;align-items:center;flex-direction:column;gap:7px;flex:none;width:62px;text-align:center}
-.social-stories a>span:last-child{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65px}
+.social-stories a{display:flex;align-items:center;flex-direction:column;gap:9px;flex:none;width:82px;text-align:center}.social-stories a>span:last-child{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:82px}
 .social-feed-heading{display:flex;align-items:center;justify-content:space-between;padding:13px 18px 11px}
 .social-feed-switch{display:flex;align-items:center;gap:18px}
 .social-feed-switch a{font-size:15px;font-weight:700;color:#8993a3}
