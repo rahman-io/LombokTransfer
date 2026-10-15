@@ -37,6 +37,36 @@ function compactCount(value) {
   return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(value) || 0);
 }
 
+function relativePostTime(value, now = Date.now()) {
+  const createdAt = new Date(value);
+  const elapsedMinutes = Math.max(0, Math.floor((now - createdAt.getTime()) / 60000));
+  if (elapsedMinutes < 1) return 'Just now';
+  if (elapsedMinutes < 60) return `${elapsedMinutes} minute${elapsedMinutes === 1 ? '' : 's'} ago`;
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours} hour${elapsedHours === 1 ? '' : 's'} ago`;
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  if (elapsedDays < 7) return `${elapsedDays} day${elapsedDays === 1 ? '' : 's'} ago`;
+  const elapsedWeeks = Math.floor(elapsedDays / 7);
+  if (elapsedWeeks < 4) return `${elapsedWeeks} week${elapsedWeeks === 1 ? '' : 's'} ago`;
+  return createdAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
+function likedByLabel(post) {
+  const firstLiker = socialUser(post.likedBy[0]);
+  if (!firstLiker) return '';
+  return `Disukai oleh ${firstLiker.username}${post.likedBy.length > 1 ? ' dan lainnya' : ''}`;
+}
+
+function captionPreview(post, author) {
+  const caption = post.caption || '';
+  const prefix = `${author.username} `;
+  const maxLength = 102;
+  const availableCaption = Math.max(1, maxLength - prefix.length);
+  const truncated = caption.length > availableCaption;
+  const visibleCaption = truncated ? `${caption.slice(0, availableCaption).trimEnd()}… selengkapnya` : caption;
+  return `<p class="social-post-caption"><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${visibleCaption ? ` ${esc(visibleCaption)}` : ''}</p>`;
+}
+
 function postCarousel(post, author) {
   const photos = socialImagesForPost(post);
   return `<div class="social-post-carousel-wrap"><div class="social-post-carousel" data-social-carousel aria-label="${esc(`${author.displayName}'s travel photos`)}">${photos.map((source, index) => `<a class="social-post-media" data-social-media="${esc(post.id)}" data-media-index="${index}" href="#/social/post/${esc(post.id)}" aria-label="View photo ${index + 1} of ${photos.length} by ${esc(author.username)}"><img src="${esc(source)}" alt="${esc(post.location ? `Travel photo in ${post.location}` : `Travel photo by ${author.displayName}`)} — ${index + 1} of ${photos.length}" loading="lazy" /></a>`).join('')}</div>${photos.length > 1 ? `<div class="social-post-dots" aria-label="${photos.length} photos">${photos.map((_, index) => `<span class="${index === 0 ? 'active' : ''}" aria-hidden="true"></span>`).join('')}</div>` : ''}<button class="social-post-zoom-button" data-action="social-open-gallery" data-id="${esc(post.id)}" data-value="0" aria-label="Open photos full screen">${icon('image', 17)}</button></div>`;
@@ -48,10 +78,10 @@ function postCard(post, recommendationReason = '') {
   const liked = post.likedBy.includes(selfId);
   const saved = post.savedBy.includes(selfId);
   return `<article class="social-post" data-post-id="${esc(post.id)}">
-    <div class="social-post-top"><a class="social-author" href="#/social/user/${esc(author.id)}">${avatar(author)}<span><strong>${esc(author.username)}</strong><small>${esc(post.location || author.location)} · ${new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></span></a><details class="social-post-menu"><summary aria-label="Post options">${icon('more', 22)}</summary><div>${post.authorId === selfId ? `<a href="#/social/edit/${esc(post.id)}">Edit post</a><button data-action="social-delete" data-id="${esc(post.id)}">Delete post</button>` : `<button data-action="social-report" data-id="${esc(post.id)}">Report post</button>`}</div></details></div>
+    <div class="social-post-top"><a class="social-author" href="#/social/user/${esc(author.id)}">${avatar(author)}<span><strong>${esc(author.username)}</strong><small>${esc(post.location || author.location)} · ${relativePostTime(post.createdAt)}</small></span></a><details class="social-post-menu"><summary aria-label="Post options">${icon('more', 22)}</summary><div>${post.authorId === selfId ? `<a href="#/social/edit/${esc(post.id)}">Edit post</a><button data-action="social-delete" data-id="${esc(post.id)}">Delete post</button>` : `<button data-action="social-report" data-id="${esc(post.id)}">Report post</button>`}</div></details></div>
     ${postCarousel(post, author)}
     <div class="social-post-actions"><div><span class="social-action-item"><button data-action="social-like" data-id="${esc(post.id)}" class="${liked ? 'is-liked' : ''}" aria-label="${liked ? 'Unlike' : 'Like'} post" aria-pressed="${liked}">${icon('heart', 29)}</button><small>${compactCount(post.likedBy.length)}</small></span><span class="social-action-item"><a href="#/social/post/${esc(post.id)}" aria-label="View comments">${icon('comment', 29)}</a><small>${compactCount(post.comments.length)}</small></span><span class="social-action-item"><button data-action="social-share" data-id="${esc(post.id)}" aria-label="Share post">${icon('send', 29)}</button><small>${compactCount(socialShareCount(post))}</small></span></div><button data-action="social-save" data-id="${esc(post.id)}" class="${saved ? 'is-saved' : ''}" aria-label="${saved ? 'Remove saved post' : 'Save post'}" aria-pressed="${saved}">${icon('bookmark', 29)}</button></div>
-    <div class="social-post-copy">${recommendationReason ? `<small class="social-ai-reason">${icon('sparkle', 13)} ${esc(recommendationReason)}</small>` : ''}<strong>${post.likedBy.length} ${post.likedBy.length === 1 ? 'like' : 'likes'}</strong><p><a href="#/social/user/${esc(author.id)}">${esc(author.username)}</a>${post.caption ? ` ${esc(post.caption)}` : ''}</p>${socialTopics(post).length ? `<div class="social-post-topics">${socialTopics(post).slice(0, 3).map((topic) => `<a class="social-topic-tag" href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)}</a>`).join('')}</div>` : ''}${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}?from=vibes">${icon('tickets', 16)} Explore this experience</a>` : ''}<a class="social-comments-link" href="#/social/post/${esc(post.id)}">${post.comments.length ? `View all ${post.comments.length} comments` : 'Add a comment'}</a></div>
+    <div class="social-post-copy">${recommendationReason ? `<small class="social-ai-reason">${icon('sparkle', 13)} ${esc(recommendationReason)}</small>` : ''}${likedByLabel(post) ? `<strong class="social-liked-by">${esc(likedByLabel(post))}</strong>` : ''}${captionPreview(post, author)}${socialTopics(post).length ? `<div class="social-post-topics">${socialTopics(post).slice(0, 3).map((topic) => `<a class="social-topic-tag" href="#/social/explore?topic=${encodeURIComponent(topic)}">#${esc(topic)}</a>`).join('')}</div>` : ''}${post.experienceId ? `<a class="social-post-experience" href="#/experience/${esc(post.experienceId)}?from=vibes">${icon('tickets', 16)} Explore this experience</a>` : ''}</div>
   </article>`;
 }
 
