@@ -7,8 +7,6 @@ import { bookingsView } from '../features/bookings/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
 import { inboxView, chatView } from '../features/messaging/view.js';
 import { loginView } from '../features/authentication/view.js';
-import { splashView } from '../features/onboarding/view.js';
-import { installView } from '../features/onboarding/install-view.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
 import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
@@ -48,11 +46,9 @@ let chatAudioChunks = [];
 let chatViewportFrame = 0;
 let suppressMainSwipeClick = false;
 let suppressSocialHorizontalClick = false;
-let devBrowserPreview = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
-function needsInstallation() { return !isInstalledApp() && !devBrowserPreview; }
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
   return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,.social-topic-row,.social-people-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
@@ -73,6 +69,12 @@ function mainNavigationTransition(path) {
   return currentIndex > previousIndex ? 'next' : 'previous';
 }
 function appShareUrl(path) { return `${location.origin}${location.pathname}#${path}`; }
+function maybeShowInstallInfo() {
+  const { path } = route();
+  const { canPrompt, platform } = getInstallState();
+  const supported = platform === 'ios' || (platform === 'android' && canPrompt);
+  if (path === '/login' && !state.modal && !isInstalledApp() && supported && !localStorage.getItem('install-info-seen')) state.modal = 'install-info';
+}
 function experienceShareTarget(item) { return { kind: 'experience', id: item.id, title: item.title, subtitle: `${item.city} · ${item.duration}`, text: item.description, image: item.cardImage || item.image, url: appShareUrl(`/experience/${encodeURIComponent(item.id)}`), attachmentType: 'experience', attachmentId: item.id }; }
 function placeShareTarget(kind, name) {
   const items = kind === 'destination' ? destinations : attractions;
@@ -167,10 +169,7 @@ export function render() {
   const chatRoute = path.startsWith('/inbox/chat/');
   const preserveChatScroll = chatRoute && path === lastPath;
   const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
-  if (needsInstallation()) {
-    root.innerHTML = installView(getInstallState(), import.meta.env.DEV);
-    return;
-  }
+  maybeShowInstallInfo();
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
@@ -329,9 +328,11 @@ function closeModal() {
   const closingChatGallery = state.modal === 'chat-gallery';
   const closingSharedChat = state.modal === 'shared-chat-confirm';
   const closingConfirm = state.modal === 'confirm-action';
+  const closingInstallInfo = state.modal === 'install-info';
   state.modal = '';
   if (closingSharedChat) state.chatSharedTarget = null;
   if (closingConfirm) state.confirmAction = null;
+  if (closingInstallInfo) localStorage.setItem('install-info-seen', '1');
   if (closingChatGallery && chatGalleryHistoryEntry) {
     chatGalleryHistoryEntry = false;
     history.back();
@@ -439,8 +440,9 @@ function clickAction(action, el) {
     case 'share': state.shareTarget = shareTargetForRoute(); openModal('share'); break;
     case 'share-destination': state.shareTarget = placeShareTarget(el.dataset.kind || 'destination', el.dataset.id || ''); if (state.shareTarget) openModal('share'); break;
     case 'share-to-vibes': navigate(`/social/create?experience=${encodeURIComponent(id)}`); break;
-    case 'install-app': requestInstallation().catch(() => announce('Instalasi belum tersedia di browser ini')); break;
-    case 'preview-in-browser': if (import.meta.env.DEV) { devBrowserPreview = true; render(); } break;
+    case 'install-info': openModal('install-info'); break;
+    case 'dismiss-install-info': localStorage.setItem('install-info-seen', '1'); closeModal(); break;
+    case 'install-app': localStorage.setItem('install-info-seen', '1'); requestInstallation().catch(() => announce('Instalasi belum tersedia di browser ini')); break;
     case 'copy-link': navigator.clipboard?.writeText(state.shareTarget?.url || location.href).then(() => { closeModal(); announce('Link copied'); }).catch(() => announce('Unable to copy link')); break;
     case 'share-external': shareOutside(state.shareTarget); break;
     case 'close-modal': closeModal(); break;
@@ -557,11 +559,9 @@ export function startApp() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   initializeNavigation();
   watchInstallation(render);
-  const firstLaunch = !needsInstallation() && !location.hash && !localStorage.getItem('travel-intro-seen');
-  if (firstLaunch) {
-    root.innerHTML = splashView();
-    setTimeout(() => navigate('/login'), 850);
-  } else render();
+  const firstLaunch = !location.hash && !localStorage.getItem('travel-intro-seen');
+  if (firstLaunch) navigate('/login');
+  else render();
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('popstate', () => { if (chatGalleryHistoryEntry) { chatGalleryHistoryEntry = false; if (state.modal === 'chat-gallery') { state.modal = ''; render(); } } });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });

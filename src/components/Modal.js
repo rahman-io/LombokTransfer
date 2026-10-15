@@ -6,6 +6,7 @@ import { getDemoReviews } from '../features/experiences/demo-engagement.js';
 import { activeSocialUser, socialPost, socialState, socialUser } from '../features/social/repository.js';
 import { socialImage, socialImagesForPost } from '../features/social/media.js';
 import { chatMessages, chatThread } from '../features/messaging/repository.js';
+import { getInstallState, isInstalledApp } from '../features/onboarding/install.js';
 
 function monthGrid(year, month) {
   const first = new Date(year, month, 1).getDay();
@@ -78,6 +79,16 @@ export function modalView() {
     const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.chatGalleryIndex));
     title = 'Chat photos';
     body = photos.length ? `<div class="chat-lightbox"><div class="chat-lightbox-track" data-chat-gallery-track aria-label="Chat photos">${photos.map((photo, index) => `<div class="chat-lightbox-slide" data-chat-gallery-slide="${index}"><div class="chat-lightbox-stage" data-chat-zoom-stage data-chat-gallery-index="${index}" aria-label="Chat photo ${index + 1} of ${photos.length}"><img data-chat-zoom-image src="${escapeHtml(photo.source)}" alt="Chat photo ${index + 1} of ${photos.length}" draggable="false" /></div></div>`).join('')}</div><div class="chat-lightbox-controls"><button data-action="chat-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span data-chat-gallery-counter>${current + 1} / ${photos.length}</span><button data-action="chat-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="chat-lightbox-hint">Swipe between photos · pinch or double tap to zoom</small></div>` : '<p>Photo unavailable.</p>';
+  } else if (state.modal === 'install-info') {
+    const { canPrompt, platform, status } = getInstallState();
+    const installed = isInstalledApp() || status === 'installed' || status === 'accepted';
+    const guidance = platform === 'ios'
+      ? '<li>Buka halaman ini di <strong>Safari</strong>.</li><li>Ketuk <strong>Bagikan</strong>, lalu pilih <strong>Tambahkan ke Layar Utama</strong>.</li><li>Ketuk <strong>Tambah</strong> untuk menyelesaikan.</li>'
+      : '<li>Buka menu browser <strong>⋮</strong>.</li><li>Pilih <strong>Install app</strong> atau <strong>Tambahkan ke layar utama</strong>.</li><li>Buka aplikasi melalui ikon yang baru terpasang.</li>';
+    title = 'Install app';
+    body = installed
+      ? '<div class="install-info-copy"><p>Aplikasi sudah siap digunakan dari layar utama.</p><button class="primary-button full" data-action="close-modal">Done</button></div>'
+      : `<div class="install-info-copy"><p>Install aplikasi agar akses ke perjalanan Anda lebih cepat dari layar utama. Anda tetap bisa menggunakan aplikasi tanpa install.</p><div class="install-steps"><strong>Cara memasang di ${platform === 'ios' ? 'iPhone atau iPad' : 'Android'}</strong><ol>${guidance}</ol></div><div class="chat-shared-confirm-actions">${canPrompt ? '<button class="primary-button" data-action="install-app">Install now</button>' : ''}<button class="outline-button" data-action="dismiss-install-info">Not now</button></div></div>`;
   } else if (state.modal === 'shared-chat-confirm') {
     const target = state.chatSharedTarget;
     title = 'Buka konten bersama?';

@@ -6,6 +6,7 @@ import { escapeHtml } from '../../utils/html.js';
 import { experiences, images } from '../experiences/data.js';
 import { activeSocialUser, socialFollowerCount, socialFollowingCount, socialState, visibleSocialPosts } from '../social/repository.js';
 import { getGamificationSummary, getTravelMissions, getTravelProfileIntelligence } from '../travel-intelligence/repository.js';
+import { getInstallState, isInstalledApp } from '../onboarding/install.js';
 const groups = [
   ['Settings', [['Personal details', 'personal'], ['Saved cards', 'cards'], ['Currency', 'currency'], ['Language', 'language'], ['Appearance', 'appearance'], ['Notifications', 'notifications'], ['Privacy', 'privacy']]],
   ['Support', [['About GetYourGuide', 'about'], ['Chat with us', 'chat'], ['Help center', 'help']]],
@@ -19,6 +20,8 @@ export function profileView() {
   const profileIntelligence = getTravelProfileIntelligence(intelligenceContext);
   const missions = getTravelMissions(intelligenceContext);
   const gamification = getGamificationSummary(missions);
+  const installState = getInstallState();
+  const installAvailable = !isInstalledApp() && (installState.platform === 'ios' || (installState.platform === 'android' && installState.canPrompt));
   return mainLayout(`
     <div class="page-pad profile-page"><div class="profile-hero"><a class="profile-edit-button" href="#/profile/personal">Edit Profile</a><button class="profile-photo-button" data-action="choose-profile-photo" aria-label="Change profile photo"><img class="profile-user-photo" src="${escapeHtml(state.profilePhoto || images.login)}" alt="Profile photo" /><span>${icon('camera', 16)}</span></button><input id="profile-photo-input" type="file" accept="image/*" hidden /><div class="profile-user"><div class="profile-user-heading"><div><h1>👋 Hi ${escapeHtml(greetingName.toLowerCase())}</h1><div class="profile-vibes-stats"><a href="#/social/user/${escapeHtml(userId)}"><strong>${ownPosts.length}</strong><span>posts</span></a><a href="#/social/user/${escapeHtml(userId)}"><strong>${socialFollowerCount(userId)}</strong><span>followers</span></a><a href="#/social/user/${escapeHtml(userId)}"><strong>${socialFollowingCount(userId)}</strong><span>following</span></a></div></div></div></div></div>
       <a class="profile-link promo-link" href="#/profile/promos">${icon('tickets', 22)}<span>Your promos</span>${icon('chevron', 20)}</a>
@@ -26,6 +29,7 @@ export function profileView() {
       <section class="travel-intelligence-card"><div class="travel-intelligence-heading"><span>${icon('sparkle', 17)} Travel profile intelligence</span><small>${profileIntelligence.confidence}% confidence</small></div><h2>${escapeHtml(profileIntelligence.persona)}</h2><p>Most aligned destination: <strong>${escapeHtml(profileIntelligence.topCity)}</strong></p><div class="travel-profile-signals"><span>${profileIntelligence.signals} signals</span><span>${escapeHtml(profileIntelligence.pace)}</span></div></section>
       <section class="travel-missions-card"><div class="travel-intelligence-heading"><span>${icon('star', 17)} Travel missions</span><strong>Level ${gamification.level}</strong></div><div class="gamification-progress"><span style="width:${gamification.progress}%"></span></div><div class="gamification-summary"><strong>${gamification.points} pts</strong><small>${escapeHtml(gamification.title)} · ${gamification.nextLevelPoints - gamification.points} pts to next level</small></div><div class="travel-missions-list">${missions.map((mission) => `<div class="travel-mission ${mission.completed ? 'completed' : ''}"><span class="travel-mission-icon">${mission.completed ? '✓' : '✦'}</span><span><strong>${escapeHtml(mission.title)}</strong><small>${escapeHtml(mission.description)}</small><em>${mission.progress}/${mission.target} · +${mission.reward} pts</em></span>${mission.completed && !mission.claimed ? `<button data-action="travel-mission-claim" data-id="${escapeHtml(mission.id)}">Claim</button>` : mission.claimed ? '<b>Claimed</b>' : ''}</div>`).join('')}</div></section>
       ${groups.map(([heading, rows]) => `<section class="profile-group"><h2>${heading}</h2>${rows.map(([label, route]) => `<a class="profile-link" href="#/profile/${route}"><span>${label}</span><small>${route === 'currency' ? state.currency : route === 'language' ? state.language : route === 'appearance' ? 'System default' : ''}</small>${icon('chevron', 19)}</a>`).join('')}</section>`).join('')}
+      ${installAvailable ? `<section class="profile-group profile-install-group"><h2>App</h2><button class="profile-link" data-action="install-info"><span>Install app</span>${icon('chevron', 19)}</button></section>` : ''}
       <button class="text-link profile-logout" data-action="sign-out">Log out</button>
     </div>
   `, 'Profile');
