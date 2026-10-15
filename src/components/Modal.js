@@ -19,6 +19,9 @@ function monthGrid(year, month) {
   }
   return `<div class="calendar-month"><h3>${new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(year, month, 1))}</h3><div class="calendar-grid">${cells.join('')}</div></div>`;
 }
+function chatGalleryPhotos(threadId) {
+  return chatMessages(threadId).filter((message) => message.attachment?.type === 'image' && message.attachment.localImage).map((message) => ({ id: message.id, source: message.attachment.localImage }));
+}
 
 export function modalView() {
   if (!state.modal) return '';
@@ -70,6 +73,11 @@ export function modalView() {
     const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.socialGalleryIndex));
     title = 'Travel photos';
     body = post && photos.length ? `<div class="social-lightbox"><div class="social-lightbox-stage" data-social-zoom-stage aria-label="Travel photo ${current + 1} of ${photos.length}"><img data-social-zoom-image src="${escapeHtml(photos[current])}" alt="Travel photo ${current + 1} of ${photos.length}" draggable="false" /></div><div class="social-lightbox-controls"><button data-action="social-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span>${current + 1} / ${photos.length}</span><button data-action="social-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="social-lightbox-hint">Pinch or double tap to zoom · drag to explore</small></div>` : '<p>Photo unavailable.</p>';
+  } else if (state.modal === 'chat-gallery') {
+    const photos = chatGalleryPhotos(state.chatGalleryThreadId);
+    const current = Math.max(0, Math.min(Math.max(photos.length - 1, 0), state.chatGalleryIndex));
+    title = 'Chat photos';
+    body = photos.length ? `<div class="chat-lightbox"><div class="chat-lightbox-track" data-chat-gallery-track aria-label="Chat photos">${photos.map((photo, index) => `<div class="chat-lightbox-slide" data-chat-gallery-slide="${index}"><div class="chat-lightbox-stage" data-chat-zoom-stage data-chat-gallery-index="${index}" aria-label="Chat photo ${index + 1} of ${photos.length}"><img data-chat-zoom-image src="${escapeHtml(photo.source)}" alt="Chat photo ${index + 1} of ${photos.length}" draggable="false" /></div></div>`).join('')}</div><div class="chat-lightbox-controls"><button data-action="chat-gallery-prev" aria-label="Previous photo" ${current === 0 ? 'disabled' : ''}>‹</button><span data-chat-gallery-counter>${current + 1} / ${photos.length}</span><button data-action="chat-gallery-next" aria-label="Next photo" ${current === photos.length - 1 ? 'disabled' : ''}>›</button></div><small class="chat-lightbox-hint">Swipe between photos · pinch or double tap to zoom</small></div>` : '<p>Photo unavailable.</p>';
   } else if (state.modal === 'travel-group-members') {
     const thread = chatThread(state.travelerGroupThreadId);
     const people = thread ? thread.participantIds.map((userId) => socialUser(userId)).filter(Boolean) : [];
@@ -93,5 +101,5 @@ export function modalView() {
     title = state.modalTitle || 'Information';
     body = `<p>${escapeHtml(state.modalMessage || '')}</p><button class="primary-button full" data-action="close-modal">OK</button>`;
   }
-  return `<div class="modal-backdrop" data-action="close-modal"><section class="bottom-sheet ${state.modal === 'social-gallery' ? 'social-gallery-modal' : ''}" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
+  return `<div class="modal-backdrop" data-action="close-modal"><section class="bottom-sheet ${['social-gallery', 'chat-gallery'].includes(state.modal) ? `${state.modal}-modal` : ''}" role="dialog" aria-modal="true" aria-label="${title}"><header><button class="icon-button" data-action="close-modal">${icon('close')}</button><h2>${title}</h2><span></span></header><div class="sheet-content">${body}</div></section></div>`;
 }

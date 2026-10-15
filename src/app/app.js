@@ -32,6 +32,9 @@ let socialMediaTap = null;
 let socialCarouselDrag = null;
 let socialPinchPointers = new Map();
 let socialZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
+let chatPinchPointers = new Map();
+let chatGalleryDrag = null;
+let chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false };
 let mainSwipe = null;
 let mainTouchSwipe = null;
 let chatRecorder = null;
@@ -167,6 +170,7 @@ export function render() {
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
   setupHomeDestinationCarousel();
   selectGalleryIndex(state.galleryIndex, false);
+  if (state.modal === 'chat-gallery') requestAnimationFrame(() => { const track = root.querySelector('[data-chat-gallery-track]'); if (track) track.scrollTo({ left: state.chatGalleryIndex * track.clientWidth, behavior: 'instant' }); applyChatZoom(); });
   if (path.startsWith('/inbox/chat/')) {
     syncChatViewport();
     scrollChatToLatest();
@@ -302,6 +306,26 @@ function applySocialZoom() {
   const image = root.querySelector('[data-social-zoom-image]');
   if (image) image.style.transform = `translate(${socialZoom.x}px, ${socialZoom.y}px) scale(${socialZoom.scale})`;
 }
+function resetChatZoom() { chatZoom = { scale: 1, x: 0, y: 0, lastTap: 0, moved: false }; }
+function applyChatZoom() {
+  root.querySelectorAll('[data-chat-zoom-image]').forEach((image) => { image.style.transform = 'translate(0, 0) scale(1)'; });
+  const image = root.querySelector(`[data-chat-gallery-index="${state.chatGalleryIndex}"] [data-chat-zoom-image]`);
+  if (image) image.style.transform = `translate(${chatZoom.x}px, ${chatZoom.y}px) scale(${chatZoom.scale})`;
+}
+function chatGalleryPhotos(threadId) { return chatMessages(threadId).filter((message) => message.attachment?.type === 'image' && message.attachment.localImage); }
+function selectChatGalleryIndex(requestedIndex, animate = true) {
+  const photos = chatGalleryPhotos(state.chatGalleryThreadId);
+  if (!photos.length) return;
+  const index = Math.max(0, Math.min(photos.length - 1, Number(requestedIndex) || 0));
+  state.chatGalleryIndex = index;
+  resetChatZoom();
+  const track = root.querySelector('[data-chat-gallery-track]');
+  if (track) track.scrollTo({ left: index * track.clientWidth, behavior: animate ? 'smooth' : 'instant' });
+  const counter = root.querySelector('[data-chat-gallery-counter]');
+  if (counter) counter.textContent = `${index + 1} / ${photos.length}`;
+  root.querySelectorAll('[data-action="chat-gallery-prev"], [data-action="chat-gallery-next"]').forEach((button) => { button.disabled = button.dataset.action === 'chat-gallery-prev' ? index === 0 : index === photos.length - 1; });
+  applyChatZoom();
+}
 function openSocialGallery(postId, index = 0) {
   state.socialGalleryPostId = postId;
   state.socialGalleryIndex = Number(index) || 0;
@@ -331,6 +355,9 @@ function clickAction(action, el) {
     case 'chat-collection': state.chatCollectionThreadId = route().path.split('/')[3]; state.chatCollectionKind = value; openModal('chat-collection'); break;
     case 'forward-chat': state.chatForwardMessageId = id; openModal('forward-chat'); break;
     case 'forward-chat-message': { const message = chatMessage(route().path.split('/')[3], state.chatForwardMessageId); const threadId = getOrCreateChatThread(id); if (message && threadId && sendChatMessage(threadId, `Forwarded: ${message.text || 'Photo'}`, message.attachment || null)) { state.chatForwardMessageId = ''; state.modal = ''; navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } break; }
+    case 'chat-open-gallery': { const threadId = route().path.split('/')[3]; const photos = chatGalleryPhotos(threadId); const index = Math.max(0, photos.findIndex((message) => message.id === id)); state.chatGalleryThreadId = threadId; state.chatGalleryIndex = index; resetChatZoom(); openModal('chat-gallery'); break; }
+    case 'chat-gallery-prev': selectChatGalleryIndex(state.chatGalleryIndex - 1); break;
+    case 'chat-gallery-next': selectChatGalleryIndex(state.chatGalleryIndex + 1); break;
     case 'chat-tools': root.querySelector('.chat-compose-tools')?.classList.toggle('open'); break;
     case 'chat-emoji': { const input = root.querySelector('#chat-message-form input[name="message"]'); if (input) { input.focus(); input.setAttribute('inputmode', 'text'); } break; }
     case 'chat-sticker': root.querySelector('.chat-sticker-panel')?.classList.toggle('open'); break;
@@ -501,6 +528,13 @@ export function startApp() {
       else socialZoom.lastTap = now;
       return;
     }
+    const chatZoomStage = event.target.closest('[data-chat-zoom-stage]');
+    if (chatZoomStage) {
+      const now = Date.now();
+      if (now - chatZoom.lastTap < 320) { chatZoom.scale = chatZoom.scale > 1 ? 1 : 2; chatZoom.x = 0; chatZoom.y = 0; applyChatZoom(); chatZoom.lastTap = 0; }
+      else chatZoom.lastTap = now;
+      return;
+    }
     const socialCaption = event.target.closest('.social-post-caption.is-expandable');
     if (socialCaption && !event.target.closest('a')) {
       event.preventDefault();
@@ -542,6 +576,15 @@ export function startApp() {
         openSocialGallery(first.postId, first.index);
       }
     }
+    const chatZoomStage = event.target.closest('[data-chat-zoom-stage]');
+    if (chatZoomStage) {
+      const track = chatZoomStage.closest('[data-chat-gallery-track]');
+      chatPinchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (track && chatPinchPointers.size === 1) chatGalleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
+      chatZoomStage.setPointerCapture?.(event.pointerId);
+      chatZoomStage.dataset.pointerId = event.pointerId;
+      chatZoomStage._chatPointer = { x: event.clientX, y: event.clientY };
+    }
     const zoomStage = event.target.closest('[data-social-zoom-stage]');
     if (zoomStage) {
       zoomStage.setPointerCapture?.(event.pointerId);
@@ -559,6 +602,29 @@ export function startApp() {
       }
     }
     if (socialPinchPointers.has(event.pointerId)) socialPinchPointers.set(event.pointerId, { ...socialPinchPointers.get(event.pointerId), x: event.clientX, y: event.clientY });
+    if (chatPinchPointers.has(event.pointerId)) chatPinchPointers.set(event.pointerId, { ...chatPinchPointers.get(event.pointerId), x: event.clientX, y: event.clientY });
+    const chatZoomStage = event.target.closest('[data-chat-zoom-stage]');
+    if (chatPinchPointers.size === 2) {
+      const points = [...chatPinchPointers.values()];
+      const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+      if (!chatZoom.pinchStart) chatZoom.pinchStart = { distance, scale: chatZoom.scale };
+      chatZoom.scale = Math.max(1, Math.min(4, chatZoom.pinchStart.scale * (distance / chatZoom.pinchStart.distance)));
+      applyChatZoom();
+      return;
+    }
+    if (chatZoomStage && chatZoom.scale > 1 && chatZoomStage._chatPointer) {
+      chatZoom.x += event.clientX - chatZoomStage._chatPointer.x;
+      chatZoom.y += event.clientY - chatZoomStage._chatPointer.y;
+      chatZoomStage._chatPointer = { x: event.clientX, y: event.clientY };
+      chatZoom.moved = true;
+      applyChatZoom();
+      return;
+    }
+    if (chatGalleryDrag?.pointerId === event.pointerId && chatZoom.scale === 1) {
+      const distance = event.clientX - chatGalleryDrag.x;
+      if (Math.abs(distance) > 6 && !chatGalleryDrag.moved) { chatGalleryDrag.moved = true; chatGalleryDrag.track.style.scrollSnapType = 'none'; chatZoom.lastTap = 0; }
+      if (chatGalleryDrag.moved) { event.preventDefault(); chatGalleryDrag.track.scrollLeft = chatGalleryDrag.left - distance; }
+    }
     const zoomStage = event.target.closest('[data-social-zoom-stage]');
     if (zoomStage && socialZoom.scale > 1 && zoomStage._socialPointer && socialPinchPointers.size < 2) {
       socialZoom.x += event.clientX - zoomStage._socialPointer.x;
@@ -602,6 +668,15 @@ export function startApp() {
     }
     socialPinchPointers.delete(event.pointerId);
     if (!socialPinchPointers.size) socialZoom.pinchStart = null;
+    chatPinchPointers.delete(event.pointerId);
+    if (!chatPinchPointers.size) chatZoom.pinchStart = null;
+    if (chatGalleryDrag && chatPinchPointers.size === 0) {
+      if (chatGalleryDrag.moved) {
+        chatGalleryDrag.track.style.scrollSnapType = '';
+        selectChatGalleryIndex(Math.round(chatGalleryDrag.track.scrollLeft / chatGalleryDrag.track.clientWidth));
+      }
+      chatGalleryDrag = null;
+    }
     if (socialCarouselDrag?.pointerId === event.pointerId) {
       if (socialCarouselDrag.moved) {
         socialCarouselDrag.track.style.scrollSnapType = '';
@@ -677,6 +752,13 @@ export function startApp() {
   root.addEventListener('scroll', (event) => {
     const track = event.target;
     if (track.matches?.('.chat-messages')) closeChatMenus();
+    if (track.matches?.('.chat-gallery-track') && track.clientWidth) {
+      const index = Math.max(0, Math.min(chatGalleryPhotos(state.chatGalleryThreadId).length - 1, Math.round(track.scrollLeft / track.clientWidth)));
+      if (index !== state.chatGalleryIndex) { state.chatGalleryIndex = index; resetChatZoom(); applyChatZoom(); }
+      const counter = root.querySelector('[data-chat-gallery-counter]');
+      if (counter) counter.textContent = `${index + 1} / ${chatGalleryPhotos(state.chatGalleryThreadId).length}`;
+      return;
+    }
     if (track.matches?.('[data-social-carousel]') && track.clientWidth) {
       const index = Math.max(0, Math.round(track.scrollLeft / track.clientWidth));
       track.parentElement?.querySelectorAll('.social-post-dots span').forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === index));
