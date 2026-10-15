@@ -204,6 +204,42 @@ const beachExperiences = beachCatalog.map((item) => ({
   highlights: [`Visit ${item.title}`, 'Explore Lombok’s coastline', 'Enjoy a flexible local experience'],
 }));
 
+const volcanoFallback = tripadvisorImages.rinjani;
+const volcanoCatalog = [
+  { id: 'volcano-386938', title: 'Gunung Rinjani', image: tripadvisorImages.rinjani },
+  { id: 'volcano-28123503', title: 'Jeweh Rinjani Trek', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/d4/2f/1f/caption.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-26328401', title: 'Antok Trekking - Mt.Rinjani Lombok Volcano', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2c/10/62/2a/caption.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-24166667', title: 'Mount Rinjani Vacation', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/24/84/c4/1d/rinjani-summit-3726.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-24084181', title: 'Visiting Rinjani Lombok', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/24/ec/f5/ca/visiting-rinjani-lombok.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-26321765', title: 'Taman Nasional Gunung Rinjani', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/30/44/80/9c/caption.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-24135222', title: 'Rinjani Information Center', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/24/30/42/2e/rinjani-summit.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-27997429', title: 'Senaru Trek Centre', image: volcanoFallback },
+  { id: 'volcano-24116942', title: 'Rinjani Trekking Care', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/2d/40/95/keep-on-planning.jpg?w=200&h=200&s=1&cx=492&cy=358&chk=v1_f64df95338d294710736' },
+  { id: 'volcano-28163416', title: 'Runia Rinjani', image: volcanoFallback },
+  { id: 'volcano-33323560', title: 'Rinjani Dreamers Trekking', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/86/7b/f2/rinjani-3762maslwith.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-34450139', title: 'Rinjanidreamers', image: volcanoFallback },
+  { id: 'volcano-34031709', title: 'Eleventrails', image: volcanoFallback },
+  { id: 'volcano-10312573', title: 'Syam Trekker', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/11/56/80/98/photo0jpg.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-10860155', title: 'Jaya Trekker', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2c/c2/f2/c5/sunrise-from-crater-rim.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-25782532', title: 'See You Rinjani - Trekking Organizer', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/30/17/a0/6b/rinjani-trekking-seeyourinjani.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-12193321', title: 'Rinjani Trek Adventure', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/25/8b/ce/b9/get-in-senaru-villages.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-12053888', title: 'Dhyns Rinjani Hiking', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/26/3e/7c/be/dinner-time.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-10837232', title: 'Hajar Trekking', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/18/c6/0e/6d/photo1jpg.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-13225880', title: 'Star Rinjani', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/34/42/db/star-rinjani.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-32696940', title: 'Mount Rinjani Adventures', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2e/a1/cc/bd/caption.jpg?w=500&h=400&s=1' },
+  { id: 'volcano-17497828', title: 'Go2Rinjani', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/23/78/0b/a3/on-the-top-with-tamil.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-34496223', title: 'Queen Rinjani Trekking', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/33/cb/1a/bd/crater-rim.jpg?w=500&h=-1&s=1' },
+  { id: 'volcano-33962469', title: 'Gili Explore', image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/32/0a/6f/09/gili-explore-is-gili.jpg?w=500&h=-1&s=1' },
+];
+
+const volcanoExperiences = volcanoCatalog.map((item) => ({
+  ...item,
+  city: 'Lombok', duration: '1 day', rating: '4.7', reviews: '128', price: 35, oldPrice: null,
+  badge: '', label: 'Gunung Berapi', category: 'Gunung Berapi',
+  description: `Explore ${item.title} and the volcanic landscapes of Lombok with a local guide.`,
+  highlights: [`Visit ${item.title}`, 'Explore Lombok’s volcanic landscape', 'Enjoy a flexible local experience'],
+}));
+
 export const experiences = [
   {
     id: 'colosseum', title: 'Lombok: Tanjung Aan Beach & Kuta Coast Guided Tour',
@@ -280,6 +316,7 @@ export const experiences = [
   },
   ...waterfallExperiences,
   ...beachExperiences,
+  ...volcanoExperiences,
 ];
 
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];
