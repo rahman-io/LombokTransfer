@@ -34,7 +34,6 @@ const tripadvisorImages = {
   mawun: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0e/15/de/9b/img-20160418-141227-largejpg.jpg?w=800&h=800&s=1',
   senggigi: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0c/e8/6d/b8/senggigi-view.jpg?w=800&h=800&s=1',
   pantaiPink: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/19/61/f1/f7/pink-beach-lombok-indonesia.jpg?w=500&h=-1&s=1',
-  giliTrawangan: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/8b/9d/91/beautiful-gili-trawangan.jpg?w=600&h=600&s=1',
   giliMeno: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0a/f4/47/30/caption.jpg?w=600&h=600&s=1',
   giliAir: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/10/3b/ad/a6/photo4jpg.jpg?w=600&h=600&s=1',
   sendangGile: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/26/0d/a1/35/air-terjun-sendang-gile.jpg?w=800&h=800&s=1',
@@ -42,7 +41,7 @@ const tripadvisorImages = {
   tetebatu: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0a/51/c7/26/tete-batu-walk.jpg?w=700&h=700&s=1',
 };
 
-export const images = { rome: tripadvisorImages.lombok, paris: tripadvisorImages.mataram, statue: tripadvisorImages.rinjani, vatican: tripadvisorImages.tanjungAan, wishlist: tripadvisorImages.sembalun, colosseum: tripadvisorImages.tanjungAan, arena: tripadvisorImages.rinjani, vaticanTour: tripadvisorImages.sendangGile, basilica: tripadvisorImages.mangkuSakti, pantheon: tripadvisorImages.giliTrawangan, pantheonCard: tripadvisorImages.giliTrawangan, skydiving: tripadvisorImages.selongBelanak, kayaking: tripadvisorImages.senggigi, mapCore, login, agafay: tripadvisorImages.tetebatu, sumo: tripadvisorImages.sembalun, pantheonThumbA: tripadvisorImages.giliMeno, pantheonThumbB: tripadvisorImages.giliAir, skydivingThumbA: tripadvisorImages.mawun, skydivingThumbB: tripadvisorImages.pantaiPink, kayakingThumbA: tripadvisorImages.giliMeno, kayakingThumbB: tripadvisorImages.giliAir };
+export const images = { rome: tripadvisorImages.lombok, paris: tripadvisorImages.mataram, statue: tripadvisorImages.rinjani, vatican: tripadvisorImages.tanjungAan, wishlist: tripadvisorImages.sembalun, colosseum: tripadvisorImages.tanjungAan, arena: tripadvisorImages.rinjani, vaticanTour: tripadvisorImages.sendangGile, basilica: tripadvisorImages.mangkuSakti, pantheon: tripadvisorImages.giliMeno, pantheonCard: tripadvisorImages.giliMeno, skydiving: tripadvisorImages.selongBelanak, kayaking: tripadvisorImages.senggigi, mapCore, login, agafay: tripadvisorImages.tetebatu, sumo: tripadvisorImages.sembalun, pantheonThumbA: tripadvisorImages.giliAir, pantheonThumbB: tripadvisorImages.senggigi, skydivingThumbA: tripadvisorImages.mawun, skydivingThumbB: tripadvisorImages.pantaiPink, kayakingThumbA: tripadvisorImages.giliMeno, kayakingThumbB: tripadvisorImages.giliAir };
 
 export const destinations = [
   { name: 'Lombok', location: 'NTB, Indonesia', image: images.rome, count: '1,420 activities', rating: '4.8' },
