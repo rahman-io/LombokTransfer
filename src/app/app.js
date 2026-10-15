@@ -162,6 +162,9 @@ function currentView() {
 }
 export function render() {
   const { path } = route();
+  const chatRoute = path.startsWith('/inbox/chat/');
+  const preserveChatScroll = chatRoute && path === lastPath;
+  const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
   if (needsInstallation()) {
     root.innerHTML = installView(getInstallState(), import.meta.env.DEV);
     return;
@@ -175,11 +178,11 @@ export function render() {
   setupHomeDestinationCarousel();
   selectGalleryIndex(state.galleryIndex, false);
   if (state.modal === 'chat-gallery') requestAnimationFrame(() => { const track = root.querySelector('[data-chat-gallery-track]'); if (track) track.scrollTo({ left: state.chatGalleryIndex * track.clientWidth, behavior: 'instant' }); applyChatZoom(); });
-  if (path.startsWith('/inbox/chat/')) {
+  if (chatRoute) {
     syncChatViewport();
-    if (state.modal === 'chat-gallery') scrollChatToLatest();
+    if (path !== lastPath) scrollChatToLatest();
     else if (chatGalleryReturnScrollTop !== null) { const scrollTop = chatGalleryReturnScrollTop; chatGalleryReturnScrollTop = null; scrollChatToLatest(scrollTop); }
-    else scrollChatToLatest();
+    else if (previousChatScrollTop !== null) scrollChatToLatest(previousChatScrollTop);
   }
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
@@ -254,6 +257,8 @@ function scrollChatToLatest(scrollTop = null) {
 }
 function syncChatViewport() {
   const viewport = window.visualViewport;
+  const messages = root.querySelector('.chat-messages');
+  const scrollTop = messages?.scrollTop ?? null;
   const height = viewport?.height || window.innerHeight;
   const top = viewport?.offsetTop || 0;
   const offset = Math.max(0, window.innerHeight - height - (viewport?.offsetTop || 0));
@@ -264,7 +269,7 @@ function syncChatViewport() {
   window.scrollTo(0, 0);
   closeChatMenus();
   if (!document.activeElement?.closest('.chat-composer')) return;
-  scrollChatToLatest();
+  if (scrollTop !== null) scrollChatToLatest(scrollTop);
 }
 function closeChatMenus(except = null) {
   root.querySelectorAll('.chat-message-menu[open]').forEach((menu) => { if (menu !== except) { menu.open = false; const panel = menu.querySelector('div'); if (panel) panel.removeAttribute('style'); } });
@@ -892,8 +897,9 @@ export function startApp() {
   }, true);
   root.addEventListener('focusin', (event) => {
     if (!event.target.closest('.chat-composer')) return;
+    const scrollTop = root.querySelector('.chat-messages')?.scrollTop ?? null;
     closeChatMenus();
-    scrollChatToLatest();
+    if (scrollTop !== null) scrollChatToLatest(scrollTop);
   });
   root.addEventListener('change', (event) => {
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
