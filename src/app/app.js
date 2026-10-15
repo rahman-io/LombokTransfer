@@ -51,6 +51,13 @@ let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
 let activeMap = null;
 let activeMapMarkers = null;
+let activeMapPoiMarkers = null;
+let activeMapPlaces = [];
+let activeUserMarker = null;
+let mapLocationWatchId = null;
+let mapRequestController = null;
+let mapMoveTimer = null;
+let mapPlaceMode = 'all';
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
@@ -155,12 +162,95 @@ function initializeMap() {
     window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(activeMap);
     window.L.control.zoom({ position: 'bottomright' }).addTo(activeMap);
     activeMapMarkers = window.L.layerGroup().addTo(activeMap);
+    activeMapPoiMarkers = window.L.layerGroup().addTo(activeMap);
+    mapPlaceMode = 'all';
     renderMapArea('all');
+    renderMapPlaces();
+    activeMap.on('moveend', scheduleNearbyPlacesLoad);
+    loadNearbyPlaces();
     container.classList.add('is-ready');
     requestAnimationFrame(() => activeMap?.invalidateSize());
   };
   if (window.L) mount();
   else document.querySelector('script[src*="leaflet.js"]')?.addEventListener('load', mount, { once: true });
+}
+function renderMapPlaces() {
+  if (!activeMapPoiMarkers) return;
+  const visiblePlaces = mapPlaceMode === 'all' ? activeMapPlaces : activeMapPlaces.filter((place) => place.type === mapPlaceMode);
+  activeMapPoiMarkers.clearLayers();
+  visiblePlaces.forEach((place) => {
+    const marker = window.L.marker([place.latitude, place.longitude]).addTo(activeMapPoiMarkers);
+    marker.bindPopup(`<div class="map-popup"><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} · OpenStreetMap</small></div>`);
+  });
+  root.querySelectorAll('[data-action="map-place-filter"]').forEach((button) => button.classList.toggle('selected', button.dataset.value === mapPlaceMode));
+  const list = root.querySelector('[data-map-nearby-list]');
+  if (!list) return;
+  list.hidden = visiblePlaces.length === 0;
+  list.innerHTML = visiblePlaces.slice(0, 8).map((place) => `<div class="map-nearby-item"><span class="map-nearby-icon">${place.type === 'restaurant' ? '🍽️' : '🏨'}</span><span><strong>${escapeHtml(place.name)}</strong><small>${place.type === 'restaurant' ? 'Restaurant' : 'Hotel'} nearby</small></span></div>`).join('');
+}
+function scheduleNearbyPlacesLoad() {
+  clearTimeout(mapMoveTimer);
+  mapMoveTimer = setTimeout(loadNearbyPlaces, 350);
+}
+async function loadNearbyPlaces() {
+  if (!activeMap || !activeMapPoiMarkers || !window.fetch) return;
+  const center = activeMap.getCenter();
+  const radius = Math.max(1200, Math.min(5000, Math.round(center.distanceTo(activeMap.getBounds().getNorthEast()) * 0.8)));
+  mapRequestController?.abort();
+  mapRequestController = new AbortController();
+  const query = `[out:json][timeout:10];(nwr["amenity"="restaurant"](around:${radius},${center.lat},${center.lng});nwr["tourism"="hotel"](around:${radius},${center.lat},${center.lng}););out center 60;`;
+  try {
+    const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, { signal: mapRequestController.signal });
+    if (!response.ok) throw new Error('Nearby places unavailable');
+    const data = await response.json();
+    const seen = new Set();
+    activeMapPlaces = data.elements.map((element) => {
+      const tags = element.tags || {};
+      const latitude = Number(element.lat ?? element.center?.lat);
+      const longitude = Number(element.lon ?? element.center?.lon);
+      const type = tags.amenity === 'restaurant' ? 'restaurant' : 'hotel';
+      return { id: `${type}-${element.id}`, name: tags.name, latitude, longitude, type };
+    }).filter((place) => place.name && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)).filter((place) => {
+      const key = `${place.type}-${place.name}-${place.latitude.toFixed(5)}-${place.longitude.toFixed(5)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    renderMapPlaces();
+  } catch (error) {
+    if (error.name !== 'AbortError') { activeMapPlaces = []; renderMapPlaces(); }
+  }
+}
+function updateMapUserLocation(position, center = false) {
+  if (!activeMap || !window.L) return;
+  const point = [position.coords.latitude, position.coords.longitude];
+  if (!activeUserMarker) activeUserMarker = window.L.circleMarker(point, { radius: 8, color: '#fff', weight: 3, fillColor: '#156ee8', fillOpacity: 1 }).addTo(activeMap).bindPopup('You are here');
+  else activeUserMarker.setLatLng(point);
+  if (center) activeMap.setView(point, 15);
+}
+function stopMapLocationTracking() {
+  if (mapLocationWatchId !== null) navigator.geolocation?.clearWatch(mapLocationWatchId);
+  mapLocationWatchId = null;
+  root.querySelector('[data-action="map-track-location"]')?.setAttribute('aria-pressed', 'false');
+  root.querySelector('[data-action="map-track-location"]')?.classList.remove('active');
+}
+function startMapLocationTracking() {
+  if (!navigator.geolocation) { announce('Location is not available on this device'); return; }
+  mapLocationWatchId = navigator.geolocation.watchPosition((position) => updateMapUserLocation(position, true), () => { stopMapLocationTracking(); announce('Location permission is required'); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+  root.querySelector('[data-action="map-track-location"]')?.setAttribute('aria-pressed', 'true');
+  root.querySelector('[data-action="map-track-location"]')?.classList.add('active');
+}
+function teardownMap() {
+  stopMapLocationTracking();
+  clearTimeout(mapMoveTimer);
+  mapRequestController?.abort();
+  mapRequestController = null;
+  activeUserMarker = null;
+  activeMapPlaces = [];
+  if (activeMap) activeMap.remove();
+  activeMap = null;
+  activeMapMarkers = null;
+  activeMapPoiMarkers = null;
 }
 function renderMapArea(area = 'all') {
   const container = root.querySelector('[data-map-canvas]');
@@ -218,7 +308,7 @@ export function render() {
   const expandedSections = path === lastPath && path.startsWith('/experience/') ? [...root.querySelectorAll('[data-detail-section]')].filter((section) => section.open).map((section) => section.dataset.detailSection) : null;
   if (path !== lastPath) { state.galleryIndex = 0; state.availabilityChecked = false; }
   const transition = path !== lastPath ? mainNavigationTransition(lastPath) : '';
-  if (activeMap) { activeMap.remove(); activeMap = null; activeMapMarkers = null; }
+  teardownMap();
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
@@ -475,12 +565,15 @@ function clickAction(action, el) {
     case 'show-map': navigate('/map?city=' + encodeURIComponent(route().params.get('city') || 'Rome')); break;
     case 'map-marker': navigate('/experience/pantheon'); break;
     case 'map-area-filter': renderMapArea(value); break;
+    case 'map-place-filter': mapPlaceMode = value; renderMapPlaces(); break;
     case 'map-locate': {
       if (!activeMap || !navigator.geolocation) { announce('Location is not available on this device'); break; }
-      navigator.geolocation.getCurrentPosition(({ coords }) => {
-        activeMap?.setView([coords.latitude, coords.longitude], 15);
-        window.L?.circleMarker([coords.latitude, coords.longitude], { radius: 8, color: '#fff', weight: 3, fillColor: '#156ee8', fillOpacity: 1 }).addTo(activeMap).bindPopup('You are here').openPopup();
-      }, () => announce('Location permission is required'));
+      navigator.geolocation.getCurrentPosition((position) => updateMapUserLocation(position, true), () => announce('Location permission is required'));
+      break;
+    }
+    case 'map-track-location': {
+      if (mapLocationWatchId === null) startMapLocationTracking();
+      else stopMapLocationTracking();
       break;
     }
     case 'new-list': openModal('new-list'); break;
