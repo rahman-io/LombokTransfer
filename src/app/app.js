@@ -4,7 +4,6 @@ import { homeView } from '../features/home/view.js';
 import { searchView, resultsView, mapView } from '../features/search/view.js';
 import { createDiscoverMap } from '../features/search/map.js';
 import { wishlistView, favouritesView } from '../features/wishlist/view.js';
-import { bookingsView } from '../features/bookings/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
 import { inboxView, chatView } from '../features/messaging/view.js';
 import { loginView } from '../features/authentication/view.js';
@@ -19,6 +18,8 @@ import { addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPo
 import { chatMessage, chatMessages, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
+import { guideDashboardView, guidePackagesView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView } from '../features/guides/view.js';
+import { activeGuide, applyAsGuide, availableGuides, createGuideRequest, reviewGuideRequest, saveGuideProfile, setGuidePrice, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest } from '../features/guides/repository.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 import { escapeHtml } from '../utils/html.js';
@@ -147,7 +148,12 @@ function currentView() {
   if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
-  if (path === '/bookings') return bookingsView();
+  if (path === '/bookings') return travelerBookingsView();
+  if (path === '/guide') return guideDashboardView();
+  if (path === '/guide/packages') return guidePackagesView();
+  if (path === '/guide/availability') return guideAvailabilityView();
+  if (path === '/guide/profile') return guideProfileView();
+  if (path === '/guide/apply') return guideApplyView();
   if (path === '/profile') return profileView();
   if (path === '/trip-planner') return tripPlannerView(params.get('city') || '', Number(params.get('days') || 3), params.get('budget') || 'mid');
   if (path.startsWith('/profile/')) return profileSectionView(path.split('/')[2]);
@@ -396,6 +402,23 @@ function clickAction(action, el) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
     case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value }); render(); break;
+    case 'select-guide': update({ selectedGuideExperienceId: route().path.split('/')[2] || state.selectedExperience, selectedGuideId: id }); render(); break;
+    case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
+    case 'guide-request-accept':
+    case 'guide-request-decline':
+    case 'guide-request-complete': { const status = action === 'guide-request-accept' ? 'accepted' : action === 'guide-request-decline' ? 'declined' : 'completed'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
+    case 'guide-unblock-date': if (toggleGuideDate(activeGuide().id, value)) announce('Availability updated'); else announce('This date cannot be changed'); break;
+    case 'guide-toggle-experience': announce(toggleGuideExperience(activeGuide().id, id) ? 'Guide packages updated' : 'Cannot remove a package with an active request'); break;
+    case 'send-guide-request': {
+      const experienceId = route().path.split('/')[2];
+      const item = getExperience(experienceId);
+      const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : '';
+      const option = item?.packageOptions?.find((entry) => entry.id === packageId) || item?.packageOptions?.[0];
+      const request = createGuideRequest({ experienceId, packageId: option?.id, guideId: state.selectedGuideExperienceId === experienceId ? state.selectedGuideId : '', date: state.date, time: state.selectedTime, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email });
+      if (request) { state.checkoutStep = 1; navigate('/bookings'); }
+      else announce('Choose an available guide, date and package before requesting');
+      break;
+    }
     case 'open-dates': openModal('dates'); break;
     case 'show-availability': root.querySelector('#detail-availability')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
     case 'join-travelers': { const joined = state.joinedExperiences.includes(id); if (joined) { update({ joinedExperiences: state.joinedExperiences.filter((experienceId) => experienceId !== id) }); announce('You left this group'); break; } const experience = getExperience(id); const booking = experience ? getDemoBooking(experience) : null; const groupLabel = experience ? `${experience.city} · ${experience.title}` : 'Travel group'; const threadId = getOrCreateTravelGroupThread(id, booking?.bookedTravelers?.map((traveler) => traveler.id) || [], groupLabel); update({ joinedExperiences: [...state.joinedExperiences, id], travelerGroupThreads: { ...state.travelerGroupThreads, [id]: threadId } }); announce('You joined the travelers. Open the group chat below.'); break; }
@@ -480,6 +503,10 @@ function clickAction(action, el) {
     case 'select-time': update({ selectedTime: value }); render(); break;
     case 'meeting': state.modalTitle = 'Meeting point'; state.modalMessage = 'Your exact meeting point will be confirmed after booking.'; openModal('message'); break;
     case 'go-payment': {
+      const experienceId = route().path.split('/')[2];
+      const experience = getExperience(experienceId);
+      const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : experience?.packageOptions?.[0]?.id;
+      if (experience?.packageOptions?.length && (!state.date || !availableGuides(experienceId, packageId, state.date, state.adults + state.children).some((guide) => guide.id === state.selectedGuideId && state.selectedGuideExperienceId === experienceId))) { announce('Choose a date and an available guide first'); break; }
       const name = document.getElementById('checkout-name');
       const email = document.getElementById('checkout-email');
       const phone = document.getElementById('checkout-phone');
@@ -943,10 +970,23 @@ export function startApp() {
     }
     if (['chat-photo-input', 'chat-camera-input'].includes(event.target.id) && event.target.files?.length) sendChatPhotoFiles(route().path.split('/')[3], event.target.files);
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
+    if (event.target.id === 'guide-account-select' && switchGuide(event.target.value)) render();
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
   root.addEventListener('submit', (event) => {
+    if (event.target.id === 'guide-apply-form') {
+      event.preventDefault(); const form = event.target;
+      const guide = applyAsGuide({ name: form.elements.name.value, area: form.elements.area.value, languages: form.elements.languages.value, bio: form.elements.bio.value, capacity: form.elements.capacity.value, experienceIds: [...form.querySelectorAll('input[name="experienceIds"]:checked')].map((input) => input.value) });
+      if (guide) navigate('/guide'); else announce('Choose at least one destination'); return;
+    }
+    if (event.target.id === 'guide-profile-form' || event.target.id === 'guide-capacity-form') {
+      event.preventDefault(); const form = event.target; const guide = activeGuide();
+      if (saveGuideProfile(guide.id, { name: form.elements.name?.value || guide.name, area: form.elements.area?.value || guide.area, languages: form.elements.languages?.value ?? guide.languages, bio: form.elements.bio?.value ?? guide.bio, capacity: form.elements.capacity?.value || guide.capacity })) announce('Guide profile saved'); else announce('Check the profile fields'); return;
+    }
+    if (event.target.id === 'guide-date-form') { event.preventDefault(); announce(toggleGuideDate(activeGuide().id, event.target.elements.date.value) ? 'Availability updated' : 'This date cannot be changed'); return; }
+    if (event.target.classList.contains('guide-price-form')) { event.preventDefault(); announce(setGuidePrice(activeGuide().id, event.target.dataset.packageId, event.target.elements.price.value) ? 'Package price saved' : 'Enter a valid price'); return; }
+    if (event.target.classList.contains('guide-review-form')) { event.preventDefault(); announce(reviewGuideRequest(event.target.dataset.requestId, state.email, event.target.elements.stars.value, event.target.elements.comment.value) ? 'Review submitted' : 'Review could not be saved'); return; }
     if (event.target.id === 'chat-message-form') {
       event.preventDefault();
       const threadId = route().path.split('/')[3];
