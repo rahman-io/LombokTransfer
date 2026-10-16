@@ -135,6 +135,16 @@ export function proposeBookingChange(id, actor, field, value) {
   logBookingEvent(request, 'change_proposed', `${role} proposed a new ${field === 'meetingPoint' ? 'meeting point' : field}: ${clean}.`, role);
   write(data); return true;
 }
+export function setBookingMeetingPoint(id, actor, value) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const role = request && bookingActor(request, actor);
+  const clean = String(value || '').trim().slice(0, 160);
+  if (!role || role !== 'guide' || request.status !== 'accepted' || request.paymentStatus !== 'paid' || request.tripMode === 'shared' || bookingSafety(request).guideStartedAt || openReport(request) || bookingSafety(request).proposal || !clean) return false;
+  editableSafety(request).meetingPoint = clean;
+  logBookingEvent(request, 'meeting_point_set', `The guide set the official public meeting point: ${clean}.`, 'guide');
+  write(data); return true;
+}
 export function respondBookingChange(id, actor, accept) {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id);

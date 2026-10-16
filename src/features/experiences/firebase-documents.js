@@ -23,7 +23,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
       knowBeforeYouGo: item.sourceNote || 'Please check the activity details and arrival instructions before your visit.',
     },
     cancellation: item.pricePending ? null : item.cancellation || { title: 'Free cancellation', text: 'Cancel up to 24 hours in advance for a full refund' },
-    meetingPoint: { description: item.pricePending ? item.availabilityNote || 'Exact meeting and transfer arrangements are pending operator confirmation.' : 'Meeting point details will be shown with your booking confirmation.', latitude: null, longitude: null },
+    meetingPoint: { description: item.pricePending ? item.availabilityNote || 'Exact meeting and transfer arrangements are pending operator confirmation.' : 'The guide sets the official public meeting point after booking. You can request a different suitable point in chat, but the guide must approve it before it changes.', latitude: null, longitude: null },
     pricing: item.pricePending ? {
       currency: item.listedPriceCurrency || 'IDR',
       adultBaseCents: null,

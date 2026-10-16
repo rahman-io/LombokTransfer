@@ -22,7 +22,7 @@ import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
-import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
+import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
@@ -537,6 +537,7 @@ function clickAction(action, el) {
       const request = thread?.context?.requestId ? guideDemoData().requests.find((entry) => entry.id === thread.context.requestId) : null;
       const messages = { meeting: 'Hi, let’s confirm the meeting point for this booking.', time: 'Can we confirm the departure time for this booking?', location: 'Please share the meeting location or map pin for this booking.' };
       if (value === 'meeting' && request?.tripMode === 'shared') { const sharedThreadId = getOrCreateSharedTripThread(request.offerId); if (sharedThreadId) navigate(`/inbox/chat/${encodeURIComponent(sharedThreadId)}`); else announce('Shared trip chat is unavailable'); break; }
+      if (value === 'meeting' && request) { navigate(`/bookings/${encodeURIComponent(request.id)}/safety`); break; }
       if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside FindMyGuide. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
       if (value === 'details' || value === 'qr') { if (request) navigate(`/bookings/${encodeURIComponent(request.id)}`); break; }
       if (messages[value] && sendChatMessage(id, messages[value])) { announce(value === 'location' ? 'Location request sent' : 'Message sent'); render(); }
@@ -658,7 +659,7 @@ function clickAction(action, el) {
       break;
     }
     case 'select-time': update({ selectedTime: value }); render(); break;
-    case 'meeting': state.modalTitle = 'Meeting point'; state.modalMessage = 'Your exact meeting point will be confirmed after booking.'; openModal('message'); break;
+    case 'meeting': state.modalTitle = 'Meeting point'; state.modalMessage = 'The guide sets a safe public meeting point after booking. You can request a different suitable point in chat, subject to guide approval.'; openModal('message'); break;
     case 'go-payment': {
       const experienceId = route().path.split('/')[2];
       const experience = getExperience(experienceId);
@@ -1183,6 +1184,17 @@ export function startApp() {
         announce('Official group meeting point updated; traveler acknowledgements were reset if it changed');
         render();
       } else announce('Only the assigned guide team can set the point before the trip starts, and at least one paid traveler party is required');
+      return;
+    }
+    if (event.target.id === 'booking-meeting-point-form') {
+      event.preventDefault();
+      const form = event.target;
+      const point = form.elements.meetingPoint.value;
+      if (setBookingMeetingPoint(form.dataset.bookingId, activeBookingActor(), point)) {
+        bookingChatSystemUpdate(form.dataset.bookingId, 'The guide set the official public meeting point for this booking. Traveler requests must be approved before they change it.');
+        announce('Official meeting point saved');
+        render();
+      } else announce('Only the assigned guide can set a public meeting point before the trip starts');
       return;
     }
     if (event.target.id === 'shared-departure-decision-form') {
