@@ -16,7 +16,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
     content: {
       fullDescription: item.description,
       highlights: [...item.highlights],
-      includes: [...(item.packageIncludes || item.includes || ['Experience as described', 'Booking confirmation'])],
+      includes: [...(item.packageIncludes || item.includes || [])],
       ...(item.packageExcludes?.length ? { excludes: [...item.packageExcludes] } : {}),
       whatToBring: [...(item.whatToBring || (item.pricePending ? [] : ['Comfortable shoes', 'Passport or ID card']))],
       notAllowed: item.pricePending ? [] : ['Large bags or luggage'],

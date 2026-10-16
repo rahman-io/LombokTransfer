@@ -14,6 +14,9 @@ import { socialPostsForExperience, socialUser, visibleSocialPosts } from '../soc
 import { socialBookingSignals } from '../social/intelligence.js';
 import { getBookingLikelihood, getPriceAvailabilityAlerts, getSmartBundle } from '../booking-intelligence/repository.js';
 import { getSmartReviewIntelligence } from '../travel-intelligence/repository.js';
+function neutralizeGuideClaims(text) {
+  return String(text || '').replace(/Hear stories from a local guide/gi, 'Discover local stories').replace(/Enjoy the company of a local guide/gi, 'Enjoy the surrounding scenery').replace(/\s+with a local guide(?: based near [^.]+)?/gi, '').replace(/\s+with a guide/gi, '').replace(/\s+from a local guide/gi, '').replace(/\s{2,}/g, ' ').replace(/\s+([.,])/g, '$1').trim();
+}
 export function experienceView(id) {
   const item = getExperience(id);
   const isInquiryOnly = Boolean(item.isInquiryOnly);
@@ -45,6 +48,7 @@ export function experienceView(id) {
   const startingPackageEntry = startingPackageEntries[0];
   const startingPriceAvailable = Boolean(startingPackageEntry);
   const guideAvailable = startingPriceAvailable;
+  const presentedDocument = guideAvailable ? document : { ...document, summary: neutralizeGuideClaims(document.summary), content: { ...document.content, fullDescription: neutralizeGuideClaims(document.content.fullDescription), highlights: document.content.highlights.map((text) => neutralizeGuideClaims(text)), includes: [] } };
   const startingPrice = startingPackageEntry ? formatListedPrice({ listedPrice: startingPackageEntry.amount, listedPriceCurrency: startingPackageEntry.option.currency || 'IDR' }) : '';
   const noGuideText = '-';
   const selectedPackagePrice = availabilityReady ? selectedPackage ? selectedOffer ? formatListedPrice({ listedPrice: selectedOffer.price, listedPriceCurrency: selectedPackage.currency }) : startingPriceAvailable ? 'Choose a departure' : noGuideText : noGuideText : startingPriceAvailable ? startingPrice : noGuideText;
@@ -75,7 +79,7 @@ export function experienceView(id) {
     <div class="detail-body">
       <h1>${escapeHtml(item.title)}</h1>
       ${isInquiryOnly || !Number(item.reviews) ? item.badge ? `<div class="detail-rating"><span class="red-badge">${escapeHtml(item.badge)}</span></div>` : '' : `<div class="detail-rating">${item.badge ? `<span class="red-badge">${escapeHtml(item.badge)}</span>` : ''}<span class="star-large">★</span> ${escapeHtml(item.rating)} <button data-action="reviews">${escapeHtml(item.reviews)} reviews</button></div>`}
-      <p class="detail-intro">${escapeHtml(item.description)}</p>
+      <p class="detail-intro">${escapeHtml(presentedDocument.content.fullDescription)}</p>
       ${photoCreditsSection}
       ${bookingNotice}
       ${inquiryNotice}
@@ -86,9 +90,9 @@ export function experienceView(id) {
       ${guideAvailable || item.location || item.openingHours ? `<div class="detail-facts">${guideAvailable ? `<div><span>${icon('calendar', 27)}<strong>${escapeHtml(cancellation.title)}</strong><small>${escapeHtml(cancellation.text)}</small></span></div><div><span>${icon('clock', 27)}<strong>${escapeHtml(item.validity || 'Duration ' + item.duration)}</strong><small>Check availability to see starting times</small></span></div><div><span>${icon('tickets', 27)}<strong>Reserve now & pay later</strong><small>Keep your travel plans flexible</small></span></div>` : ''}${item.location ? `<div>${icon('pin', 27)}<span><strong>Location</strong><small>${escapeHtml(item.location)}</small></span></div>` : ''}${item.openingHours ? `<div>${icon('clock', 27)}<span><strong>Opening hours</strong><small>${escapeHtml(item.openingHours)}</small></span></div>` : ''}</div>` : ''}
       ${guideAvailable && !isInquiryOnly && !item.demoBookingNotice ? `<section class="booking-intelligence"><div class="booking-intelligence-heading"><span>${icon('sparkle', 16)} Smart travel signals</span><small>Local AI demo</small></div><div class="booking-intelligence-grid"><article class="booking-signal-card"><small>Booking likelihood</small><strong>${bookingLikelihood.score}%</strong><b>${escapeHtml(bookingLikelihood.label)}</b><p>${escapeHtml(bookingLikelihood.timing)}</p><em>${escapeHtml(bookingLikelihood.reason)}</em></article><article class="booking-signal-card"><small>Price & availability alerts</small>${bookingAlerts.slice(0, 2).map((alert) => `<div class="booking-alert"><strong>${escapeHtml(alert.title)}</strong><p>${escapeHtml(alert.text)}</p></div>`).join('')}</article></div>${smartBundle.items.length ? `<article class="smart-bundle"><div><small>Smart bundle</small><strong>Smart bundle suggestions</strong><p>${escapeHtml(smartBundle.reason)} · Save about $${smartBundle.savings}</p></div><div class="smart-bundle-items">${smartBundle.items.map((bundleItem) => `<a href="#/experience/${escapeHtml(bundleItem.id)}"><img src="${escapeHtml(bundleItem.image)}" alt="" /><span>${escapeHtml(bundleItem.title)}</span></a>`).join('')}</div></article>` : ''}</section><section class="detail-section"><h2>What travelers loved ${icon('info', 18)}</h2><div class="review-card"><div class="review-stars">★★★★★</div><strong>${escapeHtml(reviews.featured.author)} - ${escapeHtml(reviews.featured.country)}</strong><small>${escapeHtml(reviews.featured.dateLabel)} · Verified booking</small><p>${escapeHtml(reviews.featured.text)}</p></div><button class="outline-button" data-action="reviews">See more reviews</button></section>` : ''}
       ${guideAvailable && booking?.popularDays?.length ? `<section class="popular-days" aria-label="Most popular days"><h2>Most popular days <small>Demo data</small></h2><div class="popular-days-row">${dayNames.map((name, day) => `<span class="popular-day ${booking.popularDays.includes(day) ? 'active' : ''}" aria-label="${name}${booking.popularDays.includes(day) ? ', popular' : ''}">${name}</span>`).join('')}</div></section>` : ''}
-      <details class="detail-section detail-accordion" data-detail-section="highlights" open><summary><h2>Highlights</h2>${icon('down')}</summary><ul class="bullet-list">${document.content.highlights.map((text) => `<li>${escapeHtml(text)}</li>`).join('')}</ul></details>
-      <details class="detail-section detail-accordion" data-detail-section="description"><summary><h2>Full description</h2>${icon('down')}</summary><p>${escapeHtml(document.content.fullDescription)}</p></details>
-      <details class="detail-section detail-accordion" data-detail-section="includes"><summary><h2>Includes</h2>${icon('down')}</summary><ul class="check-list">${document.content.includes.map((entry) => `<li>${icon('check', 19)} ${escapeHtml(entry)}</li>`).join('')}</ul></details>
+      <details class="detail-section detail-accordion" data-detail-section="highlights" open><summary><h2>Highlights</h2>${icon('down')}</summary><ul class="bullet-list">${presentedDocument.content.highlights.map((text) => `<li>${escapeHtml(text)}</li>`).join('')}</ul></details>
+      <details class="detail-section detail-accordion" data-detail-section="description"><summary><h2>Full description</h2>${icon('down')}</summary><p>${escapeHtml(presentedDocument.content.fullDescription)}</p></details>
+      ${guideAvailable ? `<details class="detail-section detail-accordion" data-detail-section="includes"><summary><h2>Includes</h2>${icon('down')}</summary><ul class="check-list">${presentedDocument.content.includes.map((entry) => `<li>${icon('check', 19)} ${escapeHtml(entry)}</li>`).join('')}</ul></details>` : ''}
       ${itinerarySection}
       ${exclusionsSection}
       ${(isInquiryOnly || item.demoBookingNotice) && item.sourceNote ? `<details class="detail-section detail-accordion" data-detail-section="source-notes"><summary><h2>Source and planning notes</h2>${icon('down')}</summary><p>${escapeHtml(item.sourceNote)}</p></details>` : ''}
