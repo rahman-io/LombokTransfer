@@ -21,6 +21,7 @@ import skydivingThumbA from '../../assets/images/skydiving-thumb-a-clean.webp';
 import skydivingThumbB from '../../assets/images/skydiving-thumb-b-clean.webp';
 import kayakingThumbA from '../../assets/images/kayaking-thumb-a-clean.webp';
 import kayakingThumbB from '../../assets/images/kayaking-thumb-b-clean.webp';
+import sumbawaWhaleShark from '../../assets/images/sumbawa-whale-shark.webp';
 import { demoBookingData } from './booking-demo.js';
 import { toExperienceDocument, toMediaDocuments, toDestinationDocument, toTileMediaDocument } from './firebase-documents.js';
 
@@ -41,17 +42,35 @@ const tripadvisorImages = {
   tetebatu: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0a/51/c7/26/tete-batu-walk.jpg?w=700&h=700&s=1',
 };
 
+const sumbawaImages = {
+  kenawa: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Pulau_kenawa.jpg/1280px-Pulau_kenawa.jpg',
+  moyo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Moyo_Island%2C_North_Sumbawa.JPG/1280px-Moyo_Island%2C_North_Sumbawa.JPG',
+  mataJitu: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Sumbawa_Adventour_-_Moyo_Island_Mata_Jitu_Waterfall.jpg/1280px-Sumbawa_Adventour_-_Moyo_Island_Mata_Jitu_Waterfall.jpg',
+  whaleShark: sumbawaWhaleShark,
+};
+
+const sumbawaPhotoCredits = {
+  kenawa: { label: 'Papudaengoyang · CC BY-SA 4.0 · Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/File:Pulau_kenawa.jpg' },
+  moyo: { label: 'Katiebowl · CC BY-SA 3.0 · Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/File:Moyo_Island,_North_Sumbawa.JPG' },
+  mataJitu: { label: 'Egaryan Saadi · CC BY-SA 4.0 · Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/File:Sumbawa_Adventour_-_Moyo_Island_Mata_Jitu_Waterfall.jpg' },
+};
+
 export const images = { rome: tripadvisorImages.lombok, paris: tripadvisorImages.mataram, statue: tripadvisorImages.rinjani, vatican: tripadvisorImages.tanjungAan, wishlist: tripadvisorImages.sembalun, colosseum: tripadvisorImages.tanjungAan, arena: tripadvisorImages.rinjani, vaticanTour: tripadvisorImages.sendangGile, basilica: tripadvisorImages.mangkuSakti, pantheon: tripadvisorImages.giliMeno, pantheonCard: tripadvisorImages.giliMeno, skydiving: tripadvisorImages.selongBelanak, kayaking: tripadvisorImages.senggigi, mapCore, login, agafay: tripadvisorImages.tetebatu, sumo: tripadvisorImages.sembalun, pantheonThumbA: tripadvisorImages.giliAir, pantheonThumbB: tripadvisorImages.senggigi, skydivingThumbA: tripadvisorImages.mawun, skydivingThumbB: tripadvisorImages.pantaiPink, kayakingThumbA: tripadvisorImages.giliMeno, kayakingThumbB: tripadvisorImages.giliAir };
 
 export const destinations = [
   { name: 'Lombok', location: 'NTB, Indonesia', image: images.rome, count: '1,420 activities', rating: '4.8' },
   { name: 'Mataram', location: 'NTB, Indonesia', image: images.paris, count: '1,205 activities', rating: '4.8' },
   { name: 'Sembalun', location: 'East Lombok, NTB', image: images.wishlist, count: '980 activities', rating: '4.7' },
+  { name: 'Sumbawa', location: 'West Nusa Tenggara, Indonesia', image: sumbawaImages.kenawa, imageCredit: sumbawaPhotoCredits.kenawa, count: '5 places & experiences' },
 ];
 
 export const attractions = [
   { name: 'Mount Rinjani', image: images.statue, city: 'Sembalun', count: '248 activities' },
   { name: 'Tanjung Aan Beach', image: images.vatican, city: 'Lombok', count: '530 activities' },
+  { name: 'Pulau Kenawa', image: sumbawaImages.kenawa, imageCredit: sumbawaPhotoCredits.kenawa, city: 'Sumbawa', experienceId: 'pulau-kenawa', count: 'Island experience' },
+  { name: 'Pulau Moyo', image: sumbawaImages.moyo, imageCredit: sumbawaPhotoCredits.moyo, city: 'Sumbawa', experienceId: 'pulau-moyo', count: 'Island experience' },
+  { name: 'Mata Jitu Waterfall', image: sumbawaImages.mataJitu, imageCredit: sumbawaPhotoCredits.mataJitu, city: 'Sumbawa', experienceId: 'mata-jitu-waterfall', count: 'Waterfall experience' },
+  { name: 'Whale shark encounter', image: sumbawaImages.whaleShark, city: 'Sumbawa', experienceId: 'sumbawa-whale-shark', count: 'Marine wildlife' },
 ];
 
 const waterfallFallback = tripadvisorImages.sendangGile;
@@ -294,6 +313,123 @@ const articleExperiences = [
   },
 ];
 
+const sumbawaExperiences = [
+  {
+    id: 'pulau-kenawa', title: 'Pulau Kenawa Island Escape', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.kenawa,
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.kenawa,
+    badge: 'Details pending', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature'],
+    description: 'Discover Pulau Kenawa near Poto Tano, with open coastal views and a savanna landscape. Local transport, access conditions, and any fees need confirmation before travel.',
+    location: 'Poto Tano, West Sumbawa, West Nusa Tenggara',
+    highlights: ['Explore Pulau Kenawa’s coastal landscape', 'Enjoy open sea and island views', 'Confirm boat access and conditions with the operator'],
+    availabilityNote: 'Price, visit dates, transport, and access details have not been confirmed by an operator yet.',
+    sourceNote: 'Location and access details are a preliminary demo listing; confirm local conditions before travel.',
+  },
+  {
+    id: 'pulau-moyo', title: 'Pulau Moyo Nature & Snorkeling', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.moyo,
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.moyo,
+    badge: 'Details pending', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature', 'Marine wildlife'],
+    description: 'Explore Pulau Moyo’s coastal scenery and surrounding marine landscape. Boat departures, snorkeling stops, local transport, and access conditions must be confirmed with an operator.',
+    location: 'Pulau Moyo, Sumbawa Regency, West Nusa Tenggara',
+    highlights: ['Explore an island off northern Sumbawa', 'Discover coastal and marine scenery', 'Confirm boat and snorkeling arrangements before travel'],
+    availabilityNote: 'Price, visit dates, transport, and access details have not been confirmed by an operator yet.',
+    sourceNote: 'This is a destination preview, not a confirmed guided activity or departure.',
+  },
+  {
+    id: 'mata-jitu-waterfall', title: 'Mata Jitu Waterfall on Pulau Moyo', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.mataJitu,
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.mataJitu,
+    badge: 'Details pending', label: 'Waterfall', category: 'Waterfall', categories: ['Waterfall', 'Nature'],
+    description: 'Visit Mata Jitu Waterfall on Pulau Moyo and explore the natural pools and forest setting. The supplied open-trip itinerary mentions a motorbike transfer from Labuan Aji and a short walk; current access and fees need local confirmation.',
+    location: 'Pulau Moyo, Sumbawa Regency, West Nusa Tenggara',
+    highlights: ['Visit Mata Jitu Waterfall', 'Explore its natural pools and forest setting', 'Confirm access, local transport, and park fees before travel'],
+    availabilityNote: 'Price, visit dates, transport, and access details have not been confirmed by an operator yet.',
+    sourceNote: 'The package screenshot mentions a motorbike transfer and short walk; actual conditions and fees may change.',
+  },
+  {
+    id: 'sumbawa-whale-shark', title: 'Sumbawa Whale Shark Boat Experience', city: 'Sumbawa', duration: 'Schedule pending', image: sumbawaImages.whaleShark,
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true,
+    badge: 'Wildlife experience', label: 'Marine wildlife', category: 'Marine wildlife', categories: ['Marine wildlife', 'Nature'],
+    description: 'A boat-based whale shark activity is listed among the supplied Sumbawa open-trip facilities. Sightings are wildlife encounters and cannot be guaranteed; exact location, schedule, safety rules, and responsible viewing procedures must be confirmed by the local operator.',
+    location: 'Sumbawa, West Nusa Tenggara · exact departure point pending',
+    highlights: ['Private boat activity listed in the source package', 'Transparent canoe and snorkeling equipment are listed as included', 'Wildlife sightings and operating conditions are not guaranteed'],
+    includes: ['Private boat activity as listed in the source package', 'Transparent canoe as listed in the source package', 'Snorkeling fins, mask, and life jacket as listed in the source package'],
+    availabilityNote: 'Price, date, departure location, safety briefing, and wildlife-viewing conditions have not been confirmed by an operator yet.',
+    sourceNote: 'Whale shark photo supplied by the user. The image is illustrative and does not guarantee a sighting or represent a confirmed location.',
+  },
+  {
+    id: 'sumbawa-open-trip-3d2n', title: 'Sumbawa Open Trip: Kenawa, Moyo & Whale Sharks', city: 'Sumbawa', duration: '3 days · 2 nights', image: sumbawaImages.whaleShark,
+    gallery: [sumbawaImages.whaleShark, sumbawaImages.kenawa, sumbawaImages.moyo, sumbawaImages.mataJitu],
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, featured: true,
+    imageCredits: [sumbawaPhotoCredits.kenawa, sumbawaPhotoCredits.moyo, sumbawaPhotoCredits.mataJitu],
+    badge: 'Open trip preview', label: 'Multi-day open trip', category: 'Open trip', categories: ['Open trip', 'Island', 'Waterfall', 'Marine wildlife', 'Nature'],
+    packageType: '3 days · 2 nights · open trip',
+    description: 'A three-day Sumbawa open-trip preview based on the supplied Instagram itinerary: travel from Lombok to Pulau Kenawa, explore Pulau Moyo and Mata Jitu Waterfall, and include the listed whale shark boat activity. Price, departure dates, seat capacity, and final-day logistics still need operator confirmation.',
+    location: 'Lombok Airport area · Kayangan · Poto Tano · Sumbawa',
+    highlights: ['Pulau Kenawa and Pulau Pasir Bintang (tide-dependent alternative)', 'Pulau Moyo, Takad Sagele, and Mata Jitu Waterfall', 'Whale shark boat activity listed; schedule and sighting conditions to be confirmed'],
+    packageIncludes: [
+      'Hotel pickup and drop-off in the Lombok Airport area (as stated in the source)',
+      'Air-conditioned transport during the trip',
+      'Private boat to Pulau Kenawa and Pulau Pasir',
+      'Private boat activity to the whale sharks',
+      'Private speedboat to Pulau Moyo',
+      'Transparent canoe for the whale shark activity',
+      'Snorkeling fins, mask, and life jacket',
+      'Breakfast 2 times, lunch 3 times, and dinner 2 times',
+      'Hotel for 2 nights (one room for 2 people)',
+      'Motorbike transfer to Mata Jitu Waterfall',
+      'Photo and video documentation per person',
+      'Drone ticket at Mata Jitu Waterfall in the national park area',
+      'DJI Air 3S drone documentation',
+      'Underwater documentation with DJI Osmo 5 Pro (as written in the source)',
+      'Sony A7C photo documentation',
+      'Tour guide',
+      'Mineral water during the trip',
+      'Tourist entrance tickets (scope to be confirmed)',
+    ],
+    packageExcludes: [
+      'Hotel and dinner on the third night in Lombok',
+      'Transfer out to the airport',
+    ],
+    packageItinerary: [
+      {
+        day: 'Day 1', title: 'Lombok · Poto Tano · Pulau Kenawa',
+        items: [
+          { time: '08:00', text: 'Pick up from a hotel in the Lombok Airport area and travel to Kayangan Harbor.' },
+          { time: '10:00', text: 'Arrive at Kayangan Harbor, then take the ferry to Poto Tano (estimated crossing time: 2 hours).' },
+          { time: '12:00', text: 'Arrive at Poto Tano and continue to Pulau Kenawa (about 15 minutes from the harbor).' },
+          { time: '12:15', text: 'Arrive at Pulau Kenawa, rest and have lunch, then take drone photos and video of the savanna.' },
+          { time: '15:30', text: 'Visit Pulau Pasir Bintang. If the tide is high, the source says this may be replaced with a green-light sunset spot near Pulau Kenawa.' },
+          { time: '18:00', text: 'Return to the crossing pier and continue to a hotel in Sumbawa Besar.' },
+          { time: '20:00', text: 'Dinner and rest at the hotel.' },
+        ],
+      },
+      {
+        day: 'Day 2', title: 'Pulau Moyo · Mata Jitu Waterfall · Labuan Jambu',
+        items: [
+          { time: '08:00', text: 'Take a private boat to Pulau Moyo.' },
+          { time: '09:00', text: 'Arrive at Takad Sagele, then snorkel.' },
+          { time: '10:00', text: 'Continue to Labuan Aji village.' },
+          { time: '10:10', text: 'Arrive at Labuan Aji and continue to the waterfall by motorbike.' },
+          { time: '10:30', text: 'Park, walk about 7 minutes to Kolam Biru, then about 3 more minutes to Kolam Lady Diana.' },
+          { time: '13:30', text: 'Return to Labuan Aji, rest, and have lunch.' },
+          { time: '15:00', text: 'Travel back to Sumbawa Besar.' },
+          { time: '16:20', text: 'Arrive in Sumbawa Besar and continue to the Ai Lemak sunset spot.' },
+          { time: '18:00', text: 'Dinner, then travel to a hotel in Labuan Jambu.' },
+          { time: '21:00', text: 'Arrive at the hotel and rest.' },
+        ],
+      },
+      {
+        day: 'Day 3', title: 'Whale shark activity · schedule to be confirmed',
+        items: [
+          { time: 'TBC', text: 'The source lists a private boat activity to the whale sharks, a transparent canoe, snorkeling equipment, and documentation. The departure point, timing, return journey, and any transfer back to Lombok are not shown and must be confirmed by the operator.' },
+        ],
+      },
+    ],
+    itineraryNote: 'Day 3 timing and return logistics are not visible in the supplied source. The third-night Lombok hotel and airport transfer are explicitly excluded; confirm how and when the trip returns to Lombok before booking.',
+    availabilityNote: 'Preview only — no operator has confirmed the price, departure dates, seat capacity, Day 3 schedule, or return logistics. Booking is not open yet.',
+    sourceNote: 'Itinerary and package contents are transcribed from the user-provided Instagram screenshots. Confirm all details with the operator before selling or booking.',
+  },
+];
+
 export const experiences = [
   {
     id: 'colosseum', title: 'Lombok: Tanjung Aan Beach & Kuta Coast Guided Tour',
@@ -390,22 +526,27 @@ export const experiences = [
   ...waterfallExperiences,
   ...beachExperiences,
   ...volcanoExperiences,
+  ...sumbawaExperiences,
 ];
 
 export const experienceCategories = [
-  { id: 'pantai', name: 'Beach', description: 'Discover Lombok beaches and coastlines', image: beachCatalog[0].image, count: beachExperiences.length, value: 'Beach' },
-  { id: 'air-terjun', name: 'Waterfall', description: 'Explore hidden waterfalls', image: waterfallCatalog[0].image, count: waterfallExperiences.length, value: 'Waterfall' },
-  { id: 'gunung-berapi', name: 'Volcano', description: 'Enjoy Rinjani’s volcanic landscapes', image: volcanoCatalog[0].image, count: experiences.filter((item) => item.category === 'Volcano' || item.categories?.includes('Volcano')).length, value: 'Volcano' },
-  { id: 'alam', name: 'Nature', description: 'Find viewpoints, forests, and natural escapes', image: articleExperiences.find((item) => item.category === 'Nature').image, count: experiences.filter((item) => item.category === 'Nature' || item.categories?.includes('Nature')).length, value: 'Nature' },
-  { id: 'budaya', name: 'Culture', description: 'Meet Lombok communities and traditions', image: experiences.find((item) => item.category === 'Culture').image, count: experiences.filter((item) => item.category === 'Culture' || item.categories?.includes('Culture')).length, value: 'Culture' },
-];
+  { id: 'pantai', name: 'Beach', description: 'Discover beaches and coastlines across the islands', image: beachCatalog[0].image, value: 'Beach', city: 'all' },
+  { id: 'air-terjun', name: 'Waterfall', description: 'Explore waterfalls from Lombok to Pulau Moyo', image: waterfallCatalog[0].image, value: 'Waterfall', city: 'all' },
+  { id: 'gunung-berapi', name: 'Volcano', description: 'Explore Rinjani and volcanic landscapes', image: volcanoCatalog[0].image, value: 'Volcano', city: 'all' },
+  { id: 'alam', name: 'Nature', description: 'Find viewpoints, forests, islands, and natural escapes', image: articleExperiences.find((item) => item.category === 'Nature').image, value: 'Nature', city: 'all' },
+  { id: 'budaya', name: 'Culture', description: 'Meet communities and discover local traditions', image: experiences.find((item) => item.category === 'Culture').image, value: 'Culture', city: 'all' },
+  { id: 'islands', name: 'Islands', description: 'Explore island landscapes around Sumbawa', image: sumbawaImages.kenawa, imageCredit: sumbawaPhotoCredits.kenawa, value: 'Island', city: 'all' },
+  { id: 'marine-wildlife', name: 'Marine wildlife', description: 'Discover Sumbawa’s marine experiences responsibly', image: sumbawaImages.whaleShark, value: 'Marine wildlife', city: 'all' },
+  { id: 'open-trips', name: 'Open trips', description: 'Browse multi-day trips as operator details are confirmed', image: sumbawaImages.moyo, imageCredit: sumbawaPhotoCredits.moyo, value: 'Open trip', city: 'all' },
+].map((category) => ({ ...category, count: experiences.filter((item) => item.category === category.value || item.categories?.includes(category.value)).length }));
 
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];
 export const getExperienceGallery = (item) => item.gallery?.length ? item.gallery : [item.image];
 export const getPackageOption = (item, optionId = '') => item?.packageOptions?.find((option) => option.id === optionId) || item?.packageOptions?.[0] || null;
 export const getFeaturedExperiences = () => experiences.filter((item) => item.featured);
 export const getPopularExperiences = () => experiences.filter((item) => item.popularSearch);
-export const getExperiencesByCity = (city, category = '') => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase() && (!category || item.category === category || item.categories?.includes(category)));
+export const getExperiencesByCategory = (category = '') => experiences.filter((item) => !category || item.category === category || item.categories?.includes(category));
+export const getExperiencesByCity = (city, category = '') => experiences.filter((item) => (city.toLocaleLowerCase() === 'all' || item.city.toLocaleLowerCase() === city.toLocaleLowerCase()) && (!category || item.category === category || item.categories?.includes(category)));
 export const getExperiencesMatchingQuery = (query = '') => {
   const normalizedQuery = String(query).trim().toLocaleLowerCase();
   if (!normalizedQuery) return [];
