@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "GetYourGuide — Travel Experiences",
-  "short_name": "GetYourGuide",
+  "name": "FindMyGuide — Travel Experiences",
+  "short_name": "FindMyGuide",
   "description": "Experiences worth traveling for",
   "start_url": "./",
   "scope": "./",

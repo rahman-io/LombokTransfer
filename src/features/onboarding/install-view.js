@@ -8,7 +8,7 @@ export function installView({ canPrompt, status, platform }, devPreview = false)
       ? `<li>Buka menu browser <strong>⋮</strong>.</li><li>Pilih <strong>Install app</strong> atau <strong>Tambahkan ke layar utama</strong>.</li><li>Buka aplikasi melalui ikon yang baru terpasang.</li>`
       : `<li>Buka menu browser Anda.</li><li>Pilih <strong>Install app</strong> bila tersedia.</li><li>Buka aplikasi melalui ikon yang baru terpasang.</li>`;
   return `<div class="app-shell install-shell">
-    <div class="install-visual" style="background-image:url('${images.login}')"><div class="brand">GET<br/>YOUR<br/>GUIDE</div></div>
+    <div class="install-visual" style="background-image:url('${images.login}')"><div class="brand"><span class="brand-badge">FMG</span><span class="brand-name">FindMyGuide</span></div></div>
     <main class="install-content">
       <div class="install-symbol" aria-hidden="true">↧</div>
       <h1>${installed ? 'Aplikasi siap digunakan' : 'Pasang aplikasi untuk melanjutkan'}</h1>

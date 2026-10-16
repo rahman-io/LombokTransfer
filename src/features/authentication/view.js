@@ -5,7 +5,7 @@ import { escapeHtml } from '../../utils/html.js';
 export function loginView(mode = 'register', error = '') {
   const registering = mode === 'register';
   return `<div class="app-shell auth-shell">
-    <div class="auth-photo" style="background-image:url('${images.login}')"><div class="brand">GET<br/>YOUR<br/>GUIDE</div></div>
+    <div class="auth-photo" style="background-image:url('${images.login}')"><div class="brand"><span class="brand-badge">FMG</span><span class="brand-name">FindMyGuide</span></div></div>
     <div class="auth-content">
       <h1>${registering ? 'Create your traveler account' : 'Welcome back'}</h1>
       <p class="auth-demo-notice">Demo account only. Use a test email and password; Google and Facebook buttons simulate sign-in and are not connected to those services.</p>

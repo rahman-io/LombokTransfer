@@ -82,7 +82,7 @@ export function createSocialAccount({ id, displayName, email }) {
   }
   const initials = cleanName.split(' ').slice(0, 2).map((word) => word[0]).join('').toUpperCase();
   const colors = ['#315a87', '#8b5d45', '#566d65', '#74675b', '#587f8c'];
-  const user = { id, username, displayName: cleanName, initials, color: colors[socialState().users.length % colors.length], bio: 'New traveler on LombokTransfer.', location: 'Add your location', role: 'traveler', accountEmail, online: true };
+  const user = { id, username, displayName: cleanName, initials, color: colors[socialState().users.length % colors.length], bio: 'New traveler on FindMyGuide.', location: 'Add your location', role: 'traveler', accountEmail, online: true };
   socialState().users.push(user);
   return persist() ? user : null;
 }

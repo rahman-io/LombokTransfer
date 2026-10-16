@@ -10,7 +10,7 @@ import { getInstallState, isInstalledApp } from '../onboarding/install.js';
 import { guideById } from '../guides/repository.js';
 const groups = [
   ['Settings', [['Personal details', 'personal'], ['Saved cards', 'cards'], ['Currency', 'currency'], ['Language', 'language'], ['Appearance', 'appearance'], ['Notifications', 'notifications'], ['Privacy', 'privacy']]],
-  ['Support', [['About GetYourGuide', 'about'], ['Chat with us', 'chat'], ['Help center', 'help']]],
+  ['Support', [['About FindMyGuide', 'about'], ['Chat with us', 'chat'], ['Help center', 'help']]],
 ];
 export function profileView() {
   const greetingName = state.guestName.startsWith('A ') ? state.guestName.slice(2) : state.guestName.split(' ')[0];
@@ -39,7 +39,7 @@ export function profileView() {
   `, 'Profile');
 }
 export function profileSectionView(section) {
-  const titles = { personal: 'Personal details', cards: 'Saved cards', currency: 'Currency', language: 'Language', appearance: 'Appearance', notifications: 'Notifications', privacy: 'Privacy', about: 'About GetYourGuide', chat: 'Chat with us', help: 'Help center', promos: 'Your promos' };
+  const titles = { personal: 'Personal details', cards: 'Saved cards', currency: 'Currency', language: 'Language', appearance: 'Appearance', notifications: 'Notifications', privacy: 'Privacy', about: 'About FindMyGuide', chat: 'Chat with us', help: 'Help center', promos: 'Your promos' };
   const title = titles[section] || 'Settings';
   let body = '';
   if (section === 'personal') body = `<label class="form-label">Name<input id="profile-name" value="${escapeHtml(state.guestName)}" /></label><label class="form-label">Email address<input id="profile-email" type="email" value="${escapeHtml(state.email)}" /></label><button class="primary-button full" data-action="save-profile">Save changes</button>`;

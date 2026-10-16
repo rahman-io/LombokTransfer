@@ -439,7 +439,7 @@ function bookingChatContext(request) {
 function ensureBookingChat(threadId, request) {
   if (!threadId || !request) return threadId;
   const hasWelcome = chatMessages(threadId).some((message) => message.system && message.bookingId === request.bookingId);
-  if (!hasWelcome) sendChatSystemMessage(threadId, `Booking ${request.bookingId} is ready. Use this chat to coordinate the trip and keep payments inside LombokTransfer.`, { bookingId: request.bookingId });
+  if (!hasWelcome) sendChatSystemMessage(threadId, `Booking ${request.bookingId} is ready. Use this chat to coordinate the trip and keep payments inside FindMyGuide.`, { bookingId: request.bookingId });
   return threadId;
 }
 function activeBookingActor() {
@@ -508,7 +508,7 @@ function clickAction(action, el) {
       const request = thread?.context?.requestId ? guideDemoData().requests.find((entry) => entry.id === thread.context.requestId) : null;
       const messages = { meeting: 'Hi, let’s confirm the meeting point for this booking.', time: 'Can we confirm the departure time for this booking?', location: 'Please share the meeting location or map pin for this booking.' };
       if (value === 'meeting' && request?.tripMode === 'shared') { const sharedThreadId = getOrCreateSharedTripThread(request.offerId); if (sharedThreadId) navigate(`/inbox/chat/${encodeURIComponent(sharedThreadId)}`); else announce('Shared trip chat is unavailable'); break; }
-      if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside LombokTransfer. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
+      if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside FindMyGuide. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
       if (value === 'details' || value === 'qr') { if (request) navigate(`/bookings/${encodeURIComponent(request.id)}`); break; }
       if (messages[value] && sendChatMessage(id, messages[value])) { announce(value === 'location' ? 'Location request sent' : 'Message sent'); render(); }
       break;

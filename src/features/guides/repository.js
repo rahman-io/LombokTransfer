@@ -15,7 +15,7 @@ function bookingIdentity(id, createdAt = '') {
   do { verificationCode = Array.from(crypto.getRandomValues(new Uint8Array(6)), (value) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[value % 32]).join(''); } while (verificationCode === suffix);
   return { bookingId: `LT-${year}-${suffix}`, verificationCode };
 }
-export function bookingQrPayload(request) { return request?.bookingId && request?.verificationCode ? `lomboktransfer://booking/${encodeURIComponent(request.bookingId)}?code=${encodeURIComponent(request.verificationCode)}` : ''; }
+export function bookingQrPayload(request) { return request?.bookingId && request?.verificationCode ? `findmyguide://booking/${encodeURIComponent(request.bookingId)}?code=${encodeURIComponent(request.verificationCode)}` : ''; }
 const seedGuides = [
   { id: 'guide-adi', name: 'Adi Saputra', initials: 'AS', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', experienceIds: ['arena', 'sumo'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-nur', name: 'Nur Aisyah', initials: 'NA', area: 'North Lombok & Gili Islands', languages: 'Indonesian, English', bio: 'Island and waterfall guide who loves sharing local stories.', experienceIds: ['pantheon', 'vatican', 'basilica'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },

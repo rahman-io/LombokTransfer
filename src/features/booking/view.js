@@ -75,7 +75,7 @@ export function checkoutView(id) {
     <h2>Review details</h2><div class="review-details"><strong>${escapeHtml(state.guestName)}</strong><span>${escapeHtml(state.email)}</span><button data-action="edit-contact">Edit</button></div>${summary}
     <button class="promo-row" data-action="promo">${icon('tickets', 21)} Enter promo or gift code ${icon('chevron', 19)}</button>
     <div class="payment-total"><strong>Total</strong><strong>$${total}</strong></div><small class="tax-note">All taxes and fees included</small>
-    <p class="muted terms">By continuing, you agree to GetYourGuide's general terms and conditions and your activity provider's terms and conditions.</p>
+    <p class="muted terms">By continuing, you agree to FindMyGuide's general terms and conditions and your activity provider's terms and conditions.</p>
     <button class="primary-button full" data-action="card-details">${state.paymentMethod === 'card' ? 'Enter card details' : 'Continue'}</button>`;
   return mainLayout(`
     ${header(selectedPackage ? 'Booking request' : 'Checkout')}<div class="page-pad checkout-page">${selectedPackage ? tripOfferingPicker(item, selectedPackage, state.date, state.adults + state.children, selectedOffer?.id) : progress(step)}
