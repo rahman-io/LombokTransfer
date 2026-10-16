@@ -9,7 +9,7 @@ import { activeGuide, bookingQrPayload, filterTripOfferingsByPrice, financeBreak
 const esc = escapeHtml;
 const money = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
 const prettyDate = (date) => date ? new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date to be confirmed';
-const verificationCodeDisplay = (code) => `<span class="booking-code-display" aria-label="Verification code ${esc(code)}">${String(code || '').split('').map((character) => `<b>${esc(character)}</b>`).join('')}</span>`;
+const verificationCodeDisplay = (code) => `<div class="booking-code-tools"><span class="booking-code-display" aria-label="Verification code ${esc(code)}">${String(code || '').split('').map((character) => `<b>${esc(character)}</b>`).join('')}</span><button type="button" class="booking-code-copy" data-action="copy-booking-code" data-value="${esc(code)}">Copy</button></div>`;
 const packageCatalog = experiences.filter((item) => item.packageOptions?.length);
 const guidePackages = (guide) => packageCatalog.filter((item) => guide.experienceIds.includes(item.id)).flatMap((item) => item.packageOptions.map((option) => ({ item, option })));
 

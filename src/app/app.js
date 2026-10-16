@@ -550,6 +550,7 @@ function clickAction(action, el) {
     case 'view-group-members': state.travelerGroupThreadId = id; openModal('travel-group-members'); break;
     case 'reply-chat': state.chatReplyMessageId = id; state.chatEditMessageId = ''; render(); break;
     case 'open-chat-menu': { const menu = el.closest('.chat-message')?.querySelector('.chat-message-menu'); if (menu) { closeChatMenus(); menu.open = true; requestAnimationFrame(() => positionChatMenu(menu)); } break; }
+    case 'copy-booking-code': copyChatText(value || '').then(() => announce('Verification code copied')).catch(() => announce('Unable to copy verification code')); break;
     case 'copy-chat': { const message = chatMessage(route().path.split('/')[3], id); if (message?.text) copyChatText(message.text).then(() => announce('Text copied')).catch(() => announce('Unable to copy text')); break; }
     case 'copy-chat-selection': { const text = window.getSelection?.()?.toString().trim(); if (text) copyChatText(text).then(() => { root.querySelector('.chat-selection-copy')?.remove(); announce('Text copied'); }).catch(() => announce('Unable to copy text')); break; }
     case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
