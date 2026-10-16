@@ -25,7 +25,10 @@ function readState() {
       const userSeeds = new Map(demoSocialUsers.map((user) => [user.id, user]));
       saved.users = saved.users.map((user) => {
         const seed = userSeeds.get(user.id);
-        return seed ? { ...user, role: user.guideId ? 'guide' : seed.role, guideId: user.guideId || seed.guideId, accountEmail: user.accountEmail || seed.accountEmail } : user;
+        if (!seed) return user;
+        const updated = { ...user, role: user.guideId ? 'guide' : seed.role, guideId: user.guideId || seed.guideId, accountEmail: user.accountEmail || seed.accountEmail };
+        if (user.id === 'guide-sumbawa-demo' && /demo/i.test(`${user.username} ${user.displayName} ${user.bio}`)) Object.assign(updated, { username: seed.username, displayName: seed.displayName, bio: seed.bio });
+        return updated;
       });
       const existingUserIds = new Set(saved.users.map((user) => user.id));
       saved.users.push(...demoSocialUsers.filter((user) => !existingUserIds.has(user.id)).map((user) => clone(user)));

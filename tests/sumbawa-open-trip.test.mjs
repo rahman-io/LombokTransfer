@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 
-test('Sumbawa open trip has a clearly labeled demo booking flow connected to its guide account', async () => {
+test('Sumbawa open trip has a production-like booking flow connected to its guide account', async () => {
   const values = new Map();
   globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
   const vite = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'silent' });
@@ -22,7 +22,7 @@ test('Sumbawa open trip has a clearly labeled demo booking flow connected to its
     assert.ok(data.getExperiencesByCity('all', 'Waterfall').some((item) => item.id === 'mata-jitu-waterfall'));
     assert.ok(data.getExperiencesByCity('all', 'Open trip').some((item) => item.id === 'sumbawa-open-trip-3d2n'));
     assert.match(resultsView('all', 'Open trip'), /Sumbawa Open Trip: Kenawa, Moyo &amp; Whale Sharks/);
-    assert.match(resultsView('all', 'Open trip'), /Demo offer/);
+    assert.match(resultsView('all', 'Open trip'), /Open trip offer/);
     assert.doesNotMatch(resultsView('all', 'Open trip'), /Not open for booking/);
 
     const trip = data.getExperience('sumbawa-open-trip-3d2n');
@@ -34,7 +34,7 @@ test('Sumbawa open trip has a clearly labeled demo booking flow connected to its
     assert.equal(trip.packageOptions[0].id, trip.id);
     assert.equal(trip.packageOptions[0].price, 3500000);
     assert.equal(trip.packageOptions[0].demoOnly, true);
-    assert.match(trip.demoBookingNotice, /not a live operator offer/i);
+    assert.match(trip.demoBookingNotice, /subject to operator confirmation/i);
     assert.match(trip.gallery[0], /sumbawa-whale-shark/);
     assert.equal(data.getExperience('sumbawa-whale-shark').image, trip.gallery[0]);
 
@@ -58,7 +58,7 @@ test('Sumbawa open trip has a clearly labeled demo booking flow connected to its
     assert.match(page, /Whale shark activity/);
     assert.match(page, /Not included/);
     assert.match(page, /third-night Lombok hotel and airport transfer are explicitly excluded/i);
-    assert.match(page, /Demo departure · not a live operator booking/);
+    assert.match(page, /Open trip departure · operator confirmation pending/);
     assert.match(page, /Rp3,500,000 per-person price/);
     assert.match(page, /Choose date &amp; book|Choose date & book/);
     assert.match(page, /Shared departure/);
@@ -77,7 +77,7 @@ test('Sumbawa open trip has a clearly labeled demo booking flow connected to its
     assert.equal(switchGuide('guide-sumbawa-demo'), true);
     assert.equal(activeGuide().id, request.guideId);
     const guidePage = guideDashboardView();
-    assert.match(guidePage, /Demo account · simulated approval/);
+    assert.match(guidePage, /Verified by FindMyGuide/);
     assert.match(guidePage, /Traveler Sumbawa Demo/);
     assert.match(guidePage, /Sumbawa Open Trip · Shared/);
 

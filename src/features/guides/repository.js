@@ -23,7 +23,7 @@ const seedGuides = [
   { id: 'guide-dario', name: 'Dario Rossi', initials: 'DR', area: 'Rome, Italy', languages: 'Italian, English', bio: 'Local guide sharing the Rome I love.', experienceIds: ['colosseum', 'pantheon'], capacity: 6, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-raka', name: 'Raka Pradana', initials: 'RP', area: 'Sembalun, East Lombok', languages: 'Indonesian, English', bio: 'Rinjani trekking guide for shared and private hikes.', experienceIds: ['arena'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },
   { id: 'guide-siti', name: 'Siti Mariani', initials: 'SM', area: 'Senaru, North Lombok', languages: 'Indonesian, English', bio: 'Rinjani trekking guide experienced with family and group trips.', experienceIds: ['arena'], capacity: 8, status: 'verified', blockedDates: [], prices: {} },
-  { id: 'guide-sumbawa-demo', name: 'Sumbawa Demo Guide', initials: 'SD', area: 'Sumbawa Besar, West Nusa Tenggara', languages: 'Indonesian, English', bio: 'Demo guide account for testing shared Sumbawa open-trip requests and booking coordination.', experienceIds: ['sumbawa-open-trip-3d2n'], capacity: 14, status: 'verified', demoAccount: true, blockedDates: [], prices: {} },
+  { id: 'guide-sumbawa-demo', name: 'Sumbawa Local Guide', initials: 'SD', area: 'Sumbawa Besar, West Nusa Tenggara', languages: 'Indonesian, English', bio: 'Local guide account for shared Sumbawa open-trip requests and booking coordination.', experienceIds: ['sumbawa-open-trip-3d2n'], capacity: 14, status: 'verified', demoAccount: true, blockedDates: [], prices: {} },
 ];
 
 const upcomingDemoDate = (date, offset) => date >= new Date().toISOString().slice(0, 10) ? date : new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
@@ -77,6 +77,8 @@ function read() {
     const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
     data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
     if (data.guides.some((guide) => !existingGuideIds.has(guide.id))) migrated = true;
+    const sumbawaGuide = data.guides.find((guide) => guide.id === 'guide-sumbawa-demo');
+    if (sumbawaGuide && /demo/i.test(`${sumbawaGuide.name} ${sumbawaGuide.bio}`)) { sumbawaGuide.name = 'Sumbawa Local Guide'; sumbawaGuide.bio = 'Local guide account for shared Sumbawa open-trip requests and booking coordination.'; migrated = true; }
     data.guides.forEach((guide) => {
       if (guide.priceAgreements) return;
       guide.priceAgreements = guide.status === 'verified' ? initialAgreements(guide) : {};
