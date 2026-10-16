@@ -324,26 +324,6 @@ function copyChatText(text) {
   input.remove();
   return copied ? Promise.resolve() : Promise.reject(new Error('Copy failed'));
 }
-function openMeetingPointDirections(element) {
-  const latitude = Number(element.dataset.latitude);
-  const longitude = Number(element.dataset.longitude);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { announce('Meeting point coordinates are unavailable'); return; }
-  const destination = `${latitude},${longitude}`;
-  const directUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`;
-  const open = (url) => {
-    const popup = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!popup) window.location.assign(url);
-  };
-  if (!navigator.geolocation || !window.isSecureContext) { open(directUrl); return; }
-  announce('Requesting your location for directions…');
-  navigator.geolocation.getCurrentPosition((position) => {
-    const origin = `${position.coords.latitude},${position.coords.longitude}`;
-    open(`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`);
-  }, () => {
-    open(directUrl);
-    announce('Google Maps opened without your current location');
-  }, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
-}
 function scrollChatToLatest(scrollTop = null) {
   cancelAnimationFrame(chatViewportFrame);
   const align = () => {
@@ -602,7 +582,6 @@ function clickAction(action, el) {
     case 'open-chat-menu': { const menu = el.closest('.chat-message')?.querySelector('.chat-message-menu'); if (menu) { closeChatMenus(); menu.open = true; requestAnimationFrame(() => positionChatMenu(menu)); } break; }
     case 'copy-booking-code': copyChatText(value || '').then(() => announce('Verification code copied')).catch(() => announce('Unable to copy verification code')); break;
     case 'copy-meeting-point': copyChatText(value || '').then(() => announce('Meeting point address copied')).catch(() => announce('Unable to copy meeting point address')); break;
-    case 'meeting-point-directions': openMeetingPointDirections(el); break;
     case 'copy-chat': { const message = chatMessage(route().path.split('/')[3], id); if (message?.text) copyChatText(message.text).then(() => announce('Text copied')).catch(() => announce('Unable to copy text')); break; }
     case 'copy-chat-selection': { const text = window.getSelection?.()?.toString().trim(); if (text) copyChatText(text).then(() => { root.querySelector('.chat-selection-copy')?.remove(); announce('Text copied'); }).catch(() => announce('Unable to copy text')); break; }
     case 'edit-chat': state.chatEditMessageId = id; state.chatReplyMessageId = ''; render(); break;
