@@ -49,11 +49,11 @@ export function experienceView(id) {
   const startingPriceAvailable = Boolean(startingPackageEntry);
   const guideAvailable = startingPriceAvailable;
   const informationOnly = Boolean(item.pricePending && !guideAvailable);
-  const displayBadge = informationOnly && /pending/i.test(item.badge || '') ? '' : item.badge;
   const displayedLocation = informationOnly ? String(item.location || '').replace(/\s*·\s*exact departure point pending/gi, '') : item.location;
   const detailDuration = item.duration && item.duration !== 'Destination' ? item.duration : '—';
   const detailTemperature = item.temperature || item.weather || '—';
-  const detailReviews = Number(item.reviews) ? item.reviews : '—';
+  const reviewCount = Number(String(item.reviews || '').replace(/,/g, ''));
+  const detailReviews = reviewCount > 0 ? Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(reviewCount) : '—';
   const presentedDocument = guideAvailable ? document : { ...document, summary: neutralizeGuideClaims(document.summary), content: { ...document.content, fullDescription: neutralizeGuideClaims(document.content.fullDescription), highlights: document.content.highlights.map((text) => neutralizeGuideClaims(text)), includes: [] } };
   const meetingPoint = document.meetingPoint;
   const meetingMap = meetingPoint?.embedUrl ? `<div class="meeting-map"><iframe title="Suggested meeting area map" src="${escapeHtml(meetingPoint.embedUrl)}" loading="lazy" referrerpolicy="no-referrer"></iframe></div>` : `<div class="meeting-map meeting-map-fallback"><span>${icon('pin', 24)}</span></div>`;
@@ -82,20 +82,19 @@ export function experienceView(id) {
     <div class="detail-top">
       <div class="detail-gallery"><div class="detail-gallery-track" data-gallery-track aria-label="Activity photos" tabindex="0">${photos.map((source, index) => `<img class="detail-main-image" src="${escapeHtml(source)}" alt="${escapeHtml(item.title)} — photo ${index + 1} of ${photos.length}" data-action="gallery" data-id="${escapeHtml(item.id)}" data-index="${index}" ${index ? 'loading="lazy"' : ''} draggable="false" />`).join('')}</div>
         <div class="detail-top-actions"><button class="round-white" data-action="back" aria-label="Back">${icon('arrow')}</button><span><button class="round-white ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="Wishlist">${icon('heart')}</button><button class="round-white" data-action="share" aria-label="Share">${icon('share')}</button></span></div>
-        ${Number(item.rating) ? `<span class="detail-image-rating"><span>★</span> ${escapeHtml(item.rating)}</span>` : ''}
+        <div class="detail-heading">
+          <h1>${escapeHtml(item.title)}</h1>
+          <p class="detail-location">${icon('pin', 16)}<span>${escapeHtml(displayedLocation || item.city)}</span></p>
+        </div>
+        ${Number(item.rating) ? `<button class="detail-image-rating" data-action="reviews" aria-label="Rating ${escapeHtml(item.rating)}, view reviews">${escapeHtml(item.rating)} <span>★</span></button>` : ''}
       </div>
-      ${photos.length > 1 ? `<div class="gallery-thumbs">${photos.slice(1).map((source, index) => `<button class="gallery-thumb" data-action="gallery-select" data-index="${index + 1}" aria-label="Show photo ${index + 2}"><img src="${escapeHtml(source)}" alt="" loading="lazy" /></button>`).join('')}<div class="gallery-count" role="group" aria-label="Choose photo">${photos.map((_, index) => `<button class="gallery-dot ${index === 0 ? 'active' : ''}" data-gallery-dot data-action="gallery-select" data-index="${index}" aria-label="Photo ${index + 1} of ${photos.length}" aria-current="${index === 0}"></button>`).join('')}</div></div>` : ''}
+      ${photos.length > 1 ? `<div class="gallery-count" role="group" aria-label="Choose photo">${photos.map((_, index) => `<button class="gallery-dot ${index === 0 ? 'active' : ''}" data-gallery-dot data-action="gallery-select" data-index="${index}" aria-label="Photo ${index + 1} of ${photos.length}" aria-current="${index === 0}"></button>`).join('')}</div>` : ''}
     </div>
     <div class="detail-body">
-      <div class="detail-heading">
-        <h1>${escapeHtml(item.title)}</h1>
-        ${displayedLocation ? `<p class="detail-location">${icon('pin', 16)}<span>${escapeHtml(displayedLocation)}</span></p>` : ''}
-      </div>
-      ${isInquiryOnly || !Number(item.reviews) ? displayBadge ? `<div class="detail-rating"><span class="red-badge">${escapeHtml(displayBadge)}</span></div>` : '' : `<div class="detail-rating">${displayBadge ? `<span class="red-badge">${escapeHtml(displayBadge)}</span>` : ''}<span class="star-large">★</span><button data-action="reviews">${escapeHtml(item.reviews)} reviews</button></div>`}
       <div class="detail-stat-card" aria-label="Experience overview">
         <div class="detail-stat-item"><span class="detail-stat-icon">${icon('clock', 20)}</span><span><strong>${escapeHtml(detailDuration)}</strong><small>Duration</small></span></div>
         <div class="detail-stat-item"><span class="detail-stat-icon">${icon('thermometer', 20)}</span><span><strong>${escapeHtml(detailTemperature)}</strong><small>Weather</small></span></div>
-        <div class="detail-stat-item"><span class="detail-stat-icon">${icon('comment', 20)}</span><span><strong>${escapeHtml(detailReviews)}</strong><small>Reviews</small></span></div>
+        <button class="detail-stat-item" data-action="reviews" ${reviewCount > 0 ? '' : 'disabled'} aria-label="${reviewCount > 0 ? `${reviewCount} reviews` : 'No reviews yet'}"><span class="detail-stat-icon">${icon('star', 20)}</span><span><strong>${escapeHtml(detailReviews)}</strong><small>Reviews</small></span></button>
       </div>
       <p class="detail-intro">${escapeHtml(presentedDocument.content.fullDescription)}</p>
       ${photoCreditsSection}
