@@ -35,9 +35,10 @@ function persist() {
 function eligibleSharedTripMember(thread, userId) {
   if (!thread.context?.offerId) return true;
   const data = tripData();
-  const offer = data?.offerings?.find((item) => item.id === thread.context.offerId);
+  const offerIds = [...new Set([thread.context.offerId, ...(thread.context.linkedOfferIds || [])])];
+  const offers = data?.offerings?.filter((item) => offerIds.includes(item.id)) || [];
   const user = socialUser(userId);
-  return !!offer && ((offer.teamGuideIds || [offer.guideId]).includes(userId) || data.requests.some((request) => request.offerId === offer.id && request.status === 'accepted' && request.paymentStatus === 'paid' && request.travelerEmail === user?.accountEmail?.toLowerCase()));
+  return offers.some((offer) => (offer.teamGuideIds || [offer.guideId]).includes(userId)) || Boolean(data?.requests?.some((request) => offerIds.includes(request.offerId) && request.travelerEmail === user?.accountEmail?.toLowerCase() && (['accepted', 'completed'].includes(request.status) && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded')));
 }
 export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active' && eligibleSharedTripMember(thread, activeSocialUser().id)); }
 export function chatMessages(threadId) { return messagingState().messages.filter((message) => message.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); }
@@ -112,16 +113,18 @@ export function getOrCreateSharedTripThread(offerId) {
   const data = tripData();
   const offer = data?.offerings?.find((item) => item.id === offerId && item.mode === 'shared');
   if (!offer) return null;
-  const bookings = data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid');
+  const bookings = data.requests.filter((request) => request.offerId === offerId && (['accepted', 'completed'].includes(request.status) && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded'));
   const members = [...new Set([...(offer.teamGuideIds || [offer.guideId]), ...bookings.map((request) => socialState().users.find((user) => user.accountEmail?.toLowerCase() === request.travelerEmail)?.id).filter(Boolean)])];
   const selfId = activeSocialUser().id;
-  if (!members.includes(selfId) || bookings.length === 0) return null;
+  if (!members.includes(selfId) || !bookings.length) return null;
   const id = `trip-${offerId}`;
-  const existing = chatThread(id);
+  const existing = messagingState().threads.find((thread) => thread.group && thread.status === 'active' && (thread.context?.offerId === offerId || thread.context?.linkedOfferIds?.includes(offerId)) && eligibleSharedTripMember(thread, selfId));
   if (existing) {
     existing.participantIds = members;
     existing.unreadBy = Object.fromEntries(members.map((member) => [member, existing.unreadBy?.[member] || 0]));
-    return persist() ? id : null;
+    existing.title = `Shared trip · ${offer.date}`;
+    existing.context = { ...existing.context, offerId, experienceId: offer.experienceId, label: existing.title };
+    return persist() ? existing.id : null;
   }
   const createdAt = now();
   const title = `Shared trip · ${offer.date}`;
@@ -129,6 +132,20 @@ export function getOrCreateSharedTripThread(offerId) {
   messagingState().threads.push(thread);
   messagingState().messages.push({ id: `system-${crypto.randomUUID()}`, threadId: id, senderId: null, text: 'Welcome to this shared departure. Agree on the meeting point and preparation here. Each party keeps its booking and payment private.', createdAt, readBy: members, deliveredTo: members, system: true });
   return persist() ? id : null;
+}
+export function refreshSharedTripThread(sourceOfferId, targetOfferId = sourceOfferId) {
+  const data = tripData();
+  const target = data?.offerings?.find((offer) => offer.id === targetOfferId);
+  if (!target) return null;
+  const thread = messagingState().threads.find((entry) => entry.group && entry.status === 'active' && (entry.context?.offerId === sourceOfferId || entry.context?.linkedOfferIds?.includes(sourceOfferId)));
+  if (!thread) return null;
+  const bookings = data.requests.filter((request) => request.offerId === targetOfferId && (['accepted', 'completed'].includes(request.status) && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded'));
+  const members = [...new Set([...(target.teamGuideIds || [target.guideId]), ...bookings.map((request) => socialState().users.find((user) => user.accountEmail?.toLowerCase() === request.travelerEmail)?.id).filter(Boolean)])];
+  thread.context = { ...thread.context, linkedOfferIds: [...new Set([...(thread.context.linkedOfferIds || []), sourceOfferId])], offerId: targetOfferId, experienceId: target.experienceId, label: `Shared trip · ${target.date}` };
+  thread.title = thread.context.label;
+  thread.participantIds = members;
+  thread.unreadBy = Object.fromEntries(members.map((member) => [member, thread.unreadBy?.[member] || 0]));
+  return persist() ? thread.id : null;
 }
 export function leaveTravelGroupThread(threadId) {
   const selfId = activeSocialUser().id;

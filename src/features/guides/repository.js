@@ -4,7 +4,7 @@ const storageKey = 'lombok-guide-demo-v1';
 const commissionRate = 0.10;
 const paymentRate = 0.03;
 const financeSchemaVersion = 1;
-const guideDemoSchemaVersion = 4;
+const guideDemoSchemaVersion = 5;
 export function financeConfig() { return { platformRate: commissionRate, paymentRate, currency: 'IDR' }; }
 const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
 function bookingIdentity(id, createdAt = '') {
@@ -29,7 +29,7 @@ const upcomingDemoDate = (date, offset) => date >= new Date().toISOString().slic
 function seedOfferings() {
   const october = upcomingDemoDate('2026-10-26', 10);
   const november = upcomingDemoDate('2026-11-05', 20);
-  const make = (id, guideId, experienceId, packageId, date, mode, price, maxGuests, minGuests = 1, teamGuideIds = [guideId]) => ({ id, guideId, experienceId, packageId, date, time: packageStartTimes(getExperience(experienceId), getExperience(experienceId)?.packageOptions?.find((option) => option.id === packageId))[0], mode, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', minGuests, maxGuests, teamGuideIds, status: 'published', approvedAt: new Date().toISOString(), approvedBy: 'demo-admin', createdAt: new Date().toISOString() });
+  const make = (id, guideId, experienceId, packageId, date, mode, price, maxGuests, minGuests = 1, teamGuideIds = [guideId]) => ({ id, guideId, experienceId, packageId, date, time: packageStartTimes(getExperience(experienceId), getExperience(experienceId)?.packageOptions?.find((option) => option.id === packageId))[0], mode, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', minGuests, maxGuests, teamGuideIds, status: 'published', workStatus: 'not_started', departureDecision: null, approvedAt: new Date().toISOString(), approvedBy: 'demo-admin', createdAt: new Date().toISOString() });
   const curated = [
     make('demo-rinjani-solo', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'solo', 2531969, 1),
     make('demo-rinjani-private', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'private', 4200000, 6),
@@ -64,6 +64,8 @@ function read() {
     data.offerings.forEach((offer) => {
       const promotion = seededPromotions.get(offer.id);
       if (promotion && !offer.promotion) { offer.promotion = { ...promotion }; migrated = true; }
+      if (!offer.workStatus) { offer.workStatus = 'not_started'; migrated = true; }
+      if (!Object.hasOwn(offer, 'departureDecision')) { offer.departureDecision = null; migrated = true; }
     });
     const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
     data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
@@ -151,14 +153,21 @@ export function advanceBookingTrip(id, actor, step) {
   if (!role || request.status !== 'accepted' || request.paymentStatus !== 'paid' || openReport(request)) return false;
   const safety = editableSafety(request);
   const timestamp = new Date().toISOString();
-  if (step === 'guide_start' && role === 'guide' && request.verificationStatus === 'verified' && safety.meetingPoint && !safety.guideStartedAt) safety.guideStartedAt = timestamp;
+  if (step === 'guide_start' && role === 'guide' && !request.offerId && request.verificationStatus === 'verified' && safety.meetingPoint && !safety.guideStartedAt) safety.guideStartedAt = timestamp;
   else if (step === 'traveler_start' && role === 'traveler' && safety.guideStartedAt && !safety.travelerStartedAt) safety.travelerStartedAt = timestamp;
   else if (step === 'check_in' && role === 'traveler' && request.bookingStatus === 'in_progress') safety.travelerCheckInAt = timestamp;
-  else if (step === 'guide_finish' && role === 'guide' && request.bookingStatus === 'in_progress' && !safety.guideEndedAt) safety.guideEndedAt = timestamp;
+  else if (step === 'guide_finish' && role === 'guide' && !request.offerId && request.bookingStatus === 'in_progress' && !safety.guideEndedAt) safety.guideEndedAt = timestamp;
   else if (step === 'traveler_finish' && role === 'traveler' && safety.guideEndedAt && !safety.travelerEndedAt) safety.travelerEndedAt = timestamp;
   else return false;
   if (safety.guideStartedAt && safety.travelerStartedAt && request.bookingStatus !== 'in_progress') request.bookingStatus = 'in_progress';
-  if (safety.guideEndedAt && safety.travelerEndedAt) { request.status = 'completed'; request.bookingStatus = 'completed'; request.payoutStatus = 'pending'; }
+  if (safety.guideEndedAt && safety.travelerEndedAt) {
+    request.status = 'completed'; request.bookingStatus = 'completed'; request.payoutStatus = 'pending';
+    if (request.offerId) {
+      const offer = data.offerings.find((item) => item.id === request.offerId);
+      const groupBookings = data.requests.filter((entry) => entry.offerId === request.offerId && entry.status !== 'cancelled' && entry.paymentStatus === 'paid');
+      if (offer && groupBookings.every((entry) => entry.status === 'completed' || entry.id === request.id)) offer.workStatus = 'completed';
+    }
+  }
   logBookingEvent(request, step, { guide_start: 'Guide requested to start the trip.', traveler_start: 'Traveler confirmed meeting the guide. Trip started.', check_in: 'Traveler checked in safely.', guide_finish: 'Guide marked the trip as finished; traveler confirmation is pending.', traveler_finish: 'Traveler confirmed the trip finished.' }[step], role);
   write(data); return true;
 }
@@ -254,14 +263,16 @@ export function tripOfferingQuote(offer, travelers) {
   if (!offer || !Number.isInteger(count) || count < 1 || count > offer.maxGuests || (offer.mode !== 'shared' && count < offer.minGuests)) return null;
   return offer.priceUnit === 'group' ? offer.price : offer.price * count;
 }
-function offeringAvailabilityIn(data, offer, travelers = 1, ignoreRequestId = '') {
+function offeringAvailabilityIn(data, offer, travelers = 1, ignoreRequestId = '', allowLockedDeparture = false) {
+  const ignoredRequestIds = new Set(Array.isArray(ignoreRequestId) ? ignoreRequestId : [ignoreRequestId]);
   const option = getExperience(offer.experienceId)?.packageOptions?.find((item) => item.id === offer.packageId);
   const dates = packageDates(offer.date, option);
   const team = offer.teamGuideIds || [offer.guideId];
   const guides = team.map((id) => data.guides.find((guide) => guide.id === id));
-  if (offer.status !== 'published' || !option || offer.date < new Date().toISOString().slice(0, 10) || !dates.length || guides.some((guide) => !guide || guide.status !== 'verified' || !guide.experienceIds.includes(offer.experienceId) || dates.some((date) => guide.blockedDates.includes(date)))) return { available: false, seatsLeft: 0, booked: 0 };
-  const booked = data.requests.filter((request) => request.id !== ignoreRequestId && request.offerId === offer.id && request.status === 'accepted').reduce((sum, request) => sum + request.travelers, 0);
-  const conflicting = data.requests.some((request) => request.id !== ignoreRequestId && request.offerId !== offer.id && request.status === 'accepted' && requestDates(request).some((date) => dates.includes(date)) && (request.teamGuideIds || [request.guideId]).some((id) => team.includes(id)));
+  const lockedSharedDeparture = offer.mode === 'shared' && ((offer.workStatus && offer.workStatus !== 'not_started') || ['proposed', 'declined', 'needs_review', 'approved'].includes(offer.departureDecision?.status));
+  if (offer.status !== 'published' || lockedSharedDeparture && !allowLockedDeparture || !option || offer.date < new Date().toISOString().slice(0, 10) || !dates.length || guides.some((guide) => !guide || guide.status !== 'verified' || !guide.experienceIds.includes(offer.experienceId) || dates.some((date) => guide.blockedDates.includes(date)))) return { available: false, seatsLeft: 0, booked: 0 };
+  const booked = data.requests.filter((request) => !ignoredRequestIds.has(request.id) && request.offerId === offer.id && request.status === 'accepted').reduce((sum, request) => sum + request.travelers, 0);
+  const conflicting = data.requests.some((request) => !ignoredRequestIds.has(request.id) && request.offerId !== offer.id && request.status === 'accepted' && requestDates(request).some((date) => dates.includes(date)) && (request.teamGuideIds || [request.guideId]).some((id) => team.includes(id)));
   const seatsLeft = conflicting || (offer.mode !== 'shared' && booked) ? 0 : Math.max(0, offer.maxGuests - booked);
   return { available: seatsLeft >= travelers && tripOfferingQuote(offer, travelers) !== null, seatsLeft, booked };
 }
@@ -381,6 +392,207 @@ export function sharedTripReady(request) {
   const offer = data.offerings.find((item) => item.id === request.offerId);
   return !!offer && data.requests.filter((item) => item.offerId === offer.id && item.status === 'accepted').reduce((sum, item) => sum + item.travelers, 0) >= offer.minGuests;
 }
+function sharedTripRequests(data, offerId) {
+  return data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid');
+}
+function offerStartTime(offer) {
+  const match = String(offer?.time || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match || !/^\d{4}-\d{2}-\d{2}$/.test(offer.date || '')) return null;
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === 'PM') hour += 12;
+  const start = new Date(`${offer.date}T${String(hour).padStart(2, '0')}:${match[2]}:00`);
+  return Number.isNaN(start.getTime()) ? null : start;
+}
+function sharedGuideCanAct(offer, actor) {
+  return actor?.role === 'guide' && (offer.teamGuideIds || [offer.guideId]).includes(actor.id);
+}
+export function sharedDepartureAlternatives(offerId, guideId) {
+  const data = read();
+  const source = data.offerings.find((offer) => offer.id === offerId && offer.mode === 'shared');
+  if (!source) return [];
+  return data.offerings.filter((offer) => offer.id !== source.id && offer.status === 'published' && offer.mode === 'shared' && offer.experienceId === source.experienceId && offer.guideId === guideId && offer.date >= new Date().toISOString().slice(0, 10) && !data.requests.some((request) => request.offerId === offer.id && ['pending', 'accepted'].includes(request.status))).sort((a, b) => a.date.localeCompare(b.date) || a.price - b.price);
+}
+export function sharedDepartureStatus(offerId) {
+  const data = read();
+  const offer = data.offerings.find((item) => item.id === offerId && item.mode === 'shared');
+  if (!offer) return null;
+  const bookings = sharedTripRequests(data, offerId);
+  const historicalBookings = data.requests.filter((request) => request.offerId === offerId && (request.status === 'completed' && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded'));
+  const paidTravelers = bookings.reduce((sum, request) => sum + Number(request.travelers || 0), 0);
+  const accepted = data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted');
+  const pendingCount = data.requests.filter((request) => request.offerId === offerId && request.status === 'pending').length;
+  const unpaidCount = accepted.filter((request) => request.paymentStatus !== 'paid').length;
+  const minGuests = Number(offer.minGuests || 1);
+  const start = offerStartTime(offer);
+  const hoursUntil = start ? (start.getTime() - Date.now()) / 3600000 : null;
+  const underMinimum = paidTravelers > 0 && paidTravelers < minGuests;
+  const workStatus = offer.workStatus || (bookings.length && bookings.every((request) => request.status === 'completed') ? 'completed' : bookings.some((request) => request.bookingStatus === 'in_progress') ? 'in_progress' : 'not_started');
+  const decision = offer.departureDecision || null;
+  return {
+    offer,
+    bookings,
+    historicalBookings,
+    paidTravelers,
+    acceptedCount: accepted.length,
+    pendingCount,
+    unpaidCount,
+    minGuests,
+    maxGuests: Number(offer.maxGuests || 0),
+    minimumMet: paidTravelers >= minGuests,
+    underMinimum,
+    decisionDue: underMinimum && hoursUntil !== null && hoursUntil <= 24,
+    hoursUntil,
+    decision,
+    workStatus,
+    allVerified: bookings.length > 0 && bookings.every((request) => request.verificationStatus === 'verified'),
+    allInProgress: bookings.length > 0 && bookings.every((request) => request.bookingStatus === 'in_progress'),
+    hasOpenReport: bookings.some(openReport),
+  };
+}
+function validDepartureDate(data, offer, date, travelers, ignoredIds, allowLockedDeparture = false) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < new Date().toISOString().slice(0, 10)) return false;
+  const option = getExperience(offer.experienceId)?.packageOptions?.find((entry) => entry.id === offer.packageId);
+  if (!packageDates(date, option).length) return false;
+  return offeringAvailabilityIn(data, { ...offer, date }, travelers, ignoredIds, allowLockedDeparture).available;
+}
+export function proposeSharedDepartureDecision(offerId, actor, { kind, date = '', targetOfferId = '', message = '' } = {}) {
+  const data = read();
+  const offer = data.offerings.find((item) => item.id === offerId && item.mode === 'shared');
+  const status = offer && sharedDepartureStatus(offerId);
+  const cleanMessage = String(message || '').trim().slice(0, 360);
+  if (!offer || !sharedGuideCanAct(offer, actor) || !status?.decisionDue || status.pendingCount || status.unpaidCount || status.workStatus !== 'not_started' || status.hasOpenReport || !['proceed', 'reschedule', 'change_package', 'refund'].includes(kind) || !cleanMessage) return false;
+  const ignoredIds = status.bookings.map((request) => request.id);
+  const travelers = status.paidTravelers;
+  let target = null;
+  if (kind === 'reschedule' && (date === offer.date || !validDepartureDate(data, offer, date, travelers, ignoredIds))) return false;
+  if (kind === 'change_package') {
+    target = sharedDepartureAlternatives(offerId, actor.id).find((entry) => entry.id === targetOfferId);
+    if (!target || !offeringAvailabilityIn(data, target, travelers, ignoredIds).available || status.bookings.some((request) => tripOfferingQuote(target, request.travelers) === null)) return false;
+  }
+  offer.departureDecision = {
+    id: crypto.randomUUID(),
+    kind,
+    date: kind === 'reschedule' ? date : '',
+    targetOfferId: target?.id || '',
+    targetDate: target?.date || '',
+    targetPackageId: target?.packageId || '',
+    message: cleanMessage,
+    proposedBy: actor.id,
+    proposedAt: new Date().toISOString(),
+    responses: Object.fromEntries(status.bookings.map((request) => [request.id, null])),
+    status: 'proposed',
+  };
+  write(data);
+  return true;
+}
+function applySharedDepartureDecision(data, offer, decision) {
+  const group = sharedTripRequests(data, offer.id);
+  const timestamp = new Date().toISOString();
+  if (!group.length || group.some(openReport)) return false;
+  if (decision.kind === 'proceed') {
+    decision.status = 'approved';
+    decision.resolvedAt = timestamp;
+    offer.workStatus = 'not_started';
+    return true;
+  }
+  if (decision.kind === 'refund') {
+    group.forEach((request) => {
+      request.status = 'cancelled'; request.bookingStatus = 'cancelled'; request.paymentStatus = 'refunded'; request.payoutStatus = 'not_due'; request.refundedAt = timestamp;
+      editableSafety(request).events.push({ id: crypto.randomUUID(), type: 'shared_trip_refund', text: 'The group agreed to cancel this under-filled departure. A demo refund was recorded; no real money moved.', actor: 'guide', at: timestamp });
+    });
+    data.requests.filter((request) => request.offerId === offer.id && request.status === 'accepted' && request.paymentStatus !== 'paid').forEach((request) => { request.status = 'declined'; request.bookingStatus = 'cancelled'; });
+    offer.status = 'closed'; offer.workStatus = 'cancelled'; decision.status = 'resolved'; decision.resolvedAt = timestamp;
+    return true;
+  }
+  if (decision.kind === 'reschedule') {
+    if (!validDepartureDate(data, offer, decision.date, group.reduce((sum, request) => sum + request.travelers, 0), group.map((request) => request.id), true)) return false;
+    offer.date = decision.date;
+    group.forEach((request) => {
+      request.date = decision.date;
+      editableSafety(request).events.push({ id: crypto.randomUUID(), type: 'shared_trip_rescheduled', text: `The group agreed to move the shared departure to ${decision.date}.`, actor: 'guide', at: timestamp });
+    });
+    decision.status = 'resolved'; decision.resolvedAt = timestamp; decision.result = 'rescheduled';
+    return true;
+  }
+  if (decision.kind === 'change_package') {
+    const target = data.offerings.find((entry) => entry.id === decision.targetOfferId && entry.status === 'published' && entry.mode === 'shared' && entry.experienceId === offer.experienceId && entry.guideId === offer.guideId);
+    const totalTravelers = group.reduce((sum, request) => sum + request.travelers, 0);
+    if (!target || !offeringAvailabilityIn(data, target, totalTravelers, group.map((request) => request.id)).available) return false;
+    const option = getExperience(target.experienceId)?.packageOptions?.find((entry) => entry.id === target.packageId);
+    if (!option) return false;
+    group.forEach((request, index) => {
+      const previousTotal = Number(request.finance?.travelerTotal || request.travelerTotal || 0);
+      let nextTotal = tripOfferingQuote(target, request.travelers);
+      if (target.priceUnit === 'group') {
+        nextTotal = index === group.length - 1
+          ? tripOfferingQuote(target, totalTravelers) - group.slice(0, -1).reduce((sum, prior) => sum + Math.round(tripOfferingQuote(target, totalTravelers) * prior.travelers / totalTravelers), 0)
+          : Math.round(tripOfferingQuote(target, totalTravelers) * request.travelers / totalTravelers);
+      }
+      const split = priceSplit(nextTotal);
+      request.offerId = target.id; request.tripMode = target.mode; request.teamGuideIds = [...(target.teamGuideIds || [target.guideId])]; request.experienceId = target.experienceId; request.packageId = target.packageId; request.guideId = target.guideId; request.date = target.date; request.time = target.time; request.unitPrice = target.price; request.priceUnit = target.priceUnit; request.priceApprovedBy = target.approvedBy; request.priceApprovedAt = target.approvedAt; request.currency = option.currency || 'IDR'; Object.assign(request, split); request.finance = financeBreakdown(nextTotal); request.settlementAdjustment = nextTotal - previousTotal;
+      const safety = editableSafety(request);
+      safety.events.push({ id: crypto.randomUUID(), type: 'shared_trip_package_changed', text: `The group agreed to move this booking to ${option.name} on ${target.date}. The demo ledger recorded a ${request.settlementAdjustment > 0 ? 'balance due' : request.settlementAdjustment < 0 ? 'refund due' : 'no price adjustment'} of Rp${Math.abs(request.settlementAdjustment).toLocaleString('id-ID')}.`, actor: 'guide', at: timestamp });
+    });
+    offer.status = 'closed'; decision.status = 'resolved'; decision.resolvedAt = timestamp; decision.result = 'package_changed';
+    target.departureDecision = null; target.workStatus = 'not_started';
+    return true;
+  }
+  return false;
+}
+export function respondSharedDepartureDecision(offerId, actor, accept) {
+  const data = read();
+  const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
+  const decision = offer?.departureDecision;
+  if (!decision || decision.status !== 'proposed' || actor?.role !== 'traveler' || typeof accept !== 'boolean') return { ok: false };
+  const request = sharedTripRequests(data, offerId).find((entry) => bookingActor(entry, actor) === 'traveler');
+  if (!request || !Object.hasOwn(decision.responses, request.id) || decision.responses[request.id] !== null) return { ok: false };
+  decision.responses[request.id] = accept;
+  if (!accept) {
+    decision.status = 'declined'; decision.resolvedAt = new Date().toISOString();
+    write(data);
+    return { ok: true, status: 'declined', kind: decision.kind };
+  }
+  const allAccepted = Object.values(decision.responses).every((response) => response === true);
+  let result = { ok: true, status: 'proposed', kind: decision.kind, targetOfferId: decision.targetOfferId };
+  if (allAccepted) {
+    if (applySharedDepartureDecision(data, offer, decision)) result = { ...result, status: decision.status };
+    else { decision.status = 'needs_review'; decision.resolvedAt = new Date().toISOString(); result = { ...result, status: 'needs_review' }; }
+  }
+  write(data);
+  return result;
+}
+export function startSharedTrip(offerId, actor, meetingPoint) {
+  const data = read();
+  const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
+  const status = offer && sharedDepartureStatus(offerId);
+  const cleanMeetingPoint = String(meetingPoint || '').trim().slice(0, 180);
+  const today = new Date().toISOString().slice(0, 10);
+  const decisionAllowsStart = status?.minimumMet || status?.decision?.kind === 'proceed' && status.decision.status === 'approved';
+  if (!offer || !sharedGuideCanAct(offer, actor) || !decisionAllowsStart || status.workStatus !== 'not_started' || offer.date > today || status.pendingCount || status.unpaidCount || !status.bookings.length || !status.allVerified || status.hasOpenReport || !cleanMeetingPoint) return false;
+  const timestamp = new Date().toISOString();
+  offer.workStatus = 'in_progress'; offer.workStartedAt = timestamp;
+  status.bookings.forEach((request) => {
+    const safety = editableSafety(request);
+    safety.meetingPoint = cleanMeetingPoint; safety.guideStartedAt = timestamp;
+    safety.events.push({ id: crypto.randomUUID(), type: 'shared_trip_started', text: `Guide started work at the agreed meeting point: ${cleanMeetingPoint}.`, actor: 'guide', at: timestamp });
+  });
+  if (offer.departureDecision?.kind === 'proceed') offer.departureDecision.startedAt = timestamp;
+  write(data); return true;
+}
+export function finishSharedTrip(offerId, actor) {
+  const data = read();
+  const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
+  const status = offer && sharedDepartureStatus(offerId);
+  if (!offer || !sharedGuideCanAct(offer, actor) || status.workStatus !== 'in_progress' || !status.allInProgress || status.hasOpenReport) return false;
+  const timestamp = new Date().toISOString();
+  offer.workStatus = 'completion_pending'; offer.completionRequestedAt = timestamp;
+  status.bookings.forEach((request) => {
+    const safety = editableSafety(request);
+    safety.guideEndedAt = timestamp;
+    safety.events.push({ id: crypto.randomUUID(), type: 'shared_trip_completion_requested', text: 'Guide marked the shared trip work as complete. Traveler confirmation is pending.', actor: 'guide', at: timestamp });
+  });
+  write(data); return true;
+}
 export function availableGuides(experienceId, optionId, date = '', travelers = 1) {
   const data = read();
   const option = getExperience(experienceId)?.packageOptions?.find((entry) => entry.id === optionId);
@@ -434,7 +646,7 @@ export function updateGuideRequest(id, guideId, status) {
 export function markGuideRequestPaid(id, email = '') {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id && (!email || entry.travelerEmail === String(email).trim().toLowerCase()));
-  if (!request || request.status !== 'accepted' || request.paymentStatus !== 'unpaid' || !sharedTripReady(request)) return false;
+  if (!request || request.status !== 'accepted' || request.paymentStatus !== 'unpaid') return false;
   request.paymentStatus = 'paid'; request.paidAt = new Date().toISOString();
   request.bookingStatus = request.status === 'completed' ? 'completed' : 'confirmed';
   request.confirmedAt = request.paidAt;

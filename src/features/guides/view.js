@@ -35,7 +35,7 @@ function baseGuideRequestCard(request, guideMode = false) {
   const travelerLabel = `${adults} adult${adults === 1 ? '' : 's'}${children ? ` · ${children} child${children === 1 ? '' : 'ren'}` : ''}`;
   const paymentLabel = String(request.paymentStatus || 'unpaid').replace('_', ' ');
   const payoutLabel = String(request.payoutStatus || 'not due').replace('_', ' ');
-  const paymentAction = !guideMode && request.status === 'accepted' && request.paymentStatus === 'unpaid' ? `<div class="guide-card-actions"><button data-action="pay-guide-request" data-id="${esc(request.id)}" ${sharedTripReady(request) ? '' : 'disabled'}>${sharedTripReady(request) ? 'Pay now (demo)' : 'Waiting for shared trip minimum'}</button></div>` : '';
+  const paymentAction = !guideMode && request.status === 'accepted' && request.paymentStatus === 'unpaid' ? `<div class="guide-card-actions"><button data-action="pay-guide-request" data-id="${esc(request.id)}">Pay now (demo)</button></div>${request.tripMode === 'shared' && !sharedTripReady(request) ? '<small class="shared-work-hint">You can pay now. If the shared minimum is still unmet within 24 hours of departure, everyone will decide together what happens next.</small>' : ''}` : '';
   const bookingAction = !guideMode && request.paymentStatus === 'paid' ? `<div class="guide-card-actions"><a class="primary-button" href="#/bookings/${esc(request.id)}">Open booking workspace</a></div>` : '';
   const displayStatus = request.paymentStatus === 'paid' && request.status === 'accepted' ? 'confirmed' : request.status;
   const paymentHint = request.paymentStatus === 'refunded' ? 'Payment refunded after the request was declined.' : request.paymentStatus === 'paid' ? `Booking confirmed · payout ${payoutLabel}` : request.status === 'accepted' ? 'Payment is due before the tour starts.' : 'Payment is requested after the guide accepts.';
@@ -46,7 +46,7 @@ function baseGuideRequestCard(request, guideMode = false) {
 function guideRequestCard(request, guideMode = false) {
   const card = baseGuideRequestCard(request, guideMode).replace(/<button data-action="guide-request-complete"[^>]*>Mark tour completed<\/button>/, '').replace('</h3><p>', `</h3><p>${esc(tripModeLabel(request.tripMode))} · `);
   if (!['paid', 'refunded'].includes(request.paymentStatus)) return card;
-  return card.replace(/<\/article>$/, `${request.tripMode === 'shared' && request.paymentStatus === 'paid' ? `<button class="outline-button full guardian-entry" data-action="booking-shared-chat" data-id="${esc(request.id)}">Open shared trip chat</button>` : ''}<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(request.id)}/safety">Open Trip Safety Center</a></article>`);
+  return card.replace(/<\/article>$/, `${request.tripMode === 'shared' && ['paid', 'refunded'].includes(request.paymentStatus) ? `<button class="outline-button full guardian-entry" data-action="booking-shared-chat" data-id="${esc(request.id)}">Open shared trip chat</button>` : ''}<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(request.id)}/safety">Open Trip Safety Center</a></article>`);
 }
 
 function baseTravelerBookingDetailView(id) {
@@ -68,7 +68,7 @@ function baseTravelerBookingDetailView(id) {
 export function travelerBookingDetailView(id) {
   let page = baseTravelerBookingDetailView(id);
   const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase());
-  if (request?.tripMode === 'shared' && request.paymentStatus === 'paid') page = page.replace('<section class="booking-workspace-card"><h2>What happens next?</h2>', `<section class="booking-workspace-card"><h2>Your shared departure</h2><p class="guide-caption">Meet other confirmed travelers and coordinate shared trip details. Your booking and payment remain private.</p><button class="primary-button full" data-action="booking-shared-chat" data-id="${esc(id)}">Open shared trip chat</button></section><section class="booking-workspace-card"><h2>What happens next?</h2>`);
+  if (request?.tripMode === 'shared' && ['paid', 'refunded'].includes(request.paymentStatus)) page = page.replace('<section class="booking-workspace-card"><h2>What happens next?</h2>', `<section class="booking-workspace-card"><h2>Your shared departure</h2><p class="guide-caption">Meet other travelers and coordinate group decisions and trip details in the shared chat. Your booking remains private.</p><button class="primary-button full" data-action="booking-shared-chat" data-id="${esc(id)}">Open shared trip chat</button></section><section class="booking-workspace-card"><h2>What happens next?</h2>`);
   return ['paid', 'refunded'].includes(request?.paymentStatus) ? page.replace('<section class="booking-workspace-card"><h2>Your trip</h2>', `<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(id)}/safety">Open Trip Safety Center</a><section class="booking-workspace-card"><h2>Your trip</h2>`) : page;
 }
 
