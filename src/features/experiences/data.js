@@ -315,9 +315,9 @@ const articleExperiences = [
 
 const sumbawaExperiences = [
   {
-    id: 'pulau-kenawa', title: 'Pulau Kenawa Island Escape', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.kenawa,
+    id: 'pulau-kenawa', title: 'Pulau Kenawa Island Escape', city: 'Sumbawa', duration: 'Destination', image: sumbawaImages.kenawa,
     rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.kenawa,
-    badge: 'Details pending', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature'],
+    badge: '', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature'],
     description: 'Discover Pulau Kenawa near Poto Tano, with open coastal views and a savanna landscape. Local transport, access conditions, and any fees need confirmation before travel.',
     location: 'Poto Tano, West Sumbawa, West Nusa Tenggara',
     highlights: ['Explore Pulau Kenawa’s coastal landscape', 'Enjoy open sea and island views', 'Confirm boat access and conditions with the operator'],
@@ -325,9 +325,9 @@ const sumbawaExperiences = [
     sourceNote: 'Location and access details are a preliminary demo listing; confirm local conditions before travel.',
   },
   {
-    id: 'pulau-moyo', title: 'Pulau Moyo Nature & Snorkeling', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.moyo,
+    id: 'pulau-moyo', title: 'Pulau Moyo Nature & Snorkeling', city: 'Sumbawa', duration: 'Destination', image: sumbawaImages.moyo,
     rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.moyo,
-    badge: 'Details pending', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature', 'Marine wildlife'],
+    badge: '', label: 'Island experience', category: 'Island', categories: ['Island', 'Beach', 'Nature', 'Marine wildlife'],
     description: 'Explore Pulau Moyo’s coastal scenery and surrounding marine landscape. Boat departures, snorkeling stops, local transport, and access conditions must be confirmed with an operator.',
     location: 'Pulau Moyo, Sumbawa Regency, West Nusa Tenggara',
     highlights: ['Explore an island off northern Sumbawa', 'Discover coastal and marine scenery', 'Confirm boat and snorkeling arrangements before travel'],
@@ -335,9 +335,9 @@ const sumbawaExperiences = [
     sourceNote: 'This is a destination preview, not a confirmed guided activity or departure.',
   },
   {
-    id: 'mata-jitu-waterfall', title: 'Mata Jitu Waterfall on Pulau Moyo', city: 'Sumbawa', duration: 'Visit details pending', image: sumbawaImages.mataJitu,
+    id: 'mata-jitu-waterfall', title: 'Mata Jitu Waterfall on Pulau Moyo', city: 'Sumbawa', duration: 'Destination', image: sumbawaImages.mataJitu,
     rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, imageCredit: sumbawaPhotoCredits.mataJitu,
-    badge: 'Details pending', label: 'Waterfall', category: 'Waterfall', categories: ['Waterfall', 'Nature'],
+    badge: '', label: 'Waterfall', category: 'Waterfall', categories: ['Waterfall', 'Nature'],
     description: 'Visit Mata Jitu Waterfall on Pulau Moyo and explore the natural pools and forest setting. The supplied open-trip itinerary mentions a motorbike transfer from Labuan Aji and a short walk; current access and fees need local confirmation.',
     location: 'Pulau Moyo, Sumbawa Regency, West Nusa Tenggara',
     highlights: ['Visit Mata Jitu Waterfall', 'Explore its natural pools and forest setting', 'Confirm access, local transport, and park fees before travel'],
@@ -345,11 +345,11 @@ const sumbawaExperiences = [
     sourceNote: 'The package screenshot mentions a motorbike transfer and short walk; actual conditions and fees may change.',
   },
   {
-    id: 'sumbawa-whale-shark', title: 'Sumbawa Whale Shark Boat Experience', city: 'Sumbawa', duration: 'Schedule pending', image: sumbawaImages.whaleShark,
+    id: 'sumbawa-whale-shark', title: 'Sumbawa Whale Shark Boat Experience', city: 'Sumbawa', duration: 'Destination', image: sumbawaImages.whaleShark,
     rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true,
     badge: 'Wildlife experience', label: 'Marine wildlife', category: 'Marine wildlife', categories: ['Marine wildlife', 'Nature'],
     description: 'A boat-based whale shark activity is listed among the supplied Sumbawa open-trip facilities. Sightings are wildlife encounters and cannot be guaranteed; exact location, schedule, safety rules, and responsible viewing procedures must be confirmed by the local operator.',
-    location: 'Sumbawa, West Nusa Tenggara · exact departure point pending',
+    location: 'Sumbawa, West Nusa Tenggara',
     highlights: ['Private boat activity listed in the source package', 'Transparent canoe and snorkeling equipment are listed as included', 'Wildlife sightings and operating conditions are not guaranteed'],
     includes: ['Private boat activity as listed in the source package', 'Transparent canoe as listed in the source package', 'Snorkeling fins, mask, and life jacket as listed in the source package'],
     availabilityNote: 'Price, date, departure location, safety briefing, and wildlife-viewing conditions have not been confirmed by an operator yet.',
@@ -541,7 +541,7 @@ export const experienceCategories = [
   { id: 'budaya', name: 'Culture', description: 'Meet communities and discover local traditions', image: experiences.find((item) => item.category === 'Culture').image, value: 'Culture', city: 'all' },
   { id: 'islands', name: 'Islands', description: 'Explore island landscapes around Sumbawa', image: sumbawaImages.kenawa, imageCredit: sumbawaPhotoCredits.kenawa, value: 'Island', city: 'all' },
   { id: 'marine-wildlife', name: 'Marine wildlife', description: 'Discover Sumbawa’s marine experiences responsibly', image: sumbawaImages.whaleShark, value: 'Marine wildlife', city: 'all' },
-  { id: 'open-trips', name: 'Open trips', description: 'Browse multi-day trips as operator details are confirmed', image: sumbawaImages.moyo, imageCredit: sumbawaPhotoCredits.moyo, value: 'Open trip', city: 'all' },
+  { id: 'open-trips', name: 'Open trips', description: 'Browse multi-day trips across Lombok and Sumbawa', image: sumbawaImages.moyo, imageCredit: sumbawaPhotoCredits.moyo, value: 'Open trip', city: 'all' },
 ].map((category) => ({ ...category, count: experiences.filter((item) => item.category === category.value || item.categories?.includes(category.value)).length }));
 
 export const getExperience = (id) => experiences.find((item) => item.id === id) || experiences[0];

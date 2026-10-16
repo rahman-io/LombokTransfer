@@ -8,17 +8,20 @@ export function experienceCard(item, type = 'list') {
   const id = encodeURIComponent(item.id);
   const approvedPrices = item.packageOptions?.map((option) => publicStartingPackagePrice(item.id, option)).filter((amount) => amount !== null);
   const priceAvailable = Boolean(approvedPrices?.length);
+  const informationOnly = Boolean(item.pricePending && !priceAvailable);
+  const displayBadge = informationOnly && /pending/i.test(item.badge || '') ? '' : item.badge;
+  const displayDuration = informationOnly ? 'Destination' : item.duration;
   const displayedPrice = priceAvailable ? formatListedPrice({ listedPrice: Math.min(...approvedPrices), listedPriceCurrency: 'IDR' }) : '-';
   return `<article class="experience-card ${type}">
     <a class="card-link" href="#/experience/${id}" aria-label="${escapeHtml(item.title)}"></a>
     <img src="${escapeHtml(item.cardImage || item.image)}" alt="" loading="lazy" />
     <div class="card-copy">
-      <div class="eyebrow">${escapeHtml(item.city.toUpperCase())} · ${escapeHtml(item.duration.toUpperCase())}</div>
+      <div class="eyebrow">${escapeHtml(item.city.toUpperCase())} · ${escapeHtml(displayDuration.toUpperCase())}</div>
       <h3>${escapeHtml(item.title)}</h3>
-      ${type === 'list' ? `<div class="card-feature">${item.badge ? `<span class="card-badge">${escapeHtml(item.badge)}</span>` : ''} ${escapeHtml(item.label)}</div>` : `<p class="card-duration">${escapeHtml(item.duration)}</p>`}
+      ${type === 'list' ? `<div class="card-feature">${displayBadge ? `<span class="card-badge">${escapeHtml(displayBadge)}</span>` : ''} ${escapeHtml(item.label)}</div>` : `<p class="card-duration">${escapeHtml(displayDuration)}</p>`}
       ${item.recommendationReason ? `<div class="recommendation-reason">${escapeHtml(item.recommendationReason)}</div>` : ''}
       ${item.communityReason ? `<div class="community-reason">${escapeHtml(item.communityReason)}</div>` : ''}
-      <div class="card-bottom"><span>${item.demoBookingNotice ? '<span class="muted">Open trip · no reviews yet</span>' : item.pricePending ? '<span class="muted">Operator details pending</span>' : `<b>${escapeHtml(item.rating)} ★</b> <span class="muted">(${escapeHtml(item.reviews)})</span>`}</span><span class="price"><small>${priceAvailable ? item.demoBookingNotice ? 'Open trip offer' : 'From' : 'From'}</small> <b>${escapeHtml(displayedPrice)}</b></span></div>
+      <div class="card-bottom"><span>${priceAvailable && item.demoBookingNotice ? '<span class="muted">Open trip · no reviews yet</span>' : informationOnly ? '<span class="muted">Information only</span>' : `<b>${escapeHtml(item.rating)} ★</b> <span class="muted">(${escapeHtml(item.reviews)})</span>`}</span><span class="price"><small>${priceAvailable ? item.demoBookingNotice ? 'Open trip offer' : 'From' : 'From'}</small> <b>${escapeHtml(displayedPrice)}</b></span></div>
     </div>
     <button class="heart-button ${saved ? 'saved' : ''}" data-action="heart" data-id="${escapeHtml(item.id)}" aria-label="${saved ? 'Remove from wishlist' : 'Save to wishlist'}">${icon('heart', 22)}</button>
   </article>`;
