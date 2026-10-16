@@ -38,6 +38,7 @@ export function homeView() {
   const communityLabel = (item) => { const signal = communitySignals.get(item.id); return signal?.posts ? `Shared by ${signal.posts} traveler${signal.posts === 1 ? '' : 's'} on Vibes` : ''; };
   const topDestinations = trendingDestinations(posts, recommendations);
   return mainLayout(`
+    <div class="home-brand"><span class="app-brand-mark">FMG</span><strong>FindMyGuide</strong></div>
     <section class="home-hero">
       <div class="hero-top"><div class="home-greeting"><div class="home-greeting-row"><div><h1>Hi, ${escapeHtml(greetingName())}</h1><p>Where would you like to go today?</p></div><a class="home-profile-link" href="#/profile" aria-label="Open profile"><img class="home-profile-photo" src="${escapeHtml(state.profilePhoto || images.login)}" alt="Profile photo" /></a></div></div><a class="inbox-button" href="#/inbox" aria-label="Inbox">${icon('bell', 21)}${inboxBadge()}</a></div>
       <a href="#/search" class="search-pill">${icon('search', 19)}<span>Find places and things to do</span></a>
