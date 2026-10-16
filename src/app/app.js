@@ -199,6 +199,9 @@ export function render() {
   const chatRoute = path.startsWith('/inbox/chat/');
   const preserveChatScroll = chatRoute && path === lastPath;
   const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
+  const safetyRoute = /^\/bookings\/[^/]+\/safety$/.test(path);
+  const preserveSafetyScroll = safetyRoute && path === lastPath;
+  const previousSafetyScrollTop = preserveSafetyScroll ? window.scrollY : null;
   maybeShowInstallInfo();
   const account = activeSocialUser();
   if (account) {
@@ -226,6 +229,7 @@ export function render() {
     else if (chatGalleryReturnScrollTop !== null) { const scrollTop = chatGalleryReturnScrollTop; chatGalleryReturnScrollTop = null; scrollChatToLatest(scrollTop); }
     else if (previousChatScrollTop !== null) scrollChatToLatest(previousChatScrollTop);
   }
+  if (preserveSafetyScroll && previousSafetyScrollTop !== null) requestAnimationFrame(() => window.scrollTo({ top: previousSafetyScrollTop, behavior: 'instant' }));
   if (path !== lastPath) {
     const scrollRestore = consumeScrollRestore();
     if (scrollRestore !== null) {
@@ -448,7 +452,7 @@ function sharedTripSystemUpdate(offerId, message, targetOfferId = offerId) {
 }
 function performBookingTripStep(id, step) {
   const messages = { guide_start: 'Guide requested to start the trip.', traveler_start: 'Traveler confirmed meeting the guide; trip started.', check_in: 'Traveler checked in safely.', guide_finish: 'Guide requested to complete the trip.', traveler_finish: 'Traveler confirmed the trip is complete.' };
-  if (advanceBookingTrip(id, activeBookingActor(), step)) { const request = guideDemoData().requests.find((entry) => entry.id === id); if (request?.offerId) sharedTripSystemUpdate(request.offerId, messages[step]); else bookingChatSystemUpdate(id, messages[step]); announce(messages[step]); }
+  if (advanceBookingTrip(id, activeBookingActor(), step)) { const request = guideDemoData().requests.find((entry) => entry.id === id); if (request?.offerId) sharedTripSystemUpdate(request.offerId, messages[step]); else bookingChatSystemUpdate(id, messages[step]); announce(messages[step]); render(); }
   else announce('Complete the previous booking steps first');
 }
 function clickAction(action, el) {
@@ -466,9 +470,9 @@ function clickAction(action, el) {
     case 'guide-request-decline': { const status = action === 'guide-request-accept' ? 'accepted' : 'declined'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
     case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) { const request = guideDemoData().requests.find((entry) => entry.id === id); if (request?.tripMode === 'shared') { getOrCreateSharedTripThread(request.offerId); sharedTripSystemUpdate(request.offerId, 'A traveler confirmed payment. Group size and departure status are updated.'); } navigate(`/bookings/${encodeURIComponent(id)}`); } else announce('Payment is available after guide acceptance'); break;
     case 'verify-booking': { const code = el.closest('[data-booking-verification]')?.querySelector('[data-booking-code]')?.value || ''; if (activeSocialUser().role === 'guide' && verifyBooking(id, code, activeSocialUser().guideId || activeSocialUser().id)) { announce('Booking verified'); render(); } else announce('Booking code is invalid or payment is not confirmed'); break; }
-    case 'booking-change-decision': if (value === 'accept') { state.confirmAction = { type: 'booking-change-decision', id, decision: value, message: 'Accept this change to the agreed trip details?' }; openModal('confirm-action'); } else if (respondBookingChange(id, activeBookingActor(), false)) { bookingChatSystemUpdate(id, 'A proposed trip change was declined.'); announce('Change declined'); } else announce('This change cannot be updated'); break;
+    case 'booking-change-decision': if (value === 'accept') { state.confirmAction = { type: 'booking-change-decision', id, decision: value, message: 'Accept this change to the agreed trip details?' }; openModal('confirm-action'); } else if (respondBookingChange(id, activeBookingActor(), false)) { bookingChatSystemUpdate(id, 'A proposed trip change was declined.'); announce('Change declined'); render(); } else announce('This change cannot be updated'); break;
     case 'booking-trip-step': if (value === 'check_in') performBookingTripStep(id, value); else { state.confirmAction = { type: 'booking-trip-step', id, step: value, message: value === 'traveler_finish' ? 'Confirm that the trip ended as agreed? If there is a problem, report it before completing.' : value === 'traveler_start' ? 'Confirm that you met the correct guide and are ready to start?' : value === 'guide_finish' ? 'Ask the traveler to confirm that the trip is complete?' : 'Request to start this trip after verifying the traveler?' }; openModal('confirm-action'); } break;
-    case 'booking-review-report': if (resolveBookingIssue(id, value)) announce('Report reviewed in local demo'); else announce('Report could not be updated'); break;
+    case 'booking-review-report': if (resolveBookingIssue(id, value)) { announce('Report reviewed in local demo'); render(); } else announce('Report could not be updated'); break;
     case 'booking-share-trip': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); if (!request) break; const shareText = `Trip ${request.bookingId}: ${getExperience(request.experienceId)?.title || 'Travel experience'} on ${request.date} at ${request.time}. Guide: ${guideDemoData().guides.find((entry) => entry.id === request.guideId)?.name || 'Local guide'}. Meeting point: ${request.safety?.meetingPoint || 'To be agreed'}. This is a manually shared summary, not live tracking.`; if (navigator.share) navigator.share({ title: 'Trip summary', text: shareText }).catch(() => {}); else copyChatText(shareText).then(() => announce('Trip summary copied')).catch(() => announce('Could not share summary')); break; }
     case 'send-flagged-chat': { const pending = state.chatPendingUnsafe; state.chatPendingUnsafe = null; state.modal = ''; if (pending && chatThread(pending.threadId)?.participantIds.includes(activeSocialUser().id) && sendChatMessage(pending.threadId, pending.text, null, { replyTo: pending.replyTo })) { state.chatDraft = null; state.chatReplyMessageId = ''; render(); } else announce('Message could not be sent'); break; }
     case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, bookingChatContext(request)); if (threadId) { ensureBookingChat(threadId, request); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } else announce('Guide chat is unavailable'); break; }
@@ -496,7 +500,7 @@ function clickAction(action, el) {
       const messages = { meeting: 'Hi, let’s confirm the meeting point for this booking.', time: 'Can we confirm the departure time for this booking?', location: 'Please share the meeting location or map pin for this booking.' };
       if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside LombokTransfer. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
       if (value === 'details' || value === 'qr') { if (request) navigate(`/bookings/${encodeURIComponent(request.id)}`); break; }
-      if (messages[value] && sendChatMessage(id, messages[value])) announce(value === 'location' ? 'Location request sent' : 'Message sent');
+      if (messages[value] && sendChatMessage(id, messages[value])) { announce(value === 'location' ? 'Location request sent' : 'Message sent'); render(); }
       break;
     }
     case 'admin-record-payment': { const paid = markGuideRequestPaid(id); const request = paid && guideDemoData().requests.find((entry) => entry.id === id); if (request?.tripMode === 'shared') getOrCreateSharedTripThread(request.offerId); announce(paid ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break; }
@@ -597,7 +601,7 @@ function clickAction(action, el) {
       state.modal = '';
       if (confirmation?.type === 'delete-chat') { deleteChatMessage(confirmation.threadId, confirmation.id); render(); }
       else if (confirmation?.type === 'booking-trip-step') performBookingTripStep(confirmation.id, confirmation.step);
-      else if (confirmation?.type === 'booking-change-decision') { if (respondBookingChange(confirmation.id, activeBookingActor(), true)) { bookingChatSystemUpdate(confirmation.id, 'A proposed trip change was accepted.'); announce('Trip detail updated'); } else announce('This change cannot be accepted'); }
+      else if (confirmation?.type === 'booking-change-decision') { if (respondBookingChange(confirmation.id, activeBookingActor(), true)) { bookingChatSystemUpdate(confirmation.id, 'A proposed trip change was accepted.'); announce('Trip detail updated'); render(); } else announce('This change cannot be accepted'); }
       else if (confirmation?.type === 'shared-trip-complete') { if (finishSharedTrip(confirmation.offerId, activeBookingActor())) { sharedTripSystemUpdate(confirmation.offerId, 'The guide marked the shared trip work complete. Each traveler should confirm completion in their Safety Center.'); announce('Waiting for traveler completion confirmations'); } else announce('All paid travelers must confirm the trip started, and safety reports must be resolved first'); }
       else if (confirmation?.type === 'social-delete' && deleteSocialPost(confirmation.id)) navigate('/social');
       else render();
@@ -1117,9 +1121,9 @@ export function startApp() {
     }
     if (event.target.classList.contains('guide-price-form')) { event.preventDefault(); announce(proposeGuidePrice(activeGuide().id, event.target.dataset.packageId, event.target.elements.price.value) ? 'Price proposal sent for admin review' : 'Enter a new valid price'); return; }
     if (event.target.classList.contains('guide-review-form')) { event.preventDefault(); announce(reviewGuideRequest(event.target.dataset.requestId, state.email, event.target.elements.stars.value, event.target.elements.comment.value) ? 'Review submitted' : 'Review could not be saved'); return; }
-    if (event.target.id === 'booking-change-form') { event.preventDefault(); const form = event.target; if (proposeBookingChange(form.dataset.bookingId, activeBookingActor(), form.elements.field.value, form.elements.value.value)) { bookingChatSystemUpdate(form.dataset.bookingId, 'A trip detail change was proposed. Open Safety Center to review it.'); announce('Change sent for approval'); } else announce('Check the new detail or resolve the pending change first'); return; }
-    if (event.target.id === 'booking-contact-form') { event.preventDefault(); const form = event.target; announce(saveBookingTrustedContact(form.dataset.bookingId, state.email, form.elements.name.value, form.elements.phone.value) ? 'Trusted contact saved on this device' : 'Enter a valid name and phone number'); return; }
-    if (event.target.id === 'booking-report-form') { event.preventDefault(); const form = event.target; if (reportBookingIssue(form.dataset.bookingId, activeBookingActor(), form.elements.category.value, form.elements.detail.value)) { bookingChatSystemUpdate(form.dataset.bookingId, 'A booking concern was reported. Completion and payout are paused for review.'); announce('Report saved for review on this device'); } else announce('Could not save this report'); return; }
+    if (event.target.id === 'booking-change-form') { event.preventDefault(); const form = event.target; if (proposeBookingChange(form.dataset.bookingId, activeBookingActor(), form.elements.field.value, form.elements.value.value)) { bookingChatSystemUpdate(form.dataset.bookingId, 'A trip detail change was proposed. Open Safety Center to review it.'); announce('Change sent for approval'); render(); } else announce('Check the new detail or resolve the pending change first'); return; }
+    if (event.target.id === 'booking-contact-form') { event.preventDefault(); const form = event.target; if (saveBookingTrustedContact(form.dataset.bookingId, state.email, form.elements.name.value, form.elements.phone.value)) { announce('Trusted contact saved on this device'); render(); } else announce('Enter a valid name and phone number'); return; }
+    if (event.target.id === 'booking-report-form') { event.preventDefault(); const form = event.target; if (reportBookingIssue(form.dataset.bookingId, activeBookingActor(), form.elements.category.value, form.elements.detail.value)) { bookingChatSystemUpdate(form.dataset.bookingId, 'A booking concern was reported. Completion and payout are paused for review.'); announce('Report saved for review on this device'); render(); } else announce('Could not save this report'); return; }
     if (event.target.id === 'chat-message-form') {
       event.preventDefault();
       const threadId = route().path.split('/')[3];

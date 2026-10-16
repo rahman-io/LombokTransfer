@@ -1,0 +1,13 @@
+/* Keep booking safety controls available when a mobile tap moves focus. */
+.chat-page:focus-within .chat-booking-actions,
+.chat-page:focus-within .chat-booking-checklist,
+.chat-page:focus-within .chat-booking-assistant {
+  display: flex !important;
+}
+
+.chat-page:focus-within .shared-decision-form,
+.chat-page:focus-within .shared-trip-start-form,
+.chat-page:has(.chat-composer textarea:focus) .shared-decision-form,
+.chat-page:has(.chat-composer textarea:focus) .shared-trip-start-form {
+  display: grid !important;
+}
