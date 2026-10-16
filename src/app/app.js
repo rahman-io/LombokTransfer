@@ -58,7 +58,32 @@ let suppressSocialHorizontalClick = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
 let discoverMap = null;
+let appProgressTimer = 0;
 const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
+function startAppProgress() {
+  let bar = document.getElementById('app-progress');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'app-progress'; bar.className = 'app-progress'; bar.setAttribute('aria-hidden', 'true'); document.body.append(bar); }
+  clearTimeout(appProgressTimer);
+  bar.classList.remove('is-complete');
+  bar.classList.add('is-active');
+}
+function finishAppProgress() {
+  clearTimeout(appProgressTimer);
+  appProgressTimer = setTimeout(() => {
+    const bar = document.getElementById('app-progress');
+    if (!bar) return;
+    bar.classList.remove('is-active');
+    bar.classList.add('is-complete');
+  }, 180);
+}
+function setButtonLoading(button) {
+  if (!button || button.disabled || button.dataset.loading === 'true') return;
+  const label = button.textContent.trim() || 'Processing';
+  button.dataset.loading = 'true';
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  button.innerHTML = `<span class="loading-spinner" aria-hidden="true"></span><span>${escapeHtml(label)}</span>`;
+}
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
 function canStartMainSwipe(target) {
   return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,.social-topic-row,.social-people-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
@@ -198,10 +223,11 @@ function currentView() {
   return homeView();
 }
 export function render() {
+  startAppProgress();
   const { path } = route();
   const session = demoSession();
-  if (!session && path !== '/login') { state.authMode = demoAuthMode(); navigate('/login'); return; }
-  if (session && path === '/login') { navigate('/'); return; }
+  if (!session && path !== '/login') { state.authMode = demoAuthMode(); navigate('/login'); finishAppProgress(); return; }
+  if (session && path === '/login') { navigate('/'); finishAppProgress(); return; }
   if (session && activeSocialUser()?.id !== session.userId) switchSocialUser(session.userId);
   const chatRoute = path.startsWith('/inbox/chat/');
   const preserveChatScroll = chatRoute && path === lastPath;
@@ -222,6 +248,7 @@ export function render() {
   if (retainedMap) retainedMap.remove();
   else { discoverMap?.destroy(); discoverMap = null; }
   root.innerHTML = currentView() + modalView() + (state.toast ? `<div class="toast" role="status">${state.toast}</div>` : '');
+  if (path !== lastPath) root.querySelector('.main-content')?.classList.add('page-enter');
   setupBookingQrCodes();
   if (transition) root.querySelector('.main-content')?.classList.add(`main-content-transition-${transition}`);
   if (expandedSections) root.querySelectorAll('[data-detail-section]').forEach((section) => { section.open = expandedSections.includes(section.dataset.detailSection); });
@@ -248,6 +275,7 @@ export function render() {
     lastPath = path;
   }
   syncDetailHeader();
+  finishAppProgress();
 }
 function galleryLength() {
   const { path } = route();
@@ -818,6 +846,7 @@ export function startApp() {
     }
     event.preventDefault();
     if (el.classList.contains('modal-backdrop') && event.target !== el) return;
+    if (el.matches('button.primary-button,button.outline-button') && !['close-modal', 'back'].includes(el.dataset.action)) setButtonLoading(el);
     clickAction(el.dataset.action, el);
   });
   document.addEventListener('selectionchange', () => {
@@ -1125,6 +1154,7 @@ export function startApp() {
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
   root.addEventListener('submit', (event) => {
+    if (event.submitter?.matches('button.primary-button,button.outline-button')) setButtonLoading(event.submitter);
     if (event.target.id === 'demo-auth-form') {
       event.preventDefault();
       const form = event.target;
