@@ -62,9 +62,10 @@ test('traveler requests reach the guide and keep the agreed price split through 
     const travelerActor = { role: 'traveler', email: 'traveler@example.com' };
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'completed'), false);
     assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_start'), false);
-    assert.equal(proposeBookingChange(request.id, guideActor, 'meetingPoint', 'Sembalun village office'), true);
-    assert.equal(respondBookingChange(request.id, guideActor, true), false);
-    assert.equal(respondBookingChange(request.id, travelerActor, true), true);
+    assert.equal(proposeBookingChange(request.id, guideActor, 'meetingPoint', 'Sembalun village office'), false);
+    assert.equal(proposeBookingChange(request.id, travelerActor, 'meetingPoint', 'Sembalun village office'), true);
+    assert.equal(respondBookingChange(request.id, travelerActor, true), false);
+    assert.equal(respondBookingChange(request.id, guideActor, true), true);
     assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_start'), true);
     assert.equal(advanceBookingTrip(request.id, travelerActor, 'traveler_start'), true);
     assert.equal(reportBookingIssue(request.id, travelerActor, 'safety', 'Need assistance with the meeting point.'), true);

@@ -4,7 +4,7 @@ const storageKey = 'lombok-guide-demo-v1';
 const commissionRate = 0.10;
 const paymentRate = 0.03;
 const financeSchemaVersion = 1;
-const guideDemoSchemaVersion = 5;
+const guideDemoSchemaVersion = 6;
 export function financeConfig() { return { platformRate: commissionRate, paymentRate, currency: 'IDR' }; }
 const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
 function bookingIdentity(id, createdAt = '') {
@@ -29,7 +29,7 @@ const upcomingDemoDate = (date, offset) => date >= new Date().toISOString().slic
 function seedOfferings() {
   const october = upcomingDemoDate('2026-10-26', 10);
   const november = upcomingDemoDate('2026-11-05', 20);
-  const make = (id, guideId, experienceId, packageId, date, mode, price, maxGuests, minGuests = 1, teamGuideIds = [guideId]) => ({ id, guideId, experienceId, packageId, date, time: packageStartTimes(getExperience(experienceId), getExperience(experienceId)?.packageOptions?.find((option) => option.id === packageId))[0], mode, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', minGuests, maxGuests, teamGuideIds, status: 'published', workStatus: 'not_started', departureDecision: null, approvedAt: new Date().toISOString(), approvedBy: 'demo-admin', createdAt: new Date().toISOString() });
+  const make = (id, guideId, experienceId, packageId, date, mode, price, maxGuests, minGuests = 1, teamGuideIds = [guideId]) => ({ id, guideId, experienceId, packageId, date, time: packageStartTimes(getExperience(experienceId), getExperience(experienceId)?.packageOptions?.find((option) => option.id === packageId))[0], mode, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', minGuests, maxGuests, teamGuideIds, status: 'published', workStatus: 'not_started', departureDecision: null, sharedMeetingPoint: mode === 'shared' ? { value: '', setBy: '', setAt: null, acknowledgements: {} } : undefined, approvedAt: new Date().toISOString(), approvedBy: 'demo-admin', createdAt: new Date().toISOString() });
   const curated = [
     make('demo-rinjani-solo', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'solo', 2531969, 1),
     make('demo-rinjani-private', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'private', 4200000, 6),
@@ -66,6 +66,8 @@ function read() {
       if (promotion && !offer.promotion) { offer.promotion = { ...promotion }; migrated = true; }
       if (!offer.workStatus) { offer.workStatus = 'not_started'; migrated = true; }
       if (!Object.hasOwn(offer, 'departureDecision')) { offer.departureDecision = null; migrated = true; }
+      if (offer.mode === 'shared' && !offer.sharedMeetingPoint) { offer.sharedMeetingPoint = { value: '', setBy: '', setAt: null, acknowledgements: {} }; migrated = true; }
+      if (offer.mode === 'shared' && offer.sharedMeetingPoint && !offer.sharedMeetingPoint.acknowledgements) { offer.sharedMeetingPoint.acknowledgements = {}; migrated = true; }
     });
     const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
     data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
@@ -118,7 +120,7 @@ export function proposeBookingChange(id, actor, field, value) {
   const request = data.requests.find((entry) => entry.id === id);
   const role = request && bookingActor(request, actor);
   const clean = String(value || '').trim().slice(0, 160);
-  if (!role || request.status !== 'accepted' || request.paymentStatus !== 'paid' || bookingSafety(request).guideStartedAt || openReport(request) || bookingSafety(request).proposal || !['meetingPoint', 'time', 'date'].includes(field) || (request.offerId && field !== 'meetingPoint') || !clean) return false;
+  if (!role || request.status !== 'accepted' || request.paymentStatus !== 'paid' || bookingSafety(request).guideStartedAt || openReport(request) || bookingSafety(request).proposal || !['meetingPoint', 'time', 'date'].includes(field) || (request.offerId && field !== 'meetingPoint') || (field === 'meetingPoint' && (request.tripMode === 'shared' || role !== 'traveler')) || !clean) return false;
   if (field === 'time' && !/^(?:0?[1-9]|1[0-2]):[0-5]\d\s?(?:AM|PM)$/i.test(clean)) return false;
   if (field === 'date' && (!/^\d{4}-\d{2}-\d{2}$/.test(clean) || clean < new Date().toISOString().slice(0, 10) || !packageDates(clean, getExperience(request.experienceId)?.packageOptions?.find((option) => option.id === request.packageId)).length)) return false;
   const safety = editableSafety(request);
@@ -354,7 +356,7 @@ export function createTripOffering(guideId, values) {
   const team = teamGuideIds.map((id) => data.guides.find((item) => item.id === id && item.status === 'verified' && item.experienceIds.includes(values.experienceId)));
   const capacity = team.reduce((sum, item) => sum + (item?.capacity || 0), 0);
   if (!guide?.experienceIds.includes(values.experienceId) || !option || !['solo', 'private', 'shared', 'group'].includes(mode) || !packageDates(date, option).length || date < new Date().toISOString().slice(0, 10) || !/^(?:0?[1-9]|1[0-2]):[0-5]\d\s?(?:AM|PM)$/i.test(time) || !Number.isInteger(minGuests) || !Number.isInteger(maxGuests) || minGuests < 1 || maxGuests < minGuests || maxGuests > capacity || (mode === 'solo' && (minGuests !== 1 || maxGuests !== 1)) || !Number.isInteger(price) || price < 1000 || team.some((item) => !item)) return null;
-  const offer = { id: crypto.randomUUID(), guideId, experienceId: experience.id, packageId: option.id, date, time, mode, minGuests, maxGuests, teamGuideIds, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', status: 'pending', createdAt: new Date().toISOString(), approvedAt: null, approvedBy: null };
+  const offer = { id: crypto.randomUUID(), guideId, experienceId: experience.id, packageId: option.id, date, time, mode, minGuests, maxGuests, teamGuideIds, price, priceUnit: ['private', 'group'].includes(mode) ? 'group' : 'person', status: 'pending', ...(mode === 'shared' ? { sharedMeetingPoint: { value: '', setBy: '', setAt: null, acknowledgements: {} } } : {}), createdAt: new Date().toISOString(), approvedAt: null, approvedBy: null };
   data.offerings.unshift(offer); write(data); return offer;
 }
 export function reviewTripOffering(id, decision) {
@@ -428,6 +430,9 @@ export function sharedDepartureStatus(offerId) {
   const underMinimum = paidTravelers > 0 && paidTravelers < minGuests;
   const workStatus = offer.workStatus || (bookings.length && bookings.every((request) => request.status === 'completed') ? 'completed' : bookings.some((request) => request.bookingStatus === 'in_progress') ? 'in_progress' : 'not_started');
   const decision = offer.departureDecision || null;
+  const sharedMeetingPoint = offer.sharedMeetingPoint || { value: '', setBy: '', setAt: null, acknowledgements: {} };
+  const meetingPointAcknowledgements = sharedMeetingPoint.acknowledgements || {};
+  const meetingPointAcknowledgedCount = bookings.filter((request) => Boolean(meetingPointAcknowledgements[request.id])).length;
   return {
     offer,
     bookings,
@@ -444,10 +449,45 @@ export function sharedDepartureStatus(offerId) {
     hoursUntil,
     decision,
     workStatus,
+    meetingPoint: sharedMeetingPoint.value || '',
+    meetingPointSetBy: sharedMeetingPoint.setBy || '',
+    meetingPointSetAt: sharedMeetingPoint.setAt || null,
+    meetingPointAcknowledgedCount,
+    allMeetingPointsAcknowledged: Boolean(sharedMeetingPoint.value) && bookings.length > 0 && meetingPointAcknowledgedCount === bookings.length,
+    ownMeetingPointAcknowledgements: meetingPointAcknowledgements,
     allVerified: bookings.length > 0 && bookings.every((request) => request.verificationStatus === 'verified'),
     allInProgress: bookings.length > 0 && bookings.every((request) => request.bookingStatus === 'in_progress'),
     hasOpenReport: bookings.some(openReport),
   };
+}
+export function setSharedDepartureMeetingPoint(offerId, actor, value) {
+  const data = read();
+  const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
+  const clean = String(value || '').trim().slice(0, 180);
+  if (!offer || !sharedGuideCanAct(offer, actor) || !clean || (offer.workStatus || 'not_started') !== 'not_started') return false;
+  const status = sharedDepartureStatus(offerId);
+  if (!status?.bookings.length) return false;
+  const previous = offer.sharedMeetingPoint || { value: '', setBy: '', setAt: null, acknowledgements: {} };
+  const changed = previous.value !== clean;
+  const timestamp = new Date().toISOString();
+  offer.sharedMeetingPoint = { value: clean, setBy: actor.id, setAt: timestamp, acknowledgements: changed ? {} : { ...(previous.acknowledgements || {}) } };
+  data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid').forEach((request) => logBookingEvent(request, 'shared_meeting_point_set', `The guide set the official shared meeting point to: ${clean}.`, 'guide'));
+  write(data);
+  return true;
+}
+export function acknowledgeSharedDepartureMeetingPoint(offerId, actor) {
+  const data = read();
+  const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
+  if (!offer || actor?.role !== 'traveler' || (offer.workStatus || 'not_started') !== 'not_started') return false;
+  const request = sharedTripRequests(data, offerId).find((entry) => bookingActor(entry, actor) === 'traveler');
+  const point = offer.sharedMeetingPoint;
+  if (!request || !point?.value || point.acknowledgements?.[request.id] || openReport(request)) return false;
+  const timestamp = new Date().toISOString();
+  point.acknowledgements ||= {};
+  point.acknowledgements[request.id] = { at: timestamp };
+  logBookingEvent(request, 'shared_meeting_point_seen', `The traveler confirmed seeing the official shared meeting point: ${point.value}.`, 'traveler');
+  write(data);
+  return true;
 }
 function validDepartureDate(data, offer, date, travelers, ignoredIds, allowLockedDeparture = false) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < new Date().toISOString().slice(0, 10)) return false;
@@ -507,6 +547,7 @@ function applySharedDepartureDecision(data, offer, decision) {
   if (decision.kind === 'reschedule') {
     if (!validDepartureDate(data, offer, decision.date, group.reduce((sum, request) => sum + request.travelers, 0), group.map((request) => request.id), true)) return false;
     offer.date = decision.date;
+    if (offer.sharedMeetingPoint) offer.sharedMeetingPoint.acknowledgements = {};
     group.forEach((request) => {
       request.date = decision.date;
       editableSafety(request).events.push({ id: crypto.randomUUID(), type: 'shared_trip_rescheduled', text: `The group agreed to move the shared departure to ${decision.date}.`, actor: 'guide', at: timestamp });
@@ -535,6 +576,8 @@ function applySharedDepartureDecision(data, offer, decision) {
     });
     offer.status = 'closed'; decision.status = 'resolved'; decision.resolvedAt = timestamp; decision.result = 'package_changed';
     target.departureDecision = null; target.workStatus = 'not_started';
+    target.sharedMeetingPoint ||= { value: '', setBy: '', setAt: null, acknowledgements: {} };
+    target.sharedMeetingPoint.acknowledgements = {};
     return true;
   }
   return false;
@@ -561,17 +604,17 @@ export function respondSharedDepartureDecision(offerId, actor, accept) {
   write(data);
   return result;
 }
-export function startSharedTrip(offerId, actor, meetingPoint) {
+export function startSharedTrip(offerId, actor) {
   const data = read();
   const offer = data.offerings.find((entry) => entry.id === offerId && entry.mode === 'shared');
   const status = offer && sharedDepartureStatus(offerId);
-  const cleanMeetingPoint = String(meetingPoint || '').trim().slice(0, 180);
+  const cleanMeetingPoint = String(offer?.sharedMeetingPoint?.value || '').trim().slice(0, 180);
   const today = new Date().toISOString().slice(0, 10);
   const decisionAllowsStart = status?.minimumMet || status?.decision?.kind === 'proceed' && status.decision.status === 'approved';
-  if (!offer || !sharedGuideCanAct(offer, actor) || !decisionAllowsStart || status.workStatus !== 'not_started' || offer.date > today || status.pendingCount || status.unpaidCount || !status.bookings.length || !status.allVerified || status.hasOpenReport || !cleanMeetingPoint) return false;
+  if (!offer || !sharedGuideCanAct(offer, actor) || !decisionAllowsStart || status.workStatus !== 'not_started' || offer.date > today || status.pendingCount || status.unpaidCount || !status.bookings.length || !status.allVerified || status.hasOpenReport || !cleanMeetingPoint || !status.allMeetingPointsAcknowledged) return false;
   const timestamp = new Date().toISOString();
   offer.workStatus = 'in_progress'; offer.workStartedAt = timestamp;
-  status.bookings.forEach((request) => {
+  data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid').forEach((request) => {
     const safety = editableSafety(request);
     safety.meetingPoint = cleanMeetingPoint; safety.guideStartedAt = timestamp;
     safety.events.push({ id: crypto.randomUUID(), type: 'shared_trip_started', text: `Guide started work at the agreed meeting point: ${cleanMeetingPoint}.`, actor: 'guide', at: timestamp });
@@ -586,7 +629,7 @@ export function finishSharedTrip(offerId, actor) {
   if (!offer || !sharedGuideCanAct(offer, actor) || status.workStatus !== 'in_progress' || !status.allInProgress || status.hasOpenReport) return false;
   const timestamp = new Date().toISOString();
   offer.workStatus = 'completion_pending'; offer.completionRequestedAt = timestamp;
-  status.bookings.forEach((request) => {
+  data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid').forEach((request) => {
     const safety = editableSafety(request);
     safety.guideEndedAt = timestamp;
     safety.events.push({ id: crypto.randomUUID(), type: 'shared_trip_completion_requested', text: 'Guide marked the shared trip work as complete. Traveler confirmation is pending.', actor: 'guide', at: timestamp });

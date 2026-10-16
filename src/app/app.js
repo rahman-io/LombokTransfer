@@ -21,7 +21,7 @@ import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
-import { activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
+import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
@@ -489,15 +489,19 @@ function clickAction(action, el) {
     }
     case 'shared-trip-work': {
       if (value === 'complete') { state.confirmAction = { type: 'shared-trip-complete', offerId: id, message: 'Mark this shared trip as finished? Each traveler will still confirm completion in their Safety Center.' }; openModal('confirm-action'); break; }
-      const meetingPoint = el.closest('#shared-trip-start-form')?.elements.meetingPoint?.value || '';
-      if (startSharedTrip(id, activeBookingActor(), meetingPoint)) { sharedTripSystemUpdate(id, 'The guide started work. Check the agreed meeting point and confirm the trip start in your Safety Center.'); announce('Trip work started'); render(); }
-      else announce('Verify every paid traveler, confirm the group decision, and enter the meeting point before starting');
+      if (startSharedTrip(id, activeBookingActor())) { sharedTripSystemUpdate(id, 'The guide started work at the official group meeting point. Confirm the trip start in your Safety Center.'); announce('Trip work started'); render(); }
+      else announce('Verify every paid traveler, resolve any safety report, and wait for every traveler party to acknowledge the official meeting point before starting');
       break;
     }
+    case 'shared-meeting-point-ack':
+      if (acknowledgeSharedDepartureMeetingPoint(id, activeBookingActor())) { sharedTripSystemUpdate(id, 'A traveler party confirmed that it has seen the official group meeting point.'); announce('Meeting point acknowledged'); render(); }
+      else announce('The meeting point cannot be acknowledged yet. Check that it is set and that no safety report is open.');
+      break;
     case 'booking-chat-action': {
       const thread = chatThread(id);
       const request = thread?.context?.requestId ? guideDemoData().requests.find((entry) => entry.id === thread.context.requestId) : null;
       const messages = { meeting: 'Hi, let’s confirm the meeting point for this booking.', time: 'Can we confirm the departure time for this booking?', location: 'Please share the meeting location or map pin for this booking.' };
+      if (value === 'meeting' && request?.tripMode === 'shared') { const sharedThreadId = getOrCreateSharedTripThread(request.offerId); if (sharedThreadId) navigate(`/inbox/chat/${encodeURIComponent(sharedThreadId)}`); else announce('Shared trip chat is unavailable'); break; }
       if (value === 'safety') { state.modalTitle = 'Booking safety'; state.modalMessage = 'Keep booking details and payments inside LombokTransfer. Verify the Booking ID and QR code at the meeting point, and contact support if anything looks wrong.'; openModal('message'); break; }
       if (value === 'details' || value === 'qr') { if (request) navigate(`/bookings/${encodeURIComponent(request.id)}`); break; }
       if (messages[value] && sendChatMessage(id, messages[value])) { announce(value === 'location' ? 'Location request sent' : 'Message sent'); render(); }
@@ -1091,6 +1095,17 @@ export function startApp() {
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
   root.addEventListener('submit', (event) => {
+    if (event.target.id === 'shared-meeting-point-form') {
+      event.preventDefault();
+      const form = event.target;
+      const point = form.elements.meetingPoint.value;
+      if (setSharedDepartureMeetingPoint(form.dataset.offerId, activeBookingActor(), point)) {
+        sharedTripSystemUpdate(form.dataset.offerId, `The guide set the official shared meeting point: ${point.trim()}. Each paid traveler party, please review it and acknowledge it here.`);
+        announce('Official group meeting point updated; traveler acknowledgements were reset if it changed');
+        render();
+      } else announce('Only the assigned guide team can set the point before the trip starts, and at least one paid traveler party is required');
+      return;
+    }
     if (event.target.id === 'shared-departure-decision-form') {
       event.preventDefault();
       const form = event.target;
