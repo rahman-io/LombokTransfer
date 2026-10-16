@@ -1,5 +1,6 @@
 import { demoChatMessages, demoChatThreads } from './data.js';
 import { activeSocialUser, socialUser } from '../social/repository.js';
+import { analyzeBookingMessage } from '../guides/safety.js';
 
 const STORAGE_KEY = 'lombok-chat-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -122,7 +123,8 @@ export function sendChatMessage(threadId, text, attachment = null, options = {})
   const allowedAttachment = ['social-post', 'experience', 'destination', 'attraction'].includes(attachment?.type) && attachmentId;
   const normalizedAttachment = attachment?.type === 'image' && attachment.localImage ? { type: 'image', localImage: attachment.localImage } : attachment?.type === 'audio' && attachment.localAudio ? { type: 'audio', localAudio: attachment.localAudio } : attachment?.type === 'sticker' && attachment.value ? { type: 'sticker', value: attachment.value } : allowedAttachment ? { type: attachment.type, ...(attachment.type === 'social-post' ? { postId: attachmentId } : { id: attachmentId }) } : null;
   const replyTo = options.replyTo ? chatMessage(threadId, options.replyTo) : null;
-  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], deliveredTo: [senderId, ...thread.participantIds.filter((id) => id !== senderId)], ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } } : {}), ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}) };
+  const safetySignal = thread.context?.requestId ? analyzeBookingMessage(clean) : null;
+  const message = { id: `chat-${crypto.randomUUID()}`, threadId, senderId, text: clean, createdAt: now(), readBy: [senderId], deliveredTo: [senderId, ...thread.participantIds.filter((id) => id !== senderId)], ...(replyTo ? { replyTo: { id: replyTo.id, text: replyTo.text, senderId: replyTo.senderId } } : {}), ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}), ...(safetySignal ? { safetySignal: { kind: safetySignal.kind, advice: safetySignal.advice } } : {}) };
   messagingState().messages.push(message);
   thread.lastMessageId = message.id;
   thread.updatedAt = message.createdAt;

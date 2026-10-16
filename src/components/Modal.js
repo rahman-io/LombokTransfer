@@ -96,6 +96,9 @@ export function modalView() {
   } else if (state.modal === 'confirm-action') {
     title = 'Konfirmasi';
     body = `<p class="chat-shared-confirm-copy">${escapeHtml(state.confirmAction?.message || 'Apakah Anda ingin melanjutkan?')}</p><div class="chat-shared-confirm-actions"><button class="outline-button" data-action="close-modal">Batal</button><button class="primary-button" data-action="confirm-action">Lanjutkan</button></div>`;
+  } else if (state.modal === 'chat-safety-warning') {
+    title = 'Smart safety warning';
+    body = `<p>${escapeHtml(state.chatPendingUnsafe?.advice || 'Please check this message before sending.')}</p><p class="guide-caption">This is a demo rule-based alert. It can miss risks or flag harmless messages.</p><div class="chat-shared-confirm-actions"><button class="outline-button" data-action="close-modal">Edit message</button><button class="primary-button" data-action="send-flagged-chat">Send anyway</button></div>`;
   } else if (state.modal === 'travel-group-members') {
     const thread = chatThread(state.travelerGroupThreadId);
     const people = thread ? thread.participantIds.map((userId) => socialUser(userId)).filter(Boolean) : [];

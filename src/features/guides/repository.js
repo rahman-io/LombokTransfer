@@ -10,7 +10,9 @@ function bookingIdentity(id, createdAt = '') {
   const compact = String(id || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
   const suffix = (compact.slice(-6) || 'DEMO01').padStart(6, '0');
   const year = String(new Date(createdAt || Date.now()).getFullYear()).slice(-2);
-  return { bookingId: `LT-${year}-${suffix}`, verificationCode: suffix };
+  let verificationCode;
+  do { verificationCode = Array.from(crypto.getRandomValues(new Uint8Array(6)), (value) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[value % 32]).join(''); } while (verificationCode === suffix);
+  return { bookingId: `LT-${year}-${suffix}`, verificationCode };
 }
 export function bookingQrPayload(request) { return request?.bookingId && request?.verificationCode ? `lomboktransfer://booking/${encodeURIComponent(request.bookingId)}?code=${encodeURIComponent(request.verificationCode)}` : ''; }
 const seedGuides = [
@@ -47,9 +49,9 @@ function read() {
       });
     });
     data.requests.forEach((request) => {
-      const identity = bookingIdentity(request.id, request.createdAt);
-      if (!request.bookingId) { request.bookingId = identity.bookingId; migrated = true; }
-      if (!request.verificationCode) { request.verificationCode = identity.verificationCode; migrated = true; }
+      const legacySuffix = String(request.id || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(-6).padStart(6, '0');
+      if (!request.bookingId) { request.bookingId = bookingIdentity(request.id, request.createdAt).bookingId; migrated = true; }
+      if (!request.verificationCode || (request.verificationStatus !== 'verified' && request.verificationCode === legacySuffix)) { request.verificationCode = bookingIdentity(request.id, request.createdAt).verificationCode; migrated = true; }
       if (!request.verificationStatus) { request.verificationStatus = 'unverified'; migrated = true; }
       if (!request.finance) { request.finance = financeBreakdown(request.travelerTotal || Number(request.unitPrice) * Number(request.travelers || 1)); migrated = true; }
       if (typeof request.notes !== 'string') { request.notes = ''; migrated = true; }
@@ -67,6 +69,104 @@ function read() {
 function write(data) { localStorage.setItem(storageKey, JSON.stringify(data)); return data; }
 export function guideDemoData() { return read(); }
 export function guideById(id) { return read().guides.find((guide) => guide.id === id) || null; }
+export function bookingSafety(request) {
+  return request.safety || { meetingPoint: '', proposal: null, guideStartedAt: null, travelerStartedAt: null, guideEndedAt: null, travelerEndedAt: null, travelerCheckInAt: null, trustedContact: null, reports: [], events: [] };
+}
+function editableSafety(request) { request.safety ||= bookingSafety(request); return request.safety; }
+function logBookingEvent(request, type, text, actor) {
+  editableSafety(request).events.push({ id: crypto.randomUUID(), type, text, actor, at: new Date().toISOString() });
+  request.updatedAt = new Date().toISOString();
+}
+function bookingActor(request, actor) {
+  if (actor?.role === 'guide' && actor.id === request.guideId) return 'guide';
+  if (actor?.role === 'traveler' && String(actor.email || '').toLowerCase() === request.travelerEmail) return 'traveler';
+  return null;
+}
+const openReport = (request) => bookingSafety(request).reports.some((report) => report.status === 'open');
+export function proposeBookingChange(id, actor, field, value) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const role = request && bookingActor(request, actor);
+  const clean = String(value || '').trim().slice(0, 160);
+  if (!role || request.status !== 'accepted' || request.paymentStatus !== 'paid' || bookingSafety(request).guideStartedAt || openReport(request) || bookingSafety(request).proposal || !['meetingPoint', 'time', 'date'].includes(field) || !clean) return false;
+  if (field === 'time' && !/^(?:0?[1-9]|1[0-2]):[0-5]\d\s?(?:AM|PM)$/i.test(clean)) return false;
+  if (field === 'date' && (!/^\d{4}-\d{2}-\d{2}$/.test(clean) || clean < new Date().toISOString().slice(0, 10) || !packageDates(clean, getExperience(request.experienceId)?.packageOptions?.find((option) => option.id === request.packageId)).length)) return false;
+  const safety = editableSafety(request);
+  safety.proposal = { id: crypto.randomUUID(), field, value: clean, proposedBy: role, at: new Date().toISOString() };
+  logBookingEvent(request, 'change_proposed', `${role} proposed a new ${field === 'meetingPoint' ? 'meeting point' : field}: ${clean}.`, role);
+  write(data); return true;
+}
+export function respondBookingChange(id, actor, accept) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const role = request && bookingActor(request, actor);
+  const proposal = request && bookingSafety(request).proposal;
+  if (!role || !proposal || role === proposal.proposedBy || request.status !== 'accepted' || bookingSafety(request).guideStartedAt || openReport(request)) return false;
+  if (accept && proposal.field === 'date') {
+    const option = getExperience(request.experienceId)?.packageOptions?.find((entry) => entry.id === request.packageId);
+    const guide = data.guides.find((entry) => entry.id === request.guideId);
+    const available = packageDates(proposal.value, option).every((day) => guide && !guide.blockedDates.includes(day) && data.requests.filter((entry) => entry.id !== request.id && entry.guideId === request.guideId && entry.status === 'accepted' && requestDates(entry).includes(day)).reduce((total, entry) => total + entry.travelers, 0) + request.travelers <= guide.capacity);
+    if (!available) return false;
+  }
+  if (accept) {
+    if (proposal.field === 'meetingPoint') editableSafety(request).meetingPoint = proposal.value;
+    else request[proposal.field] = proposal.value;
+  }
+  editableSafety(request).proposal = null;
+  logBookingEvent(request, accept ? 'change_accepted' : 'change_declined', `${role} ${accept ? 'accepted' : 'declined'} the proposed ${proposal.field === 'meetingPoint' ? 'meeting point' : proposal.field}.`, role);
+  write(data); return true;
+}
+export function advanceBookingTrip(id, actor, step) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const role = request && bookingActor(request, actor);
+  if (!role || request.status !== 'accepted' || request.paymentStatus !== 'paid' || openReport(request)) return false;
+  const safety = editableSafety(request);
+  const timestamp = new Date().toISOString();
+  if (step === 'guide_start' && role === 'guide' && request.verificationStatus === 'verified' && safety.meetingPoint && !safety.guideStartedAt) safety.guideStartedAt = timestamp;
+  else if (step === 'traveler_start' && role === 'traveler' && safety.guideStartedAt && !safety.travelerStartedAt) safety.travelerStartedAt = timestamp;
+  else if (step === 'check_in' && role === 'traveler' && request.bookingStatus === 'in_progress') safety.travelerCheckInAt = timestamp;
+  else if (step === 'guide_finish' && role === 'guide' && request.bookingStatus === 'in_progress' && !safety.guideEndedAt) safety.guideEndedAt = timestamp;
+  else if (step === 'traveler_finish' && role === 'traveler' && safety.guideEndedAt && !safety.travelerEndedAt) safety.travelerEndedAt = timestamp;
+  else return false;
+  if (safety.guideStartedAt && safety.travelerStartedAt && request.bookingStatus !== 'in_progress') request.bookingStatus = 'in_progress';
+  if (safety.guideEndedAt && safety.travelerEndedAt) { request.status = 'completed'; request.bookingStatus = 'completed'; request.payoutStatus = 'pending'; }
+  logBookingEvent(request, step, { guide_start: 'Guide requested to start the trip.', traveler_start: 'Traveler confirmed meeting the guide. Trip started.', check_in: 'Traveler checked in safely.', guide_finish: 'Guide marked the trip as finished; traveler confirmation is pending.', traveler_finish: 'Traveler confirmed the trip finished.' }[step], role);
+  write(data); return true;
+}
+export function reportBookingIssue(id, actor, category, detail) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const role = request && bookingActor(request, actor);
+  const clean = String(detail || '').trim().slice(0, 500);
+  if (!role || request.paymentStatus !== 'paid' || !['safety', 'no_show', 'payment', 'booking', 'cancellation'].includes(category) || !clean || openReport(request)) return false;
+  editableSafety(request).reports.push({ id: crypto.randomUUID(), category, detail: clean, by: role, status: 'open', at: new Date().toISOString() });
+  request.bookingStatus = 'needs_review';
+  logBookingEvent(request, 'issue_reported', `${role} reported a ${category.replace('_', ' ')} issue.`, role);
+  write(data); return true;
+}
+export function resolveBookingIssue(id, resolution) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id);
+  const report = request && editableSafety(request).reports.find((entry) => entry.status === 'open');
+  if (!report || !['resolved', 'dismissed', 'refund'].includes(resolution) || (resolution === 'refund' && request.payoutStatus === 'paid')) return false;
+  report.status = resolution; report.resolvedAt = new Date().toISOString();
+  if (resolution === 'refund') {
+    request.status = 'cancelled'; request.bookingStatus = 'cancelled'; request.paymentStatus = 'refunded'; request.refundedAt = report.resolvedAt; request.payoutStatus = 'not_due';
+  } else request.bookingStatus = request.status === 'completed' ? 'completed' : bookingSafety(request).guideStartedAt && bookingSafety(request).travelerStartedAt ? 'in_progress' : 'confirmed';
+  logBookingEvent(request, 'issue_reviewed', resolution === 'refund' ? 'Demo admin approved a simulated refund; no real money moved.' : `Demo admin marked the report ${resolution}.`, 'admin');
+  write(data); return true;
+}
+export function saveBookingTrustedContact(id, email, name, phone) {
+  const data = read();
+  const request = data.requests.find((entry) => entry.id === id && entry.travelerEmail === String(email || '').toLowerCase());
+  const cleanName = String(name || '').trim().slice(0, 80);
+  const cleanPhone = String(phone || '').trim().slice(0, 32);
+  if (!request || request.paymentStatus !== 'paid' || !cleanName || !/^[+\d\s().-]{7,32}$/.test(cleanPhone)) return false;
+  editableSafety(request).trustedContact = { name: cleanName, phone: cleanPhone };
+  logBookingEvent(request, 'trusted_contact_saved', 'Traveler saved a trusted contact on this device.', 'traveler');
+  write(data); return true;
+}
 export function activeGuide() { const data = read(); return data.guides.find((guide) => guide.id === data.activeGuideId) || data.guides[0]; }
 export function switchGuide(id) {
   const data = read();
@@ -94,13 +194,13 @@ export function financeSummary() {
   const refunded = requests.filter((request) => request.paymentStatus === 'refunded');
   const total = (list, key) => list.reduce((sum, request) => sum + Number(request.finance?.[key] || 0), 0);
   return {
-    bookings: requests.filter((request) => request.status !== 'declined').length,
+    bookings: requests.filter((request) => !['declined', 'cancelled'].includes(request.status)).length,
     paidBookings: paid.length,
     grossSales: total(paid, 'travelerTotal'),
     platformGross: total(paid, 'platformShare'),
     paymentFees: total(paid, 'paymentFee'),
     platformNet: total(paid, 'platformNet'),
-    guidePayoutDue: paid.filter((request) => request.payoutStatus !== 'paid').reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0),
+    guidePayoutDue: paid.filter((request) => request.status === 'completed' && request.payoutStatus === 'pending' && !openReport(request)).reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0),
     guidePayoutPaid: paid.filter((request) => request.payoutStatus === 'paid').reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0),
     refunds: total(refunded, 'travelerTotal'),
   };
@@ -144,43 +244,43 @@ export function createGuideRequest({ experienceId, packageId, guideId, date, tim
   const request = { id, schemaVersion: 2, ...identity, verificationStatus: 'unverified', experienceId, packageId, guideId, date, time: packageStartTimes(experience, option).includes(time) ? time : packageStartTimes(experience, option)[0], adults: Number(adults), children: Number(children), travelers, travelerName: String(travelerName).trim(), travelerEmail: String(travelerEmail).trim().toLowerCase(), notes: String(notes || '').trim().slice(0, 1000), unitPrice, priceApprovedBy: guide.priceAgreements[packageId].approvedBy, priceApprovedAt: guide.priceAgreements[packageId].approvedAt, currency: option.currency || 'IDR', ...split, finance: financeBreakdown(split.travelerTotal), paymentStatus: 'unpaid', payoutStatus: 'not_due', bookingStatus: 'request_sent', status: 'pending', createdAt, review: null };
   data.requests.unshift(request); write(data); return request;
 }
-export function verifyBooking(id, code) {
+export function verifyBooking(id, code, guideId) {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id);
   const normalizedCode = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!request || request.paymentStatus !== 'paid' || normalizedCode !== request.verificationCode) return false;
+  if (!request || request.guideId !== guideId || request.status !== 'accepted' || request.paymentStatus !== 'paid' || request.verificationStatus === 'verified' || normalizedCode !== request.verificationCode || request.safety?.reports?.some((report) => report.status === 'open')) return false;
   request.verificationStatus = 'verified';
   request.verifiedAt = new Date().toISOString();
+  logBookingEvent(request, 'identity_verified', 'Guide verified the traveler at the meeting point.', 'guide');
   write(data);
   return true;
 }
 export function updateGuideRequest(id, guideId, status) {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id && entry.guideId === guideId);
-  if (!request || !({ pending: ['accepted', 'declined'], accepted: ['completed'] }[request.status] || []).includes(status)) return false;
+  if (!request || !({ pending: ['accepted', 'declined'] }[request.status] || []).includes(status)) return false;
   if (status === 'accepted' && !availableGuides(request.experienceId, request.packageId, request.date, request.travelers).some((guide) => guide.id === guideId)) return false;
   request.status = status;
   if (status === 'accepted' && request.paymentStatus === 'paid') request.bookingStatus = 'confirmed';
-  if (status === 'completed') request.bookingStatus = 'completed';
   request.updatedAt = new Date().toISOString();
   if (status === 'declined' && request.paymentStatus === 'paid') { request.paymentStatus = 'refunded'; request.refundedAt = request.updatedAt; request.payoutStatus = 'not_due'; }
-  if (status === 'completed' && request.paymentStatus === 'paid') request.payoutStatus = 'pending';
+  logBookingEvent(request, `request_${status}`, `Guide ${status} the booking request.`, 'guide');
   write(data); return true;
 }
 export function markGuideRequestPaid(id, email = '') {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id && (!email || entry.travelerEmail === String(email).trim().toLowerCase()));
-  if (!request || !['pending', 'accepted'].includes(request.status) || request.paymentStatus !== 'unpaid') return false;
+  if (!request || request.status !== 'accepted' || request.paymentStatus !== 'unpaid') return false;
   request.paymentStatus = 'paid'; request.paidAt = new Date().toISOString();
   request.bookingStatus = request.status === 'completed' ? 'completed' : 'confirmed';
   request.confirmedAt = request.paidAt;
-  if (request.status === 'completed') request.payoutStatus = 'pending';
+  logBookingEvent(request, 'payment_recorded', 'Demo payment recorded at the agreed booking total.', 'traveler');
   write(data); return true;
 }
 export function releaseGuidePayout(id) {
   const data = read();
   const request = data.requests.find((entry) => entry.id === id);
-  if (!request || request.status !== 'completed' || request.paymentStatus !== 'paid' || request.payoutStatus === 'paid') return false;
+  if (!request || request.status !== 'completed' || request.paymentStatus !== 'paid' || request.payoutStatus === 'paid' || request.safety?.reports?.some((report) => report.status === 'open')) return false;
   request.payoutStatus = 'paid'; request.payoutReleasedAt = new Date().toISOString(); write(data); return true;
 }
 export function reviewGuideRequest(id, email, stars, comment) {

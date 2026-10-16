@@ -11,7 +11,7 @@ test('traveler requests reach the guide and keep the agreed price split through 
     const guideViews = await vite.ssrLoadModule('/src/features/guides/view.js');
     const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const nextDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-    const { activeGuide, availableGuides, bookingQrPayload, createGuideRequest, decideGuidePrice, financeBreakdown, financeDashboardView, guideDemoData, markGuideRequestPaid, packagePrice, priceSplit, proposeGuidePrice, publicPackagePrice, releaseGuidePayout, reviewGuideRequest, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } = { ...guideRepo, financeDashboardView: guideViews.financeDashboardView };
+    const { activeGuide, advanceBookingTrip, availableGuides, bookingQrPayload, createGuideRequest, decideGuidePrice, financeBreakdown, financeDashboardView, guideDemoData, markGuideRequestPaid, packagePrice, priceSplit, proposeBookingChange, proposeGuidePrice, publicPackagePrice, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, reviewGuideRequest, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } = { ...guideRepo, financeDashboardView: guideViews.financeDashboardView };
     const option = (await vite.ssrLoadModule('/src/features/experiences/data.js')).getExperience('arena').packageOptions[0];
     assert.deepEqual(priceSplit(2500000), { travelerTotal: 2500000, guideShare: 2250000, platformShare: 250000 });
     assert.deepEqual(financeBreakdown(2500000), { schemaVersion: 1, travelerTotal: 2500000, guideShare: 2250000, platformShare: 250000, paymentFee: 75000, platformNet: 175000 });
@@ -30,6 +30,7 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(request.status, 'pending');
     assert.match(request.bookingId, /^LT-\d{2}-[A-Z0-9]{6}$/);
     assert.equal(request.verificationCode.length, 6);
+    assert.notEqual(request.verificationCode, request.bookingId.split('-').at(-1));
     assert.match(bookingQrPayload(request), new RegExp(request.bookingId));
     assert.equal(request.unitPrice, 2500000);
     assert.equal(request.guideShare, 2250000);
@@ -48,7 +49,8 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.match(guideViews.guideDashboardView(), /Traveler notes/);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'accepted'), true);
     assert.equal(markGuideRequestPaid(request.id, 'traveler@example.com'), true);
-    assert.equal(verifyBooking(request.id, request.verificationCode), true);
+    assert.equal(verifyBooking(request.id, request.verificationCode, 'guide-nur'), false);
+    assert.equal(verifyBooking(request.id, request.verificationCode, 'guide-adi'), true);
     assert.equal(guideDemoData().requests.find((entry) => entry.id === request.id).verificationStatus, 'verified');
     assert.equal(guideDemoData().requests[0].paymentStatus, 'paid');
     assert.equal(availableGuides('arena', 'rinjani-2d1n', date, activeGuide().capacity).length, 0);
@@ -56,7 +58,22 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(toggleGuideDate('guide-adi', nextDate), false);
     assert.equal(availableGuides('arena', 'rinjani-2d1n', nextDate, activeGuide().capacity).length, 0);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'declined'), false);
-    assert.equal(updateGuideRequest(request.id, 'guide-adi', 'completed'), true);
+    const guideActor = { role: 'guide', id: 'guide-adi' };
+    const travelerActor = { role: 'traveler', email: 'traveler@example.com' };
+    assert.equal(updateGuideRequest(request.id, 'guide-adi', 'completed'), false);
+    assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_start'), false);
+    assert.equal(proposeBookingChange(request.id, guideActor, 'meetingPoint', 'Sembalun village office'), true);
+    assert.equal(respondBookingChange(request.id, guideActor, true), false);
+    assert.equal(respondBookingChange(request.id, travelerActor, true), true);
+    assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_start'), true);
+    assert.equal(advanceBookingTrip(request.id, travelerActor, 'traveler_start'), true);
+    assert.equal(reportBookingIssue(request.id, travelerActor, 'safety', 'Need assistance with the meeting point.'), true);
+    assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_finish'), false);
+    assert.equal(releaseGuidePayout(request.id), false);
+    assert.equal(resolveBookingIssue(request.id, 'resolved'), true);
+    assert.equal(advanceBookingTrip(request.id, travelerActor, 'check_in'), true);
+    assert.equal(advanceBookingTrip(request.id, guideActor, 'guide_finish'), true);
+    assert.equal(advanceBookingTrip(request.id, travelerActor, 'traveler_finish'), true);
     assert.equal(guideDemoData().requests[0].payoutStatus, 'pending');
     assert.equal(releaseGuidePayout(request.id), true);
     assert.equal(guideDemoData().requests[0].payoutStatus, 'paid');
@@ -79,5 +96,29 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(packagePrice(migrated, option), option.price);
     assert.equal(migrated.priceAgreements['rinjani-2d1n'].proposal.amount, 9999999);
     assert.equal(migrated.priceAgreements['rinjani-2d1n'].proposal.status, 'pending');
+  } finally { await vite.close(); delete globalThis.localStorage; }
+});
+
+test('a reviewed cancellation records a demo refund and never releases the guide payout', async () => {
+  const values = new Map();
+  globalThis.localStorage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const vite = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'silent' });
+  try {
+    const repo = await vite.ssrLoadModule('/src/features/guides/repository.js');
+    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const option = (await vite.ssrLoadModule('/src/features/experiences/data.js')).getExperience('arena').packageOptions[0];
+    const price = repo.packagePrice(repo.activeGuide(), option);
+    const request = repo.createGuideRequest({ experienceId: 'arena', packageId: option.id, guideId: 'guide-adi', date, time: '5:00 AM', adults: 1, children: 0, travelerName: 'Traveler Demo', travelerEmail: 'traveler@example.com', expectedUnitPrice: price });
+    assert.ok(request);
+    assert.equal(repo.updateGuideRequest(request.id, 'guide-adi', 'accepted'), true);
+    assert.equal(repo.markGuideRequestPaid(request.id, 'traveler@example.com'), true);
+    assert.equal(repo.reportBookingIssue(request.id, { role: 'traveler', email: 'traveler@example.com' }, 'cancellation', 'I cannot travel and request a refund.'), true);
+    assert.equal(repo.resolveBookingIssue(request.id, 'refund'), true);
+    const refunded = repo.guideDemoData().requests.find((entry) => entry.id === request.id);
+    assert.equal(refunded.status, 'cancelled');
+    assert.equal(refunded.paymentStatus, 'refunded');
+    assert.equal(refunded.payoutStatus, 'not_due');
+    assert.equal(repo.releaseGuidePayout(request.id), false);
+    assert.equal(repo.financeSummary().refunds, refunded.finance.travelerTotal);
   } finally { await vite.close(); delete globalThis.localStorage; }
 });
