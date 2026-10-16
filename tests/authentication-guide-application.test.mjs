@@ -18,7 +18,7 @@ test('demo traveler accounts sign up, sign in, and share one profile identity wi
     const social = await vite.ssrLoadModule('/src/features/social/repository.js');
     const guides = await vite.ssrLoadModule('/src/features/guides/repository.js');
     const profile = await vite.ssrLoadModule('/src/features/profile/view.js');
-    assert.equal(auth.demoAuthMode(), 'register');
+    assert.equal(auth.demoAuthMode(), 'login');
     assert.match((await auth.loginTraveler({ email: 'new@example.com', password: 'password123' })).error, /Create an account first/);
     assert.match((await auth.registerTraveler({ name: 'New Traveler', email: 'not-an-email', password: 'password123' })).error, /valid email/);
 

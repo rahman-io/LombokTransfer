@@ -6,7 +6,7 @@ export const state = {
   accountUserId: saved.accountUserId || 'rahman',
   guestName: saved.guestName || 'A Rahman',
   email: saved.email || 'lombok_transfer@gmail.com',
-  authMode: 'register',
+  authMode: 'login',
   authError: '',
   profilePhoto: saved.profilePhoto || '',
   currency: saved.currency || 'USD ($)',

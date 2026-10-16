@@ -2,7 +2,7 @@ import { images } from '../experiences/data.js';
 import { icon } from '../../components/icons.js';
 import { escapeHtml } from '../../utils/html.js';
 
-export function loginView(mode = 'register', error = '') {
+export function loginView(mode = 'login', error = '') {
   const registering = mode === 'register';
   return `<div class="app-shell auth-shell">
     <div class="auth-photo" style="background-image:url('${images.login}')"><div class="brand"><span class="brand-badge">FMG</span><span class="brand-name">FindMyGuide</span></div></div>

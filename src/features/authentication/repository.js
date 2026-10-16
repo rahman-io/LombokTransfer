@@ -49,7 +49,7 @@ function activate(userId, provider) {
 }
 
 export function hasDemoAccounts() { return accounts().length > 0; }
-export function demoAuthMode() { return hasDemoAccounts() ? 'login' : 'register'; }
+export function demoAuthMode() { return 'login'; }
 export function demoSession() {
   try {
     const session = JSON.parse(localStorage.getItem(sessionKey) || 'null');
