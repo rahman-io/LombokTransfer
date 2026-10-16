@@ -25,7 +25,7 @@ function readState() {
       const userSeeds = new Map(demoSocialUsers.map((user) => [user.id, user]));
       saved.users = saved.users.map((user) => {
         const seed = userSeeds.get(user.id);
-        return seed ? { ...user, role: seed.role, guideId: user.guideId || seed.guideId, accountEmail: user.accountEmail || seed.accountEmail } : user;
+        return seed ? { ...user, role: user.guideId ? 'guide' : seed.role, guideId: user.guideId || seed.guideId, accountEmail: user.accountEmail || seed.accountEmail } : user;
       });
       const existingUserIds = new Set(saved.users.map((user) => user.id));
       saved.users.push(...demoSocialUsers.filter((user) => !existingUserIds.has(user.id)).map((user) => clone(user)));
@@ -63,6 +63,43 @@ export function socialFollowingCount(userId) { return socialState().follows.filt
 export function switchSocialUser(userId) {
   if (!socialUser(userId)) return false;
   socialState().activeUserId = userId;
+  return persist();
+}
+
+export function createSocialAccount({ id, displayName, email }) {
+  const existing = socialUser(id);
+  if (existing) return existing;
+  const cleanName = String(displayName || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+  const accountEmail = String(email || '').trim().toLowerCase();
+  if (!id || cleanName.length < 2 || !accountEmail) return null;
+  const baseUsername = (accountEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9._]/g, '').replace(/^\.+|\.+$/g, '') || 'traveler').slice(0, 24);
+  const usernames = new Set(socialState().users.map((user) => user.username.toLowerCase()));
+  let username = baseUsername;
+  let suffix = 2;
+  while (usernames.has(username)) {
+    const tail = String(suffix++);
+    username = `${baseUsername.slice(0, 24 - tail.length)}${tail}`;
+  }
+  const initials = cleanName.split(' ').slice(0, 2).map((word) => word[0]).join('').toUpperCase();
+  const colors = ['#315a87', '#8b5d45', '#566d65', '#74675b', '#587f8c'];
+  const user = { id, username, displayName: cleanName, initials, color: colors[socialState().users.length % colors.length], bio: 'New traveler on LombokTransfer.', location: 'Add your location', role: 'traveler', accountEmail, online: true };
+  socialState().users.push(user);
+  return persist() ? user : null;
+}
+
+export function linkGuideApplication(userId, guideId) {
+  const user = socialUser(userId);
+  if (!user || !guideId || (user.guideApplicationId && user.guideApplicationId !== guideId)) return false;
+  user.guideApplicationId = guideId;
+  return persist();
+}
+
+export function setSocialUserGuideRole(userId, guideId, approved) {
+  const user = socialUser(userId);
+  if (!user || !guideId || user.guideApplicationId !== guideId) return false;
+  user.role = approved ? 'guide' : 'traveler';
+  if (approved) user.guideId = guideId;
+  else delete user.guideId;
   return persist();
 }
 

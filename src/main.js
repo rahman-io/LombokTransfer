@@ -11,6 +11,7 @@ import './styles/travel-intelligence.css';
 import './styles/guides.css';
 import './styles/utilities.css';
 import './styles/sumbawa.css';
+import './styles/authentication.css';
 import { startApp } from './app/app.js';
 
 startApp();

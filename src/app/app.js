@@ -7,6 +7,7 @@ import { wishlistView, favouritesView } from '../features/wishlist/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
 import { inboxView, chatView } from '../features/messaging/view.js';
 import { loginView } from '../features/authentication/view.js';
+import { continueWithDemoProvider, demoAuthMode, demoSession, loginTraveler, setDemoSessionUser, signOutDemoAccount, registerTraveler } from '../features/authentication/repository.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
 import { experienceView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
@@ -14,14 +15,14 @@ import { attractions, destinations, experiences, getExperience, getExperienceGal
 import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
-import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
+import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, linkGuideApplication, prepareSocialPhoto, recordSocialShare, reportSocialPost, setSocialUserGuideRole, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
 import { chatMessage, chatMessages, chatThread, editChatMessage, getOrCreateChatThread, getOrCreateSharedTripThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, refreshSharedTripThread, sendChatMessage, sendChatSystemMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction, visibleChatThreads } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
-import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
+import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
-import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
+import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
@@ -154,7 +155,7 @@ function currentView() {
   const { path, params } = route();
   const guideRoute = path === '/guide' || path.startsWith('/guide/');
   if (guideRoute && activeSocialUser()?.role !== 'guide') return profileView();
-  if (path === '/login') return loginView();
+  if (path === '/login') return loginView(state.authMode || demoAuthMode(), state.authError || '');
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
   if (path === '/results') { const query = params.get('q') || ''; trackSearch(query || params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok', params.get('category') || '', query); }
@@ -170,6 +171,7 @@ function currentView() {
   if (path === '/guide/assignments') return guideTeamAssignmentsView();
   if (path === '/admin/offers') return tripOfferingApprovalsView();
   if (path === '/admin/prices') return guidePriceApprovalsView();
+  if (path === '/admin/guides') return guideApplicationsAdminView();
   if (path === '/admin/finance') return financeDashboardView();
   if (path === '/admin/safety') return bookingSafetyReviewView();
   if (path === '/guide/availability') return guideAvailabilityView();
@@ -196,6 +198,10 @@ function currentView() {
 }
 export function render() {
   const { path } = route();
+  const session = demoSession();
+  if (!session && path !== '/login') { state.authMode = demoAuthMode(); navigate('/login'); return; }
+  if (session && path === '/login') { navigate('/'); return; }
+  if (session && activeSocialUser()?.id !== session.userId) switchSocialUser(session.userId);
   const chatRoute = path.startsWith('/inbox/chat/');
   const preserveChatScroll = chatRoute && path === lastPath;
   const previousChatScrollTop = preserveChatScroll ? root.querySelector('.chat-messages')?.scrollTop ?? null : null;
@@ -516,6 +522,16 @@ function clickAction(action, el) {
     case 'guide-toggle-experience': announce(toggleGuideExperience(activeGuide().id, id) ? 'Guide packages updated' : 'Cannot remove a package with an active request'); break;
     case 'admin-reject-price': announce(decideGuidePrice(id, value, 'rejected') ? 'Price proposal rejected' : 'Unable to reject proposal'); break;
     case 'admin-approve-price': announce(decideGuidePrice(id, value, 'approved') ? 'Guide price approved and published' : 'Unable to approve proposal'); break;
+    case 'admin-guide-approve':
+    case 'admin-guide-reject': {
+      const approved = action === 'admin-guide-approve';
+      const guide = reviewGuideApplication(id, approved ? 'approved' : 'rejected');
+      if (!guide || !setSocialUserGuideRole(guide.accountUserId, guide.id, approved)) { announce('Unable to review this guide application'); break; }
+      announce(approved ? 'Guide application approved. This account now has guide access.' : 'Guide application rejected. The traveler account remains active.');
+      if (activeSocialUser()?.id === guide.accountUserId && approved) navigate('/profile');
+      else render();
+      break;
+    }
     case 'send-guide-request': {
       const experienceId = route().path.split('/')[2];
       const item = getExperience(experienceId);
@@ -636,10 +652,17 @@ function clickAction(action, el) {
     case 'set-currency': update({ currency: value }); render(); break;
     case 'set-language': update({ language: value }); render(); break;
     case 'inbox-filter': state.inboxFilter = value; render(); break;
-    case 'dismiss-login': localStorage.setItem('travel-intro-seen', '1'); navigate('/'); break;
-    case 'continue-email': { const email = document.getElementById('login-email'); if (email?.value && !email.checkValidity()) { email.reportValidity(); break; } if (email?.value) update({ email: email.value }); localStorage.setItem('travel-intro-seen', '1'); navigate('/'); break; }
-    case 'auth-placeholder': state.modalTitle = 'Sign in'; state.modalMessage = 'Account sign in will be available when the backend is connected.'; openModal('message'); break;
-    case 'sign-out': navigate('/login'); break;
+    case 'auth-toggle-mode': state.authMode = value; state.authError = ''; render(); break;
+    case 'auth-demo-provider': {
+      const result = continueWithDemoProvider(value);
+      if (result.error) { state.authError = result.error; render(); break; }
+      switchSocialUser(result.user.id);
+      state.authMode = 'login'; state.authError = '';
+      update({ accountUserId: result.user.id, guestName: result.user.displayName, email: result.user.accountEmail });
+      navigate('/');
+      break;
+    }
+    case 'sign-out': signOutDemoAccount(); state.authMode = 'login'; state.authError = ''; navigate('/login'); break;
     case 'booking-history': announce('No past bookings yet'); break;
     case 'inbox-more': announce('Inbox is up to date'); break;
     case 'inbox-read': markInboxItemRead(value); navigate(el.dataset.href || '/inbox'); break;
@@ -650,7 +673,7 @@ function clickAction(action, el) {
     }
     case 'chat-user': { const threadId = getOrCreateChatThread(el.dataset.id); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); break; }
     case 'social-back': back(); break;
-    case 'social-switch-user': if (switchSocialUser(id)) { const user = socialUser(id); if (user?.role === 'guide') switchGuide(user.guideId || user.id); navigate('/social'); render(); } break;
+    case 'social-switch-user': if (switchSocialUser(id)) { const user = socialUser(id); setDemoSessionUser(id); if (user?.role === 'guide') switchGuide(user.guideId || user.id); navigate('/social'); render(); } break;
     case 'social-discover-destination': navigate('/results?city=' + encodeURIComponent(value)); break;
     case 'social-likes': state.socialLikesPostId = id; openModal('social-likes'); break;
     case 'social-like-profile': state.modal = ''; navigate(`/social/user/${encodeURIComponent(id)}`); break;
@@ -713,9 +736,13 @@ export function startApp() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   initializeNavigation();
   watchInstallation(render);
-  const firstLaunch = !location.hash && !localStorage.getItem('travel-intro-seen');
-  if (firstLaunch) navigate('/login');
-  else render();
+  const session = demoSession();
+  if (session) switchSocialUser(session.userId);
+  else {
+    state.authMode = demoAuthMode();
+    if (route().path !== '/login') navigate('/login');
+  }
+  render();
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('popstate', () => { if (chatGalleryHistoryEntry) { chatGalleryHistoryEntry = false; if (state.modal === 'chat-gallery') { state.modal = ''; render(); } } });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });
@@ -1095,6 +1122,25 @@ export function startApp() {
     if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
   });
   root.addEventListener('submit', (event) => {
+    if (event.target.id === 'demo-auth-form') {
+      event.preventDefault();
+      const form = event.target;
+      const values = { name: form.elements.name?.value || '', email: form.elements.email?.value || '', password: form.elements.password?.value || '' };
+      if (form.dataset.mode === 'register' && values.password !== form.elements.passwordConfirmation?.value) {
+        state.authError = 'The passwords do not match.';
+        render();
+        return;
+      }
+      const authenticate = form.dataset.mode === 'register' ? registerTraveler(values) : loginTraveler(values);
+      authenticate.then((result) => {
+        if (result.error) { state.authError = result.error; render(); return; }
+        switchSocialUser(result.user.id);
+        state.authMode = 'login'; state.authError = '';
+        update({ accountUserId: result.user.id, guestName: result.user.displayName, email: result.user.accountEmail });
+        navigate('/');
+      }).catch(() => { state.authError = 'Could not complete demo sign-in. Please try again.'; render(); });
+      return;
+    }
     if (event.target.id === 'shared-meeting-point-form') {
       event.preventDefault();
       const form = event.target;
@@ -1116,8 +1162,11 @@ export function startApp() {
     }
     if (event.target.id === 'guide-apply-form') {
       event.preventDefault(); const form = event.target;
-      const guide = applyAsGuide({ name: form.elements.name.value, area: form.elements.area.value, languages: form.elements.languages.value, bio: form.elements.bio.value, capacity: form.elements.capacity.value, experienceIds: [...form.querySelectorAll('input[name="experienceIds"]:checked')].map((input) => input.value) });
-      if (guide) navigate('/guide'); else announce('Choose at least one destination'); return;
+      const account = activeSocialUser();
+      const guide = account?.role === 'traveler' && !account.guideApplicationId ? applyAsGuide({ accountUserId: account.id, name: form.elements.name.value, area: form.elements.area.value, languages: form.elements.languages.value, bio: form.elements.bio.value, capacity: form.elements.capacity.value, associationName: form.elements.associationName.value, associationId: form.elements.associationId.value, experienceIds: [...form.querySelectorAll('input[name="experienceIds"]:checked')].map((input) => input.value) }) : null;
+      if (guide && linkGuideApplication(account.id, guide.id)) { announce('Guide application submitted for review'); navigate('/profile'); }
+      else announce('Choose at least one destination or check whether an application is already pending');
+      return;
     }
     if (event.target.id === 'guide-profile-form' || event.target.id === 'guide-capacity-form') {
       event.preventDefault(); const form = event.target; const guide = activeGuide();

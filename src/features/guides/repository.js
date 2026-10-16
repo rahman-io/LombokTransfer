@@ -747,11 +747,28 @@ export function toggleGuideDate(guideId, date) {
   if (data.requests.some((request) => (request.teamGuideIds || [request.guideId]).includes(guideId) && request.status === 'accepted' && requestDates(request).includes(date))) return false;
   guide.blockedDates = guide.blockedDates.includes(date) ? guide.blockedDates.filter((entry) => entry !== date) : [...guide.blockedDates, date].sort(); write(data); return true;
 }
-export function applyAsGuide({ name, area, languages, bio, capacity, experienceIds }) {
+export function applyAsGuide({ accountUserId, name, area, languages, bio, capacity, experienceIds, associationName = '', associationId = '' }) {
   const data = read();
-  if (!String(name).trim() || !String(area).trim() || !Array.isArray(experienceIds) || !experienceIds.length) return null;
-  const id = globalThis.crypto?.randomUUID?.() || `guide-${Date.now()}`;
-  const guide = { id, name: String(name).trim().slice(0, 80), initials: String(name).trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase(), area: String(area).trim().slice(0, 100), languages: String(languages).trim().slice(0, 100), bio: String(bio).trim().slice(0, 500), capacity: Math.max(1, Math.min(30, Number(capacity) || 1)), experienceIds: experienceIds.filter((experienceId) => experiences.some((item) => item.id === experienceId && item.packageOptions?.length)), status: 'pending', blockedDates: [], prices: {} };
-  if (!guide.experienceIds.length) return null;
-  data.guides.push(guide); data.activeGuideId = id; write(data); return guide;
+  if (!accountUserId || !String(name).trim() || !String(area).trim() || !Array.isArray(experienceIds) || !experienceIds.length) return null;
+  const validExperienceIds = experienceIds.filter((experienceId) => experiences.some((item) => item.id === experienceId && item.packageOptions?.length));
+  if (!validExperienceIds.length) return null;
+  const existing = data.guides.find((entry) => entry.accountUserId === accountUserId);
+  if (existing && existing.status !== 'rejected') return null;
+  const id = existing?.id || (globalThis.crypto?.randomUUID?.() || `guide-${Date.now()}`);
+  const priceAgreements = existing?.priceAgreements || Object.fromEntries(validExperienceIds.flatMap((experienceId) => (getExperience(experienceId)?.packageOptions || []).map((option) => [option.id, { approvedAmount: null, approvedAt: null, approvedBy: null, proposal: null }])));
+  const guide = { ...(existing || { id, accountUserId, blockedDates: [], prices: {} }), id, accountUserId, name: String(name).trim().slice(0, 80), initials: String(name).trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase(), area: String(area).trim().slice(0, 100), languages: String(languages).trim().slice(0, 100), bio: String(bio).trim().slice(0, 500), capacity: Math.max(1, Math.min(30, Number(capacity) || 1)), experienceIds: validExperienceIds, associationName: String(associationName || '').trim().slice(0, 100), associationId: String(associationId || '').trim().slice(0, 80), status: 'pending', submittedAt: new Date().toISOString(), blockedDates: existing?.blockedDates || [], prices: existing?.prices || {}, priceAgreements };
+  if (existing) Object.assign(existing, guide);
+  else data.guides.push(guide);
+  data.activeGuideId = id; write(data); return guide;
+}
+
+export function reviewGuideApplication(guideId, decision) {
+  const data = read();
+  const guide = data.guides.find((entry) => entry.id === guideId && entry.accountUserId);
+  if (!guide || guide.status !== 'pending' || !['approved', 'rejected'].includes(decision)) return null;
+  guide.status = decision === 'approved' ? 'verified' : 'rejected';
+  guide.reviewedAt = new Date().toISOString();
+  guide.reviewedBy = 'demo-admin';
+  write(data);
+  return guide;
 }
