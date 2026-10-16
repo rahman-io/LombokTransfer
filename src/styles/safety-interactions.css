@@ -73,3 +73,89 @@
   padding: 8px 10px;
   font-size: 10px;
 }
+
+.chat-booking-info {
+  flex: none;
+  margin: 0 17px 8px;
+  border: 1px solid #d8e4f1;
+  border-radius: 12px;
+  background: #f4f8fc;
+  color: var(--navy);
+  overflow: hidden;
+}
+
+.chat-booking-info-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.chat-booking-info-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.chat-booking-info-toggle>span:first-child {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chat-booking-info-toggle>span:first-child>strong {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chat-booking-info-toggle>span:first-child>span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chat-booking-info-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding-top: 1px;
+  color: var(--ai-violet);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.chat-booking-info-control svg {
+  transition: transform .18s ease;
+}
+
+.chat-booking-info[open] .chat-booking-info-control svg {
+  transform: rotate(90deg);
+}
+
+.chat-booking-info-body {
+  padding: 0 10px 10px;
+}
+
+.chat-booking-body-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 2px 2px;
+}
+
+.chat-booking-info-body .chat-booking-context,
+.chat-booking-info-body .chat-booking-assistant,
+.chat-booking-info-body .shared-departure-panel {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.chat-booking-info-body .chat-booking-context {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
