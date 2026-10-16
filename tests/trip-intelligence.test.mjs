@@ -28,6 +28,16 @@ test('smart itinerary recommends the package variant closest to the trip length'
   assert.equal(plan.itinerary[0].packageOption.id, 'three-day');
 });
 
+test('smart itinerary keeps a multi-day guide package together and fills remaining days', () => {
+  const catalog = [
+    { id: 'sumbawa-open-trip-3d2n', title: 'Sumbawa Open Trip', city: 'Sumbawa', duration: '3 days · 2 nights', price: null, rating: 5, packageOptions: [{ id: 'sumbawa-open-trip-3d2n', name: 'Shared open trip', duration: '3 days · 2 nights', days: 3, price: 3500000, currency: 'IDR', pricingUnit: 'per person' }] },
+    { id: 'pulau-kenawa', title: 'Pulau Kenawa Island Escape', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.8, packageOptions: [] },
+    { id: 'moyo', title: 'Pulau Moyo Nature', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.7, packageOptions: [] },
+  ];
+  const plan = buildTripItinerary({ destination: 'Sumbawa', days: 5, budget: 'high', catalog });
+  assert.deepEqual(plan.itinerary.map((item) => [item.experienceId, item.day, item.dayEnd]), [['sumbawa-open-trip-3d2n', 1, 3], ['pulau-kenawa', 4, 4], ['moyo', 5, 5]]);
+});
+
 test('smart itinerary distinguishes approved guide departures from information-only places', () => {
   const catalog = [
     { id: 'sumbawa-open-trip-3d2n', title: 'Sumbawa Open Trip', city: 'Sumbawa', duration: '3 days · 2 nights', price: null, rating: 5, packageOptions: [{ id: 'sumbawa-open-trip-3d2n', name: 'Shared open trip', duration: '3 days · 2 nights', days: 3, price: 3500000, currency: 'IDR', pricingUnit: 'per person' }] },
