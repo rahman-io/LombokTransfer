@@ -5,9 +5,10 @@ import { experiences, getExperience } from '../experiences/data.js';
 import { state } from '../../app/store.js';
 import { activeSocialUser, socialUser } from '../social/repository.js';
 import { activeGuide, bookingQrPayload, filterTripOfferingsByPrice, financeBreakdown, financeConfig, financeSummary, guideById, guideDemoData, packagePrice, priceSplit, publicTripOfferings, requestDateRange, sharedTripReady, tripModeLabel, tripOfferingAvailability, tripOfferingQuote } from './repository.js';
+import { formatCurrency } from '../../services/currency.js';
 
 const esc = escapeHtml;
-const money = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
+const money = (amount) => formatCurrency(amount, 'IDR');
 const prettyDate = (date) => date ? new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date to be confirmed';
 const verificationCodeDisplay = (code) => `<div class="booking-code-tools"><span class="booking-code-display" aria-label="Verification code ${esc(code)}">${String(code || '').split('').map((character) => `<b>${esc(character)}</b>`).join('')}</span><button type="button" class="booking-code-copy" data-action="copy-booking-code" data-value="${esc(code)}">Copy</button></div>`;
 const packageCatalog = experiences.filter((item) => item.packageOptions?.length);

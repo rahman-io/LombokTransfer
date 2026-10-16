@@ -1,6 +1,7 @@
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { escapeHtml } from '../../utils/html.js';
+import { formatCurrency } from '../../services/currency.js';
 import { getExperience } from '../experiences/data.js';
 import { activeSocialUser } from '../social/repository.js';
 import { bookingAssistantAdvice } from './safety.js';
@@ -8,7 +9,7 @@ import { bookingSafety, guideById, guideDemoData, sharedDepartureStatus } from '
 import { getOrCreateSharedTripThread } from '../messaging/repository.js';
 
 const esc = escapeHtml;
-const money = (amount) => `Rp${Math.round(Number(amount) || 0).toLocaleString('id-ID')}`;
+const money = (amount) => formatCurrency(amount, 'IDR');
 const dateTime = (value) => value ? new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
 
 export function bookingSafetyView(id) {

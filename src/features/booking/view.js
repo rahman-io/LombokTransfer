@@ -7,7 +7,8 @@ import { formatDate, escapeHtml } from '../../utils/html.js';
 import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
 import { publicTripOfferings, tripModeLabel, tripOfferingQuote } from '../guides/repository.js';
 import { tripOfferingPicker } from '../guides/view.js';
-const money = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
+import { formatCurrency } from '../../services/currency.js';
+const money = (amount) => formatCurrency(amount, 'IDR');
 const selectedTripOffer = (item, option) => option ? publicTripOfferings(item.id, option.id, state.date, state.adults + state.children).find((offer) => offer.id === state.selectedOfferId) : null;
 export function bookingView(id) {
   const item = getExperience(id);
@@ -48,7 +49,7 @@ export function checkoutView(id) {
   const times = selectedPackage ? selectedOffer ? [selectedOffer.time] : [] : getDemoBooking(item)?.timeOptions || ['9:00 AM'];
   const effectiveTime = times.includes(state.selectedTime) ? state.selectedTime : times[0];
   const packageTotal = selectedOffer ? tripOfferingQuote(selectedOffer, state.adults + state.children) : null;
-  const idr = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
+  const idr = (amount) => formatCurrency(amount, 'IDR');
   const step = state.checkoutStep;
   const total = calculateDemoQuote(item, state).total.toFixed(2);
   const summary = `<div class="checkout-summary"><strong>${selectedPackage?.name || item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${effectiveTime || 'Choose departure'} · ${selectedPackage ? `${escapeHtml(selectedOffer ? tripModeLabel(selectedOffer.mode) : 'Choose a departure')} · ${packageTotal === null ? 'No price selected' : `${idr(packageTotal)} total`}` : 'Instructor: English · Demo price'}</small></div>`;
@@ -65,7 +66,7 @@ export function checkoutView(id) {
   const packageReview = `<h1>Review your booking request</h1><p class="guide-caption">This request uses the approved departure price. The assigned guide may accept or decline. No payment is recorded until acceptance and, for shared trips, the minimum group size is met.</p>${summary}${packageTotal !== null ? `<div class="checkout-total"><strong>${idr(packageTotal)}</strong><small>Total for ${state.adults + state.children} traveler${state.adults + state.children === 1 ? '' : 's'}</small></div>` : ''}<button class="primary-button full" data-action="send-guide-request" data-id="${escapeHtml(item.id)}" data-total="${packageTotal ?? ''}" ${selectedOffer && state.date && packageTotal !== null ? '' : 'disabled'}>Send booking request</button>${!selectedOffer ? '<p class="guide-caption">Choose an approved departure with enough seats to continue.</p>' : ''}`;
   const payment = `
     <h2>Choose your currency</h2><p class="muted">Pay in your usual currency to avoid possible exchange rate fees from your bank.</p>
-    <div class="radio-group"><label><input type="radio" name="currency" checked /> $${total}</label><label><input type="radio" name="currency" /> zł ${(Number(total) * 4).toFixed(2)} (demo)</label></div>
+    <div class="radio-group"><label><input type="radio" name="currency" checked /> ${formatDemoPrice(Number(total))}</label><label><input type="radio" name="currency" /> ${formatCurrency(Number(total), 'USD', 'PLN')} (demo)</label></div>
     <h2>Payment method</h2><div class="radio-group">
       <label><input type="radio" name="payment" value="card" ${state.paymentMethod === 'card' ? 'checked' : ''} /> Debit or credit card ${icon('credit', 22)}</label>
       <label><input type="radio" name="payment" value="paypal" ${state.paymentMethod === 'paypal' ? 'checked' : ''} /> PayPal</label>
@@ -74,7 +75,7 @@ export function checkoutView(id) {
     <label class="save-card"><input type="checkbox" checked /> Save card for future bookings ${icon('credit', 19)}</label>
     <h2>Review details</h2><div class="review-details"><strong>${escapeHtml(state.guestName)}</strong><span>${escapeHtml(state.email)}</span><button data-action="edit-contact">Edit</button></div>${summary}
     <button class="promo-row" data-action="promo">${icon('tickets', 21)} Enter promo or gift code ${icon('chevron', 19)}</button>
-    <div class="payment-total"><strong>Total</strong><strong>$${total}</strong></div><small class="tax-note">All taxes and fees included</small>
+    <div class="payment-total"><strong>Total</strong><strong>${formatDemoPrice(Number(total))}</strong></div><small class="tax-note">All taxes and fees included</small>
     <p class="muted terms">By continuing, you agree to FindMyGuide's general terms and conditions and your activity provider's terms and conditions.</p>
     <button class="primary-button full" data-action="card-details">${state.paymentMethod === 'card' ? 'Enter card details' : 'Continue'}</button>`;
   return mainLayout(`
@@ -93,8 +94,8 @@ export function cardDetailsView(id) {
       <div class="card-fields"><label class="form-label">Expiry date<input inputmode="numeric" autocomplete="cc-exp" placeholder="MM / YY" maxlength="7" /></label><label class="form-label">Security code<input inputmode="numeric" autocomplete="cc-csc" placeholder="CVC" maxlength="4" /></label></div>
       <label class="form-label">Name on card<input autocomplete="cc-name" placeholder="Name on card" /></label>
       <p class="muted">Your payment details are entered only for this preview and are not saved or charged.</p>
-      <div class="payment-total"><strong>Total</strong><strong>$${total}</strong></div><small class="tax-note">All taxes and fees included</small>
-      <button class="primary-button full" data-action="payment-unavailable">Pay $${total}</button>
+      <div class="payment-total"><strong>Total</strong><strong>${formatDemoPrice(Number(total))}</strong></div><small class="tax-note">All taxes and fees included</small>
+      <button class="primary-button full" data-action="payment-unavailable">Pay ${formatDemoPrice(Number(total))}</button>
     </div>
   `, 'Discover', { className: 'checkout-shell' });
 }

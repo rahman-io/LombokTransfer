@@ -28,6 +28,7 @@ import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 import { escapeHtml } from '../utils/html.js';
 import QRCode from 'qrcode';
+import { refreshExchangeRates } from '../services/currency.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -744,6 +745,7 @@ export function startApp() {
     if (route().path !== '/login') navigate('/login');
   }
   render();
+  refreshExchangeRates().then(() => render());
   window.addEventListener('hashchange', () => { state.modal = ''; syncNavigation(); render(); });
   window.addEventListener('popstate', () => { if (chatGalleryHistoryEntry) { chatGalleryHistoryEntry = false; if (state.modal === 'chat-gallery') { state.modal = ''; render(); } } });
   window.addEventListener('scroll', syncDetailHeader, { passive: true });

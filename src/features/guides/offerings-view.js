@@ -3,8 +3,9 @@ import { header } from '../../components/Header.js';
 import { escapeHtml } from '../../utils/html.js';
 import { getExperience } from '../experiences/data.js';
 import { activeGuide, financeBreakdown, guideDemoData, tripModeLabel, tripOfferingAvailability } from './repository.js';
+import { formatCurrency } from '../../services/currency.js';
 
-const money = (value) => `Rp${Number(value || 0).toLocaleString('id-ID')}`;
+const money = (value) => formatCurrency(value, 'IDR');
 const label = (offer) => getExperience(offer.experienceId)?.packageOptions?.find((option) => option.id === offer.packageId)?.name || 'Guided trip';
 function offerCard(offer, admin = false) {
   const guide = guideDemoData().guides.find((item) => item.id === offer.guideId);

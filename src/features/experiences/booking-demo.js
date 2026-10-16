@@ -1,4 +1,5 @@
 // Demo-only booking data. Replace these records with provider data when a backend is connected.
+import { formatCurrency } from '../../services/currency.js';
 const weekdayMultipliers = { 0: 1.12, 1: 1, 2: 1.03, 3: 1.05, 4: 1.08, 5: 1.1, 6: 1.15 };
 const demoTimeOptions = ['6:00 PM', '7:30 PM'];
 const bookedTravelers = [
@@ -38,11 +39,10 @@ export function calculateDemoQuote(item, { adults = 1, children = 0, date = '' }
 }
 
 export function formatDemoPrice(amount) {
-  return `$${amount.toFixed(2)}`;
+  return formatCurrency(amount, 'USD');
 }
 
 export function formatListedPrice(item) {
   const amount = item?.listedPrice ?? item?.price ?? 0;
-  if (item?.listedPriceCurrency === 'IDR') return `Rp${Math.round(amount).toLocaleString('id-ID')}`;
-  return `$${amount}`;
+  return formatCurrency(amount, item?.listedPriceCurrency || 'USD');
 }
