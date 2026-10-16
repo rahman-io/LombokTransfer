@@ -75,7 +75,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
       knowBeforeYouGo: item.sourceNote || 'Please check the activity details and arrival instructions before your visit.',
     },
     cancellation: item.pricePending ? null : item.cancellation || { title: 'Free cancellation', text: 'Cancel up to 24 hours in advance for a full refund' },
-    meetingPoint: { ...suggestedPoint, status: 'suggested_public_area', description: item.pricePending ? item.availabilityNote || 'A public meeting area is shown for planning; exact arrangements require operator confirmation.' : 'A suggested public meeting area is shown near the destination for planning. The guide confirms the official meeting point after booking, and you can request a suitable change in chat.' },
+    meetingPoint: { ...suggestedPoint, status: 'suggested_public_area', description: item.pricePending ? 'A suggested public meeting area is shown for planning. The final meeting point is confirmed after booking.' : 'A suggested public meeting area is shown near the destination for planning. The guide confirms the official meeting point after booking, and you can request a suitable change in chat.' },
     pricing: item.pricePending ? {
       currency: item.listedPriceCurrency || 'IDR',
       adultBaseCents: null,
