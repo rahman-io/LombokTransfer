@@ -10,6 +10,14 @@ const normalize = (value) => String(value || '').toLowerCase();
 
 const optionDays = (option) => Number(option?.days) || Number(String(option?.duration || '').match(/^(\d+)\s+days?/i)?.[1]) || 1;
 const experienceDays = (experience) => Number(String(experience?.duration || '').match(/^(\d+)\s+days?/i)?.[1]) || 1;
+const coverageStopWords = new Set('a an and the to of in on with from day days night nights trip open shared private guide guided experience tour package activity activities local destination explore visit nature beach island water waterfall boat snorkeling safari national park area lombok sumbawa'.split(' '));
+const experienceCoverageText = (experience) => normalize(JSON.stringify({ title: experience?.title, location: experience?.location, description: experience?.description, highlights: experience?.highlights, includes: experience?.includes, itinerary: experience?.itinerary, packageType: experience?.packageType }));
+const experienceTerms = (experience) => [...new Set(experienceCoverageText(experience).replace(/[^a-z0-9]+/g, ' ').split(' ').filter((term) => term.length > 2 && !coverageStopWords.has(term)))];
+
+export function coveredExperienceIds(experience, catalog = []) {
+  const source = experienceCoverageText(experience);
+  return catalog.filter((candidate) => candidate.id !== experience.id && experienceTerms(candidate).some((term) => source.includes(term))).map((candidate) => candidate.id);
+}
 
 export function packageOptionForDays(item, days) {
   const limit = Number(days) || 1;
@@ -56,6 +64,7 @@ export function buildTripItinerary({ destination = '', days = 3, budget = 'mid',
     return { experience, packageOption, match, bookingAvailable: Boolean(match), preferred: preferredIds.has(experience.id) };
   }).sort((a, b) => Number(b.bookingAvailable) - Number(a.bookingAvailable) || Number(b.match ? optionDays(b.match.option) : 0) - Number(a.match ? optionDays(a.match.option) : 0) || Number(b.preferred) - Number(a.preferred) || Number(b.experience.rating) - Number(a.experience.rating));
   const selectedIds = new Set();
+  const coveredIds = new Set();
   const selected = [];
   let remainingDays = tripDays;
   let nextDay = 1;
@@ -63,13 +72,14 @@ export function buildTripItinerary({ destination = '', days = 3, budget = 'mid',
     const span = Math.max(1, Math.min(duration, remainingDays));
     selected.push({ ...candidate, startDay: nextDay, endDay: nextDay + span - 1 });
     selectedIds.add(candidate.experience.id);
+    coveredExperienceIds(candidate.experience, catalog).forEach((id) => coveredIds.add(id));
     nextDay += span;
     remainingDays -= span;
   };
   const anchor = ranked.find((candidate) => candidate.bookingAvailable);
   if (anchor) addCandidate(anchor, optionDays(anchor.match.option));
   while (remainingDays > 0) {
-    const candidates = ranked.filter((candidate) => !selectedIds.has(candidate.experience.id)).map((candidate) => {
+    const candidates = ranked.filter((candidate) => !selectedIds.has(candidate.experience.id) && !coveredIds.has(candidate.experience.id)).map((candidate) => {
       const match = approvedOfferForDays(candidate.experience, remainingDays);
       const packageOption = packageOptionForDays(candidate.experience, remainingDays);
       const duration = match ? optionDays(match.option) : packageOption ? optionDays(packageOption) : experienceDays(candidate.experience);

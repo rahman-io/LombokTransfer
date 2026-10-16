@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildTripItinerary, getTripIntent, packageOptionForDays, toTripItineraryFirebaseFixture } from '../src/features/trip-intelligence/repository.js';
+import { buildTripItinerary, coveredExperienceIds, getTripIntent, packageOptionForDays, toTripItineraryFirebaseFixture } from '../src/features/trip-intelligence/repository.js';
 
 test('smart trip intent and itinerary use saved and social travel signals', () => {
   const experiences = [
@@ -36,6 +36,14 @@ test('smart itinerary keeps a multi-day guide package together and fills remaini
   ];
   const plan = buildTripItinerary({ destination: 'Sumbawa', days: 5, budget: 'high', catalog });
   assert.deepEqual(plan.itinerary.map((item) => [item.experienceId, item.day, item.dayEnd]), [['sumbawa-open-trip-3d2n', 1, 3], ['pulau-kenawa', 4, 4], ['moyo', 5, 5]]);
+});
+
+test('smart itinerary removes destinations already covered by an open-trip route', () => {
+  const route = { id: 'sumbawa-open-trip-3d2n', title: 'Sumbawa Open Trip: Kenawa, Moyo & Whale Sharks', city: 'Sumbawa', duration: '3 days · 2 nights', price: null, rating: 5, highlights: ['Pulau Kenawa', 'Pulau Moyo', 'Mata Jitu Waterfall', 'Whale shark boat activity'], itinerary: [{ title: 'Pulau Kenawa' }, { title: 'Pulau Moyo · Mata Jitu Waterfall' }, { title: 'Whale shark activity' }], packageOptions: [{ id: 'sumbawa-open-trip-3d2n', name: 'Shared open trip', duration: '3 days · 2 nights', days: 3, price: 3500000, currency: 'IDR', pricingUnit: 'per person' }] };
+  const catalog = [route, { id: 'pulau-moyo', title: 'Pulau Moyo Nature & Snorkeling', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.8 }, { id: 'mata-jitu-waterfall', title: 'Mata Jitu Waterfall on Pulau Moyo', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.7 }, { id: 'sumbawa-coast', title: 'Sumbawa Coast Escape', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.6 }, { id: 'poto-tano', title: 'Poto Tano Harbour', city: 'Sumbawa', duration: 'Destination', price: null, rating: 4.5 }];
+  assert.deepEqual(coveredExperienceIds(route, catalog), ['pulau-moyo', 'mata-jitu-waterfall']);
+  const plan = buildTripItinerary({ destination: 'Sumbawa', days: 5, budget: 'high', catalog });
+  assert.deepEqual(plan.itinerary.map((item) => [item.experienceId, item.day, item.dayEnd]), [['sumbawa-open-trip-3d2n', 1, 3], ['sumbawa-coast', 4, 4], ['poto-tano', 5, 5]]);
 });
 
 test('smart itinerary distinguishes approved guide departures from information-only places', () => {
