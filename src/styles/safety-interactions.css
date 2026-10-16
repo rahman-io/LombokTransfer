@@ -133,6 +133,27 @@
   transition: transform .18s ease;
 }
 
+.chat-booking-info-control {
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid #b8a6e9;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+}
+
+.chat-booking-toggle-closed {
+  display: none;
+}
+
+.chat-booking-info:not([open]) .chat-booking-toggle-open {
+  display: none;
+}
+
+.chat-booking-info:not([open]) .chat-booking-toggle-closed {
+  display: inline;
+}
+
 .chat-booking-info[open] .chat-booking-info-control svg {
   transform: rotate(90deg);
 }
@@ -158,4 +179,56 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+
+.chat-booking-info .chat-booking-actions {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.chat-booking-info .chat-booking-actions button,
+.chat-booking-info .chat-booking-actions a {
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.chat-booking-info .chat-booking-checklist {
+  flex-wrap: wrap;
+  overflow: visible;
+  white-space: normal;
+  row-gap: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.chat-booking-info .chat-booking-checklist span,
+.chat-booking-info .chat-booking-checklist a {
+  white-space: normal;
+}
+
+.chat-booking-info .chat-booking-status {
+  font-size: 11px;
+}
+
+.chat-booking-info .chat-booking-status small {
+  font-size: 10px;
+}
+
+.chat-booking-info .chat-booking-assistant {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.chat-booking-info .shared-departure-heading small {
+  font-size: 10px;
+}
+
+.chat-booking-info .shared-departure-heading strong {
+  font-size: 13px;
+}
+
+.chat-booking-info .shared-departure-panel>p,
+.chat-booking-info .shared-decision-note {
+  font-size: 11px;
 }
