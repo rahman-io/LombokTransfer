@@ -1,3 +1,5 @@
+import { publicTripOfferings, tripOfferingAvailability, tripOfferingQuote } from '../guides/repository.js';
+
 const intentRules = [
   { id: 'culture', label: 'Culture seeker', keywords: ['Cultural experience', 'Audio guide', 'Skip the line'], description: 'history, local culture and iconic places' },
   { id: 'adventure', label: 'Adventure seeker', keywords: ['Adventure', 'Guided tour'], description: 'active experiences and memorable adventures' },
@@ -8,6 +10,18 @@ const normalize = (value) => String(value || '').toLowerCase();
 
 export function packageOptionForDays(item, days) {
   return (item.packageOptions || []).slice().sort((a, b) => Math.abs(Number(a.days || 1) - Number(days)) - Math.abs(Number(b.days || 1) - Number(days)))[0] || null;
+}
+
+export function approvedOfferForDays(item, days, travelers = 1) {
+  const options = (item.packageOptions || []).slice().sort((a, b) => Math.abs(Number(a.days || 1) - Number(days)) - Math.abs(Number(b.days || 1) - Number(days)));
+  for (const option of options) {
+    const offer = publicTripOfferings(item.id, option.id, '', travelers)[0];
+    if (!offer) continue;
+    const availability = tripOfferingAvailability(offer.id, travelers);
+    const total = tripOfferingQuote(offer, travelers);
+    if (availability.available && total !== null) return { option, offer: { id: offer.id, date: offer.date, time: offer.time, mode: offer.mode, price: offer.price, priceUnit: offer.priceUnit, total, seatsLeft: availability.seatsLeft } };
+  }
+  return null;
 }
 
 export function getTripIntent(userState = {}, catalog = [], socialContext = {}) {
@@ -30,15 +44,16 @@ export function buildTripItinerary({ destination = '', days = 3, budget = 'mid',
   const city = destination || intent.destination;
   const maxPrice = budget === 'low' ? 60 : budget === 'high' ? Infinity : 120;
   const preferredIds = new Set(userState.wishlist || []);
-  const candidates = catalog.filter((item) => item.city === city && item.price <= maxPrice).sort((a, b) => (preferredIds.has(b.id) ? 1 : 0) - (preferredIds.has(a.id) ? 1 : 0) || Number(b.rating) - Number(a.rating));
-  const fallback = catalog.filter((item) => item.city === city).sort((a, b) => Number(b.rating) - Number(a.rating));
-  const selected = [...new Map([...candidates, ...fallback].map((item) => [item.id, item])).values()].slice(0, Math.max(1, Number(days) || 3));
   const tripDays = Number(days) || 3;
-  const itinerary = selected.map((experience, index) => {
+  const ranked = catalog.filter((item) => item.city === city && (item.price === null || item.price === undefined || item.price <= maxPrice)).map((experience) => {
     const packageOption = packageOptionForDays(experience, tripDays);
-    return { day: index + 1, experienceId: experience.id, title: experience.title, city: experience.city, duration: experience.duration, price: experience.price, packageOption: packageOption ? { id: packageOption.id, name: packageOption.name, duration: packageOption.duration, price: packageOption.price, currency: packageOption.currency, pricingUnit: packageOption.pricingUnit } : null };
-  });
-  return { intent, destination: city, days: tripDays, budget, itinerary, total: itinerary.reduce((sum, item) => sum + item.price, 0), packageCount: itinerary.filter((item) => item.packageOption).length, generatedAt: new Date().toISOString(), schemaVersion: 1 };
+    const match = approvedOfferForDays(experience, tripDays);
+    return { experience, packageOption, match, bookingAvailable: Boolean(match), preferred: preferredIds.has(experience.id) };
+  }).sort((a, b) => Number(b.bookingAvailable) - Number(a.bookingAvailable) || Number(b.preferred) - Number(a.preferred) || Number(b.experience.rating) - Number(a.experience.rating));
+  const selected = ranked.slice(0, Math.max(1, tripDays));
+  const itinerary = selected.map(({ experience, packageOption, match }, index) => ({ day: index + 1, experienceId: experience.id, title: experience.title, city: experience.city, duration: match?.option?.duration || experience.duration, price: experience.price, bookingAvailable: Boolean(match), nextAvailable: match?.offer || null, packageOption: packageOption ? { id: packageOption.id, name: packageOption.name, duration: packageOption.duration, price: packageOption.price, currency: packageOption.currency, pricingUnit: packageOption.pricingUnit } : null }));
+  const bookableTotal = itinerary.reduce((sum, item) => sum + Number(item.nextAvailable?.total || 0), 0);
+  return { intent, destination: city, days: tripDays, budget, itinerary, total: bookableTotal, bookableTotal, packageCount: itinerary.filter((item) => item.packageOption).length, bookablePackageCount: itinerary.filter((item) => item.bookingAvailable).length, generatedAt: new Date().toISOString(), schemaVersion: 2 };
 }
 
 export function toTripItineraryFirebaseFixture(itinerary) {
