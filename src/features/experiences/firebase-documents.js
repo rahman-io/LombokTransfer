@@ -32,6 +32,7 @@ function createMapLinks(point) {
   return {
     embedUrl: `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${point.latitude}%2C${point.longitude}`,
     mapUrl: `https://www.openstreetmap.org/?mlat=${point.latitude}&mlon=${point.longitude}#map=16/${point.latitude}/${point.longitude}`,
+    googleMapUrl: `https://www.google.com/maps/search/?api=1&query=${point.latitude}%2C${point.longitude}`,
   };
 }
 
