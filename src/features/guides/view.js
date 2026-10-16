@@ -1,5 +1,6 @@
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
+import { icon } from '../../components/icons.js';
 import { escapeHtml } from '../../utils/html.js';
 import { experiences, getExperience } from '../experiences/data.js';
 import { state } from '../../app/store.js';
@@ -74,9 +75,26 @@ export function travelerBookingDetailView(id) {
   return ['paid', 'refunded'].includes(request?.paymentStatus) ? page.replace('<section class="booking-workspace-card"><h2>Your trip</h2>', `<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(id)}/safety">Open Trip Safety Center</a><section class="booking-workspace-card"><h2>Your trip</h2>`) : page;
 }
 
-export function travelerBookingsView() {
+function travelerBookingListCard(request) {
+  const item = getExperience(request.experienceId);
+  const option = item?.packageOptions?.find((entry) => entry.id === request.packageId);
+  const finished = request.status === 'completed';
+  const closed = ['declined', 'cancelled'].includes(request.status) || request.paymentStatus === 'refunded';
+  const inProgress = request.bookingStatus === 'in_progress';
+  const paid = request.paymentStatus === 'paid';
+  const label = finished ? 'Trip completed' : closed ? request.paymentStatus === 'refunded' ? 'Refunded' : request.status === 'cancelled' ? 'Cancelled' : 'Declined' : inProgress ? 'Trip in progress' : paid ? 'Booking confirmed' : request.status === 'accepted' ? 'Awaiting payment' : 'Request sent';
+  const progress = finished || closed ? 100 : inProgress ? 90 : paid ? 75 : request.status === 'accepted' ? 45 : 20;
+  const range = requestDateRange(request);
+  const date = range.days > 1 ? `${prettyDate(range.start)} – ${prettyDate(range.end)}` : prettyDate(range.start);
+  const title = option?.name || item?.title || 'Travel package';
+  return `<a class="traveler-booking-card${closed ? ' is-closed' : ''}" href="#/bookings/${encodeURIComponent(request.id)}" aria-label="View booking ${esc(request.bookingId || request.id)}: ${esc(title)}, ${esc(label)}"><span class="traveler-booking-card-top"><span>Booking status</span><span>${esc(request.bookingId || request.id)}</span></span><span class="traveler-booking-card-main"><span class="traveler-booking-card-icon">${icon('tickets', 27)}</span><span class="traveler-booking-card-copy"><strong>${esc(title)}</strong><span>${esc(date)} · ${esc(item?.city || 'Destination')}</span><em>${esc(label)}</em></span></span><span class="traveler-booking-progress" role="progressbar" aria-label="Booking progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span><span class="traveler-booking-card-bottom"><span>View booking details</span><span class="traveler-booking-card-arrow">${icon('chevron', 18)}</span></span></a>`;
+}
+
+export function travelerBookingsView(tab = 'active') {
   const requests = guideDemoData().requests.filter((request) => request.travelerEmail === state.email.toLowerCase());
-  return mainLayout(`${header('Bookings', '', 'traveler-bookings-header')}<div class="page-pad guide-bookings"><p class="guide-caption">Payment records are stored only on this device. No real card is charged.</p>${requests.length ? requests.map((request) => guideRequestCard(request)).join('') : `<div class="guide-empty"><h2>No booking requests yet</h2><p>Choose a package and approved departure to send your first request.</p><a class="primary-button" href="#/">Explore experiences</a></div>`}</div>`, 'Bookings');
+  const history = tab === 'history';
+  const visible = requests.filter((request) => (request.status === 'completed' || ['declined', 'cancelled'].includes(request.status) || request.paymentStatus === 'refunded') === history);
+  return mainLayout(`${header('Bookings', '', 'traveler-bookings-header')}<div class="page-pad guide-bookings traveler-bookings-list"><nav class="traveler-bookings-tabs" aria-label="Booking lists"><a href="#/bookings" class="${history ? '' : 'active'}" ${history ? '' : 'aria-current="page"'}>Active</a><a href="#/bookings?tab=history" class="${history ? 'active' : ''}" ${history ? 'aria-current="page"' : ''}>History</a></nav>${visible.length ? `<div class="traveler-booking-cards">${visible.map(travelerBookingListCard).join('')}</div>` : `<div class="guide-empty"><h2>${history ? 'No past bookings yet' : 'No active bookings yet'}</h2><p>${history ? 'Completed and cancelled trips will appear here.' : 'Choose a package and approved departure to send your first request.'}</p>${history ? '' : '<a class="primary-button" href="#/">Explore experiences</a>'}</div>`}</div>`, 'Bookings');
 }
 
 export function guideDashboardView() {

@@ -189,7 +189,7 @@ function currentView() {
   if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
-  if (path === '/bookings') return travelerBookingsView();
+  if (path === '/bookings') return travelerBookingsView(params.get('tab'));
   if (/^\/bookings\/[^/]+\/safety$/.test(path)) return bookingSafetyView(path.split('/')[2]);
   if (path.startsWith('/bookings/')) return travelerBookingDetailView(path.split('/')[2]);
   if (path === '/guide') return guideDashboardView().replace('<div class="guide-dashboard-links">', '<div class="guide-dashboard-links"><a href="#/guide/offers">Dated trip offerings →</a><a href="#/guide/assignments">Team assignments →</a>');

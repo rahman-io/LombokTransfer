@@ -8,7 +8,7 @@ test('dated trip styles are approved, priced by party and booked without public 
   const vite = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'silent' });
   try {
     const repo = await vite.ssrLoadModule('/src/features/guides/repository.js');
-    const { tripOfferingPicker, travelerBookingsView } = await vite.ssrLoadModule('/src/features/guides/view.js');
+    const { tripOfferingPicker, travelerBookingsView, travelerBookingDetailView } = await vite.ssrLoadModule('/src/features/guides/view.js');
     const { getExperience } = await vite.ssrLoadModule('/src/features/experiences/data.js');
     const { state } = await vite.ssrLoadModule('/src/app/store.js');
     const item = getExperience('arena');
@@ -54,7 +54,8 @@ test('dated trip styles are approved, priced by party and booked without public 
     assert.equal(repo.tripOfferingAvailability(offer.id, 1).available, false);
     assert.equal(repo.createTripOfferRequest({ offerId: offer.id, adults: 2, children: 0, travelerName: 'Another party', travelerEmail: 'second@example.com', expectedTotal: 18000000 }), null);
     assert.equal(repo.markGuideRequestPaid(booking.id, 'office@example.com'), true);
-    assert.match(travelerBookingsView(), /Adi Saputra/);
+    assert.match(travelerBookingsView(), /Booking confirmed/);
+    assert.match(travelerBookingDetailView(booking.id), /Adi Saputra/);
   } finally { await vite.close(); delete globalThis.localStorage; }
 });
 
