@@ -11,13 +11,32 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const now = () => new Date().toISOString();
 
 export function createSeedMessagingState() {
-  return { schemaVersion: 1, threads: clone(demoChatThreads), messages: clone(demoChatMessages) };
+  return { schemaVersion: 2, threads: clone(demoChatThreads), messages: clone(demoChatMessages) };
 }
 
 function readState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved?.schemaVersion === 1 && Array.isArray(saved.threads) && Array.isArray(saved.messages)) return saved;
+    if ([1, 2].includes(saved?.schemaVersion) && Array.isArray(saved.threads) && Array.isArray(saved.messages)) {
+      if (saved.schemaVersion === 1) {
+        const seededMemberIds = new Set(['maya', 'dario', 'sophie', 'nina']);
+        const publicThreadIds = new Set();
+        saved.threads.forEach((thread) => {
+          if (!thread.group || !thread.context?.experienceId || thread.context.offerId || thread.context.requestId) return;
+          publicThreadIds.add(thread.id);
+          thread.context.kind = 'public';
+          thread.participantIds = thread.participantIds.filter((id) => !seededMemberIds.has(id));
+          thread.unreadBy = Object.fromEntries(thread.participantIds.map((id) => [id, thread.unreadBy?.[id] || 0]));
+        });
+        saved.messages = saved.messages.filter((message) => !publicThreadIds.has(message.threadId) || !/^Welcome to the .* traveler group\. Compare dates and plan together here\.$/.test(message.text));
+        saved.threads.forEach((thread) => {
+          if (publicThreadIds.has(thread.id)) thread.lastMessageId = saved.messages.filter((message) => message.threadId === thread.id).at(-1)?.id || null;
+        });
+        saved.schemaVersion = 2;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      }
+      return saved;
+    }
   } catch { /* Demo conversations remain available when storage is blocked. */ }
   return createSeedMessagingState();
 }
@@ -40,7 +59,7 @@ function eligibleSharedTripMember(thread, userId) {
   const user = socialUser(userId);
   return offers.some((offer) => (offer.teamGuideIds || [offer.guideId]).includes(userId)) || Boolean(data?.requests?.some((request) => offerIds.includes(request.offerId) && request.travelerEmail === user?.accountEmail?.toLowerCase() && (['accepted', 'completed'].includes(request.status) && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded')));
 }
-export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active' && eligibleSharedTripMember(thread, activeSocialUser().id)); }
+export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active' && (!thread.group || thread.participantIds.includes(activeSocialUser().id)) && eligibleSharedTripMember(thread, activeSocialUser().id)); }
 export function chatMessages(threadId) { return messagingState().messages.filter((message) => message.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); }
 export function chatParticipant(threadId) {
   const selfId = activeSocialUser().id;
@@ -85,28 +104,24 @@ export function getOrCreateChatThread(userId, context = null) {
   messagingState().threads.push(thread);
   return persist() ? thread.id : null;
 }
-export function getOrCreateTravelGroupThread(experienceId, participantIds, label) {
+export function publicTravelGroup(experienceId) {
+  return messagingState().threads.find((thread) => thread.status === 'active' && thread.group && thread.context?.experienceId === experienceId && !thread.context.offerId && !thread.context.requestId);
+}
+export function getOrCreateTravelGroupThread(experienceId, label) {
   const selfId = activeSocialUser().id;
-  const members = [...new Set([selfId, ...participantIds])].filter((id) => socialUser(id));
-  const existing = messagingState().threads.find((thread) => thread.status === 'active' && thread.group && thread.context?.experienceId === experienceId);
+  const existing = publicTravelGroup(experienceId);
   if (existing) {
     existing.title = label;
     existing.context.label = label;
     if (!existing.participantIds.includes(selfId)) {
       existing.participantIds.push(selfId);
       existing.unreadBy[selfId] = 0;
-      persist();
     }
-    return existing.id;
+    return persist() ? existing.id : null;
   }
   const timestamp = now();
-  const thread = { id: `group-${experienceId}`, participantIds: members, group: true, title: label, context: { experienceId, label }, createdAt: timestamp, updatedAt: timestamp, lastMessageId: null, unreadBy: Object.fromEntries(members.map((id) => [id, 0])), status: 'active' };
-  const hostId = members.find((id) => id !== selfId) || selfId;
-  const welcomeMessage = { id: `chat-${crypto.randomUUID()}`, threadId: thread.id, senderId: hostId, text: `Welcome to the ${label} traveler group. Compare dates and plan together here.`, createdAt: timestamp, readBy: [hostId] };
-  thread.lastMessageId = welcomeMessage.id;
-  thread.unreadBy[selfId] = hostId === selfId ? 0 : 1;
+  const thread = { id: `group-${experienceId}`, participantIds: [selfId], group: true, title: label, context: { kind: 'public', experienceId, label }, createdAt: timestamp, updatedAt: timestamp, lastMessageId: null, unreadBy: { [selfId]: 0 }, status: 'active' };
   messagingState().threads.push(thread);
-  messagingState().messages.push(welcomeMessage);
   return persist() ? thread.id : null;
 }
 export function getOrCreateSharedTripThread(offerId) {

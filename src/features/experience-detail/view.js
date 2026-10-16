@@ -10,7 +10,8 @@ import { publicStartingPackagePrice, publicTripOfferings, tripModeLabel, tripOff
 import { toExperienceDocument } from '../experiences/firebase-documents.js';
 import { getDemoReviews } from '../experiences/demo-engagement.js';
 import { socialImage } from '../social/media.js';
-import { socialPostsForExperience, socialUser, visibleSocialPosts } from '../social/repository.js';
+import { activeSocialUser, socialPostsForExperience, socialUser, visibleSocialPosts } from '../social/repository.js';
+import { publicTravelGroup } from '../messaging/repository.js';
 import { socialBookingSignals } from '../social/intelligence.js';
 import { getBookingLikelihood, getPriceAvailabilityAlerts, getSmartBundle } from '../booking-intelligence/repository.js';
 import { getSmartReviewIntelligence } from '../travel-intelligence/repository.js';
@@ -41,9 +42,9 @@ export function experienceView(id) {
   const smartBundle = getSmartBundle(item, experiences, state);
   const bookingAlerts = getPriceAvailabilityAlerts(item, booking);
   const reviewIntelligence = getSmartReviewIntelligence(item, reviews.featured);
-  const joined = state.joinedExperiences.includes(item.id);
-  const travelerCount = Number(booking?.travelersBooked || 0) + (joined ? 1 : 0);
-  const travelerStack = joined ? [{ initials: 'AR', color: '#234e70' }, ...(booking?.bookedTravelers || [])] : (booking?.bookedTravelers || []);
+  const publicGroup = publicTravelGroup(item.id);
+  const joined = Boolean(publicGroup?.participantIds.includes(activeSocialUser().id));
+  const publicGroupMembers = (publicGroup?.participantIds || []).map((userId) => socialUser(userId)).filter(Boolean);
   const startingPackageEntries = (item.packageOptions || []).map((option) => ({ option, amount: publicStartingPackagePrice(item.id, option) })).filter((entry) => entry.amount !== null).sort((a, b) => a.amount - b.amount);
   const startingPackageEntry = startingPackageEntries[0];
   const startingPriceAvailable = Boolean(startingPackageEntry);
@@ -101,7 +102,7 @@ export function experienceView(id) {
       ${photoCreditsSection}
       ${bookingNotice}
       ${inquiryNotice}
-      ${guideAvailable && booking?.travelersBooked ? `<section class="detail-booking-social-proof"><div class="detail-traveler-stack">${travelerStack.slice(0, 5).map((traveler) => `<span class="detail-traveler-avatar" style="--avatar-color:${escapeHtml(traveler.color)}">${escapeHtml(traveler.initials)}</span>`).join('')}</div><strong>${travelerCount} traveler${travelerCount === 1 ? '' : 's'} booked</strong><button class="detail-join-button ${joined ? 'joined' : ''}" data-action="join-travelers" data-id="${escapeHtml(item.id)}" aria-pressed="${joined}">${joined ? 'Joined' : 'Join'}</button>${joined && state.travelerGroupThreads[item.id] ? `<div class="detail-group-actions"><a href="#/inbox/chat/${escapeHtml(state.travelerGroupThreads[item.id])}">${icon('comment', 15)} Open traveler group</a><button data-action="show-availability">${icon('calendar', 15)} Choose date & book</button></div>` : ''}</section>` : ''}
+      <section class="detail-public-group" aria-label="Public traveler group"><span class="detail-public-group-label">PUBLIC GROUP</span><h2>Talk with other travelers</h2><p>Ask questions and share tips about this place before booking.</p><div class="detail-public-group-members">${publicGroupMembers.length ? `<div class="detail-traveler-stack">${publicGroupMembers.slice(0, 5).map((traveler) => `<span class="detail-traveler-avatar" style="--avatar-color:${escapeHtml(traveler.color || '#566d65')}">${escapeHtml(traveler.initials || '?')}</span>`).join('')}</div><strong>${publicGroupMembers.length} traveler${publicGroupMembers.length === 1 ? '' : 's'} joined</strong>` : '<strong>Be the first to join</strong>'}</div>${joined ? `<a class="detail-join-button" href="#/inbox/chat/${encodeURIComponent(publicGroup.id)}">${icon('community', 21)} Open public group <span aria-hidden="true">→</span></a>` : `<button class="detail-join-button" data-action="join-travelers" data-id="${escapeHtml(item.id)}">${icon('community', 21)} Join public group <span aria-hidden="true">→</span></button>`}</section>
       ${communitySignal ? `<a class="detail-social-proof" href="#/social/explore?topic=${encodeURIComponent(communitySignal.topics[0] || item.city.toLowerCase())}">${icon('sparkle', 17)} Shared by ${communitySignal.posts} traveler${communitySignal.posts === 1 ? '' : 's'} on Vibes · See why it is trending</a>` : ''}
       <a class="detail-vibes-button" href="#/social/create?experience=${encodeURIComponent(item.id)}"><span class="detail-vibes-icon">${icon('community', 21)}</span><span>Recommend this on Vibes</span><span class="detail-vibes-arrow" aria-hidden="true">→</span></a>
       ${guideAvailable && item.lovedByEnglishSpeakers ? `<div class="loved-card"><span>🏆</span><div><strong>Loved by English speakers</strong><small>91% of English-speaking travelers gave this activity a perfect score</small></div></div>` : ''}

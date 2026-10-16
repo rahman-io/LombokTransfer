@@ -98,6 +98,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 .detail-vibes-button{display:flex;align-items:center;gap:12px;min-height:58px;margin:18px 0 22px;padding:10px 14px;border-radius:17px;background:linear-gradient(110deg,#5a28d9,#305ee7 62%,#1680de);box-shadow:0 8px 20px #4936ce30;color:#fff;font-size:14px;font-weight:800;text-decoration:none}
 .detail-vibes-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:12px;background:#ffffff30;color:#fff}
 .detail-vibes-arrow{margin-left:auto;font-size:23px;font-weight:400;line-height:1}
+.detail-public-group{margin:20px 0;padding:18px;border:1px solid #e6e4f5;border-radius:19px;background:#faf9ff}
+.detail-public-group-label{color:#6242bd;font-size:11px;font-weight:800;letter-spacing:.07em}
+.detail-public-group h2{margin:6px 0;font-size:19px}
+.detail-public-group p{margin:0 0 14px;color:var(--muted);font-size:13px}
+.detail-public-group-members{display:flex;align-items:center;gap:10px;min-height:32px;margin-bottom:14px}
+.detail-public-group-members strong{font-size:13px}
+.detail-public-group .detail-join-button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;border-radius:15px;background:linear-gradient(110deg,#5a28d9,#305ee7 62%,#1680de);box-shadow:0 8px 20px #4936ce30;color:#fff;font-size:14px;font-weight:800;text-decoration:none}
+.detail-public-group .detail-join-button span{margin-left:auto;margin-right:4px;font-size:22px;font-weight:400}
 .detail-sticky-header .icon-button.saved{color:#e03148}
 .detail-sticky-header .icon-button.saved svg{fill:#e03148;stroke:#e03148}
 .detail-top-actions .round-white.favorite-just-saved,.detail-sticky-header .icon-button.favorite-just-saved{position:relative;isolation:isolate;animation:detail-heart-pop .55s cubic-bezier(.2,.8,.3,1)}

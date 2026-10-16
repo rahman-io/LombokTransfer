@@ -43,8 +43,6 @@ export const state = {
   chatSharedTarget: null,
   socialGalleryPostId: '',
   socialGalleryIndex: 0,
-  joinedExperiences: saved.joinedExperiences || [],
-  travelerGroupThreads: saved.travelerGroupThreads || {},
   travelerGroupThreadId: '',
   privacy: saved.privacy || { onlineStatus: true, readReceipts: true },
   chatReplyMessageId: '',
@@ -58,8 +56,8 @@ export const state = {
 
 export function update(patch) {
   Object.assign(state, patch);
-  const { wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageOptionId, selectedOfferId, tripPriceFilter, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy } = state;
-  writeSavedState({ wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageOptionId, selectedOfferId, tripPriceFilter, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, joinedExperiences, travelerGroupThreads, privacy });
+  const { wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageOptionId, selectedOfferId, tripPriceFilter, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, privacy } = state;
+  writeSavedState({ wishlist, accountUserId, guestName, email, profilePhoto, currency, language, date, adults, children, selectedExperience, selectedPackageOptionId, selectedOfferId, tripPriceFilter, selectedGuideExperienceId, selectedGuideId, selectedTime, paymentMethod, privacy });
 }
 
 export function toggleWishlist(id) {
