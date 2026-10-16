@@ -29,6 +29,7 @@ import { claimTravelMission } from '../features/travel-intelligence/repository.j
 import { escapeHtml } from '../utils/html.js';
 import QRCode from 'qrcode';
 import { refreshExchangeRates } from '../services/currency.js';
+import { refreshDetailWeather } from '../services/weather.js';
 
 const root = document.getElementById('app');
 let lastPath = '';
@@ -275,6 +276,7 @@ export function render() {
     lastPath = path;
   }
   syncDetailHeader();
+  refreshDetailWeather(root);
   finishAppProgress();
 }
 function galleryLength() {
@@ -496,7 +498,16 @@ function clickAction(action, el) {
   const value = el.dataset.value || '';
   switch (action) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
-    case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
+    case 'heart': {
+      const wasSaved = state.wishlist.includes(id);
+      trackWishlistChange(id, wasSaved ? 'remove' : 'add', getExperience(id));
+      toggleWishlist(id);
+      render();
+      if (!wasSaved) root.querySelectorAll('[data-action="heart"]').forEach((button) => {
+        if (button.dataset.id === id) button.classList.add('favorite-just-saved');
+      });
+      break;
+    }
     case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value, selectedOfferId: '' }); render(); break;
     case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); render(); break; }
     case 'set-trip-price-filter': update({ tripPriceFilter: value }); render(); break;
