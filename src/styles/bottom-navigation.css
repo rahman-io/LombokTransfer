@@ -1,0 +1,122 @@
+:root {
+  --bottom-navigation-space: calc(150px + env(safe-area-inset-bottom));
+}
+
+.bottom-nav {
+  bottom: 8px;
+  display: block;
+  width: min(calc(100% - 20px), 540px);
+  height: calc(134px + env(safe-area-inset-bottom));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  filter: drop-shadow(0 4px 14px #192b4d1a);
+  isolation: isolate;
+}
+
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 64px 0 0;
+  border-radius: 0 0 24px 24px;
+  background: #fff;
+}
+
+.bottom-nav-wave {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 72px;
+  pointer-events: none;
+}
+
+.bottom-nav-ai {
+  position: absolute;
+  top: 8px;
+  right: 3%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 62%;
+  min-height: 44px;
+  border-radius: 24px;
+  color: #fff;
+  font-size: clamp(13px, 3.6vw, 17px);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bottom-nav-ai .icon { width: 25px; height: 25px; }
+.bottom-nav-ai:active { opacity: .8; }
+
+.bottom-nav-items {
+  position: absolute;
+  inset: 64px 8px 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  gap: 4px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.bottom-nav .nav-item {
+  min-width: 0;
+  min-height: 60px;
+  gap: 4px;
+  padding: 0;
+  border-radius: 16px;
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.bottom-nav .nav-item.active::before { display: none; }
+
+.bottom-nav .nav-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 44px;
+  border-radius: 15px;
+}
+
+.bottom-nav .nav-item .icon { width: 26px; height: 26px; }
+.bottom-nav .nav-item.active { color: #4936ce; font-weight: 800; }
+.bottom-nav .nav-item.active .nav-icon {
+  background: linear-gradient(110deg, #5a28d9, #305ee7 62%, #1680de);
+  box-shadow: 0 4px 10px #4936ce26;
+  color: #fff;
+}
+
+.bottom-nav .nav-icon .notification-dot { top: -3px; right: -2px; }
+.bottom-nav .nav-label { max-width: 100%; }
+.bottom-nav a:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+.app-shell:has(> .bottom-nav) > .main-content {
+  padding-bottom: var(--bottom-navigation-space);
+}
+
+.app-shell:has(> .bottom-nav) > .detail-page {
+  padding-bottom: calc(var(--bottom-navigation-space) + 88px);
+}
+
+.app-shell:has(> .bottom-nav) > .detail-cta {
+  bottom: var(--bottom-navigation-space);
+}
+
+.app-shell:has(> .bottom-nav) .floating-map {
+  bottom: calc(var(--bottom-navigation-space) + 11px);
+}
+
+#app:has(.bottom-nav) > .toast {
+  bottom: calc(var(--bottom-navigation-space) + 23px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bottom-nav .nav-icon { transition: background .2s, color .2s, transform .2s; }
+  .bottom-nav .nav-item:active .nav-icon { transform: scale(.93); }
+}

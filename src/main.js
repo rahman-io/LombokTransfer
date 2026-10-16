@@ -12,6 +12,7 @@ import './styles/guides.css';
 import './styles/utilities.css';
 import './styles/sumbawa.css';
 import './styles/authentication.css';
+import './styles/bottom-navigation.css';
 import { startApp } from './app/app.js';
 
 startApp();

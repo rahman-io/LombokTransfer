@@ -1,4 +1,6 @@
 const paths = {
+  home: '<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21v-7h6v7m3-14V4"/>',
+  robot: '<rect x="4" y="5" width="16" height="15" rx="6"/><path d="M9 5V3h6v2M8 11v3m8-3v3M9 17h6M4 10H3a2 2 0 0 0 0 5h1m16-5h1a2 2 0 0 1 0 5h-1"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
   heart: '<path d="M20.8 4.6a5.6 5.6 0 0 0-7.9 0L12 5.5l-.9-.9a5.6 5.6 0 0 0-7.9 7.9L12 21l8.8-8.5a5.6 5.6 0 0 0 0-7.9Z"/>',
   tickets: '<path d="M4 3.5 10 5l4-1.5L20 5v15l-6-1.5-4 1.5L4 18.5Z"/><path d="M10 5v15m4-16.5v15"/>',
