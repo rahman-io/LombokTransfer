@@ -12,10 +12,7 @@ function matchesActivityFilter(item, filter) {
   if (!filter || filter === 'All') return true;
   const text = [item.title, item.label, item.category, ...(item.categories || []), ...(item.includes || []), ...(item.packageIncludes || []), ...(item.packageOptions || []).flatMap((option) => option.includes || [])].filter(Boolean).join(' ').toLocaleLowerCase();
   if (filter === 'Guided tours') return Boolean((item.packageOptions || []).some((option) => publicStartingPackagePrice(item.id, option) !== null));
-  if (filter === 'Golf carts') return /golf\s*cart/.test(text);
   if (filter === 'Entry tickets') return /ticket|entrance|entry|skip the line/.test(text);
-  if (filter === 'Nightlife') return /nightlife|night life|club|bar|evening/.test(text);
-  if (filter === 'Cooking classes') return /cook|culinary|food|kitchen/.test(text);
   if (filter === 'Outdoor activities') return /nature|beach|island|waterfall|volcano|marine|outdoor|surf|kayak|trek|hiking|open trip/.test(text);
   if (filter === 'Food & drink') return /food|dinner|lunch|breakfast|drink|cooking|culinary|restaurant/.test(text);
   return true;

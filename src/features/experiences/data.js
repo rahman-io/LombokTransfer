@@ -531,7 +531,7 @@ export const experiences = [
   ...sumbawaExperiences,
 ];
 
-export const activityFilters = ['Golf carts', 'Entry tickets', 'Nightlife', 'Cooking classes', 'Guided tours', 'Outdoor activities', 'Food & drink'];
+export const activityFilters = ['All', 'Guided tours', 'Entry tickets', 'Outdoor activities', 'Food & drink'];
 
 export const experienceCategories = [
   { id: 'pantai', name: 'Beach', description: 'Discover beaches and coastlines across the islands', image: beachCatalog[0].image, value: 'Beach', city: 'all' },
