@@ -1,4 +1,4 @@
-import { attractions, destinations, getExperiencesByCity, getExperiencesMatchingQuery, getPopularExperiences } from '../experiences/data.js';
+import { activityFilters, attractions, destinations, getExperiencesByCity, getExperiencesMatchingQuery, getPopularExperiences } from '../experiences/data.js';
 import { mapActivities, mapDestinations } from './map-data.js';
 import { experienceCard } from '../../components/cards.js';
 import { icon } from '../../components/icons.js';
@@ -6,9 +6,20 @@ import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { escapeHtml } from '../../utils/html.js';
 import { state } from '../../app/store.js';
-import { approvedExperienceLabel } from '../guides/repository.js';
+import { publicStartingPackagePrice } from '../guides/repository.js';
 
-const filters = ['Golf carts', 'Entry tickets', 'Nightlife', 'Cooking classes', 'Guided tours'];
+function matchesActivityFilter(item, filter) {
+  if (!filter || filter === 'All') return true;
+  const text = [item.title, item.label, item.category, ...(item.categories || []), ...(item.includes || []), ...(item.packageIncludes || []), ...(item.packageOptions || []).flatMap((option) => option.includes || [])].filter(Boolean).join(' ').toLocaleLowerCase();
+  if (filter === 'Guided tours') return Boolean((item.packageOptions || []).some((option) => publicStartingPackagePrice(item.id, option) !== null));
+  if (filter === 'Golf carts') return /golf\s*cart/.test(text);
+  if (filter === 'Entry tickets') return /ticket|entrance|entry|skip the line/.test(text);
+  if (filter === 'Nightlife') return /nightlife|night life|club|bar|evening/.test(text);
+  if (filter === 'Cooking classes') return /cook|culinary|food|kitchen/.test(text);
+  if (filter === 'Outdoor activities') return /nature|beach|island|waterfall|volcano|marine|outdoor|surf|kayak|trek|hiking|open trip/.test(text);
+  if (filter === 'Food & drink') return /food|dinner|lunch|breakfast|drink|cooking|culinary|restaurant/.test(text);
+  return true;
+}
 export function searchView() {
   return mainLayout(`
     ${header('Search')}
@@ -28,12 +39,13 @@ export function searchView() {
 export function resultsView(city = 'Lombok', category = '', query = '') {
   const searchQuery = query.trim();
   const destinationLabel = city.toLocaleLowerCase() === 'all' ? 'All destinations' : city;
-  const resultItems = searchQuery
+  const baseItems = searchQuery
     ? getExperiencesMatchingQuery(searchQuery).filter((item) => !category || item.category === category || item.categories?.includes(category))
     : getExperiencesByCity(city, category);
+  const resultItems = baseItems.filter((item) => matchesActivityFilter(item, state.filter));
   return mainLayout(`
     <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(searchQuery ? `Search · ${searchQuery}` : category ? `${category} · ${destinationLabel}` : destinationLabel)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
-      <div class="chip-row"><button class="chip round" data-action="filter-sheet">${icon('sliders', 20)}</button>${filters.map((filter) => `<button class="chip ${state.filter === filter ? 'selected' : ''}" data-action="set-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
+      <div class="chip-row"><button class="chip round" data-action="filter-sheet">${icon('sliders', 20)}</button>${activityFilters.map((filter) => `<button class="chip ${state.filter === filter ? 'selected' : ''}" data-action="set-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
     </div>
     <div class="result-count">${resultItems.length} ${resultItems.length === 1 ? 'result' : 'results'} ${icon('info', 16)}</div>
     <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>${searchQuery ? `No results for “${escapeHtml(searchQuery)}”` : `No ${escapeHtml(category || 'activities')} in ${escapeHtml(destinationLabel)} yet`}</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
