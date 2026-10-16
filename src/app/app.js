@@ -5,7 +5,7 @@ import { searchView, resultsView, mapView } from '../features/search/view.js';
 import { createDiscoverMap } from '../features/search/map.js';
 import { wishlistView, favouritesView } from '../features/wishlist/view.js';
 import { profileView, profileSectionView } from '../features/profile/view.js';
-import { inboxView, chatView } from '../features/messaging/view.js';
+import { notificationsView, chatInboxView, chatView } from '../features/messaging/view.js';
 import { loginView } from '../features/authentication/view.js';
 import { continueWithDemoProvider, demoAuthMode, demoSession, loginTraveler, setDemoSessionUser, signOutDemoAccount, registerTraveler } from '../features/authentication/repository.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
@@ -60,7 +60,7 @@ let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
 let discoverMap = null;
 let appProgressTimer = 0;
-const mainNavigationPaths = ['/', '/social', '/bookings', '/profile'];
+const mainNavigationPaths = ['/', '/bookings', '/social', '/chat', '/profile'];
 function startAppProgress() {
   let bar = document.getElementById('app-progress');
   if (!bar) { bar = document.createElement('div'); bar.id = 'app-progress'; bar.className = 'app-progress'; bar.setAttribute('aria-hidden', 'true'); document.body.append(bar); }
@@ -207,12 +207,13 @@ function currentView() {
   if (path === '/profile') return profileView();
   if (path === '/trip-planner') return tripPlannerView(params.get('city') || '', Number(params.get('days') || 3), params.get('budget') || 'mid');
   if (path.startsWith('/profile/')) return profileSectionView(path.split('/')[2]);
-  if (path === '/inbox') return inboxView();
+  if (path === '/inbox') return notificationsView();
+  if (path === '/chat') return chatInboxView();
   if (path.startsWith('/inbox/chat/')) return chatView(path.split('/')[3]);
   if (path === '/social') return socialFeedView(params.get('feed') === 'following');
   if (path === '/social/explore') return socialExploreView(params.get('topic') || '');
   if (path === '/social/saved') return socialSavedView();
-  if (path === '/social/activity') return inboxView();
+  if (path === '/social/activity') return notificationsView();
   if (path === '/social/create') return socialCreateView(params.get('experience') || '');
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);

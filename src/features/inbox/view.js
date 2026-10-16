@@ -1,1 +1,1 @@
-export { inboxView } from '../messaging/view.js';
+export { inboxView, notificationsView, chatInboxView } from '../messaging/view.js';

@@ -155,28 +155,35 @@ function activityRow(event) {
 function smartRow(notification) {
   return `<a class="inbox-smart" href="${esc(notification.href)}" data-action="inbox-read" data-value="smart:${esc(notification.id)}" data-href="${esc(notification.href.replace(/^#/, ''))}"><span class="inbox-smart-icon">✦</span><span><strong>${esc(notification.title)}</strong><span>${esc(notification.body)}</span></span><small>${esc(notification.timeLabel)}</small></a>`;
 }
-export function inboxView() {
-  const threads = visibleChatThreads();
+export function notificationsView() {
   const updates = demoMessages.filter((message) => state.inboxFilter === 'All' || message.type === state.inboxFilter);
   const activity = socialActivity(activeSocialUser().id);
   const smart = getContextAwareNotifications({ userState: state, posts: visibleSocialPosts(), catalog: experiences });
-  const showMessages = state.inboxFilter === 'All' || state.inboxFilter === 'Messages';
   const showUpdates = state.inboxFilter === 'All' || state.inboxFilter === 'Updates';
   const showActivity = state.inboxFilter === 'All' || state.inboxFilter === 'Activity';
   const showSmart = state.inboxFilter === 'All' || state.inboxFilter === 'Smart';
-  const hasContent = (showMessages && threads.length) || (showUpdates && updates.length) || (showActivity && activity.length) || (showSmart && smart.length);
+  const hasContent = (showUpdates && updates.length) || (showActivity && activity.length) || (showSmart && smart.length);
   return mainLayout(`
-    <div class="page-pad inbox-page"><div class="inbox-top"><button class="icon-button" data-action="back">${icon('arrow')}</button><h1>Inbox</h1><button class="icon-button" data-action="inbox-more">${icon('more')}</button></div>
-      <div class="chip-row">${['All', 'Messages', 'Updates', 'Activity', 'Smart', 'Archive'].map((filter) => `<button class="chip ${state.inboxFilter === filter ? 'selected' : ''}" data-action="inbox-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
-      ${hasContent ? `${showMessages && threads.length ? `<section class="inbox-section"><h2>Messages</h2>${threads.map(chatRow).join('')}</section>` : ''}${showUpdates && updates.length ? `<section class="inbox-section"><h2>Updates</h2>${updates.map(updateRow).join('')}</section>` : ''}${showSmart && smart.length ? `<section class="inbox-section"><h2>Smart for you</h2>${smart.map(smartRow).join('')}</section>` : ''}${showActivity && activity.length ? `<section class="inbox-section"><h2>Vibes activity</h2>${activity.slice(0, 30).map(activityRow).join('')}</section>` : ''}` : `<div class="empty-state"><h2>No ${state.inboxFilter.toLowerCase()} yet</h2><p>Your messages and travel updates will appear here.</p></div>`}
+    <div class="page-pad inbox-page"><div class="inbox-top"><button class="icon-button" data-action="back">${icon('arrow')}</button><h1>Notifications</h1><button class="icon-button" data-action="inbox-more">${icon('more')}</button></div>
+      <div class="chip-row">${['All', 'Updates', 'Activity', 'Smart', 'Archive'].map((filter) => `<button class="chip ${state.inboxFilter === filter ? 'selected' : ''}" data-action="inbox-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
+      ${hasContent ? `${showUpdates && updates.length ? `<section class="inbox-section"><h2>Updates</h2>${updates.map(updateRow).join('')}</section>` : ''}${showSmart && smart.length ? `<section class="inbox-section"><h2>Smart for you</h2>${smart.map(smartRow).join('')}</section>` : ''}${showActivity && activity.length ? `<section class="inbox-section"><h2>Vibes activity</h2>${activity.slice(0, 30).map(activityRow).join('')}</section>` : ''}` : `<div class="empty-state"><h2>No ${state.inboxFilter.toLowerCase()} yet</h2><p>Your booking updates, safety alerts, and Vibes activity will appear here.</p></div>`}
     </div>
-  `, 'Discover', { className: 'inbox-shell' });
+  `, '', { className: 'inbox-shell' });
+}
+export function inboxView() { return notificationsView(); }
+export function chatInboxView() {
+  const threads = visibleChatThreads();
+  return mainLayout(`
+    <div class="page-pad inbox-page"><div class="inbox-top"><button class="icon-button" data-action="back">${icon('arrow')}</button><h1>Chat</h1><a class="icon-button" href="#/inbox" aria-label="Notifications">${icon('bell')}</a></div>
+      ${threads.length ? `<section class="inbox-section"><h2>Your conversations</h2>${threads.map(chatRow).join('')}</section>` : '<div class="empty-state"><h2>No conversations yet</h2><p>Your private and public travel chats will appear here.</p><a class="primary-button" href="#/">Discover experiences</a></div>'}
+    </div>
+  `, 'Chat', { className: 'inbox-shell' });
 }
 export function chatView(threadId) {
   const thread = chatThread(threadId);
   const person = chatParticipant(threadId);
   const participants = chatParticipants(threadId);
-  if (!thread || (!thread.group && !person) || !thread.participantIds.includes(activeSocialUser().id)) return inboxView();
+  if (!thread || (!thread.group && !person) || !thread.participantIds.includes(activeSocialUser().id)) return chatInboxView();
   markChatThreadRead(threadId);
   const selfId = activeSocialUser().id;
   const messages = chatMessages(threadId);
