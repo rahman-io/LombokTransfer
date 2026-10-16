@@ -1151,7 +1151,7 @@ export function startApp() {
     if (event.target.id === 'social-experience-select') socialDraft.experienceId = event.target.value || null;
     if (event.target.id === 'guide-account-select' && switchGuide(event.target.value)) { const guideUser = socialState().users.find((user) => user.guideId === event.target.value || user.id === event.target.value); if (guideUser) switchSocialUser(guideUser.id); render(); }
     if (event.target.name === 'payment') { update({ paymentMethod: event.target.value }); render(); }
-    if (event.target.dataset.filter) { state.filter = event.target.checked ? event.target.dataset.filter : 'All'; }
+    if (event.target.dataset.filter) { state.filter = event.target.dataset.filter; render(); }
   });
   root.addEventListener('submit', (event) => {
     if (event.submitter?.matches('button.primary-button,button.outline-button')) setButtonLoading(event.submitter);

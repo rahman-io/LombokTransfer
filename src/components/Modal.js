@@ -49,7 +49,7 @@ export function modalView() {
     body = `<div class="participant-row"><span><strong>Adults</strong><small>Age 18+</small></span><div><button data-action="count" data-value="adults:-1">−</button><b>${state.adults}</b><button data-action="count" data-value="adults:1">+</button></div></div><div class="participant-row"><span><strong>Children</strong><small>Age 0–17</small></span><div><button data-action="count" data-value="children:-1">−</button><b>${state.children}</b><button data-action="count" data-value="children:1">+</button></div></div><button class="primary-button full" data-action="close-modal">Done</button>`;
   } else if (state.modal === 'filters') {
     title = 'Filters';
-    body = `<h3>Activity types</h3>${activityFilters.map((value) => `<label class="filter-choice"><input type="checkbox" ${state.filter === value ? 'checked' : ''} data-filter="${value}" /> ${value}</label>`).join('')}<button class="primary-button full" data-action="close-modal">Show results</button>`;
+    body = `<h3>Activity types</h3>${activityFilters.map((value) => `<label class="filter-choice"><input type="radio" name="activity-filter" value="${value}" ${state.filter === value ? 'checked' : ''} data-filter="${value}" aria-label="${value}" /> <span>${value}</span></label>`).join('')}<button class="primary-button full" data-action="close-modal">Show results</button>`;
   } else if (state.modal === 'save') {
     title = 'Select a list';
     body = `<button class="select-list" data-action="save-to-list">${icon('image')}<span><strong>${escapeHtml(state.listName)}</strong><small>${state.wishlist.length} activities</small></span></button><button class="primary-button" data-action="new-list">Create a new list</button>`;
