@@ -358,11 +358,13 @@ const sumbawaExperiences = [
   {
     id: 'sumbawa-open-trip-3d2n', title: 'Sumbawa Open Trip: Kenawa, Moyo & Whale Sharks', city: 'Sumbawa', duration: '3 days · 2 nights', image: sumbawaImages.whaleShark,
     gallery: [sumbawaImages.whaleShark, sumbawaImages.kenawa, sumbawaImages.moyo, sumbawaImages.mataJitu],
-    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: true, featured: true,
+    rating: null, reviews: 0, price: null, pricePending: true, isInquiryOnly: false, featured: true,
     imageCredits: [sumbawaPhotoCredits.kenawa, sumbawaPhotoCredits.moyo, sumbawaPhotoCredits.mataJitu],
-    badge: 'Open trip preview', label: 'Multi-day open trip', category: 'Open trip', categories: ['Open trip', 'Island', 'Waterfall', 'Marine wildlife', 'Nature'],
+    badge: 'Demo open trip', label: 'Multi-day open trip', category: 'Open trip', categories: ['Open trip', 'Island', 'Waterfall', 'Marine wildlife', 'Nature'],
     packageType: '3 days · 2 nights · open trip',
-    description: 'A three-day Sumbawa open-trip preview based on the supplied Instagram itinerary: travel from Lombok to Pulau Kenawa, explore Pulau Moyo and Mata Jitu Waterfall, and include the listed whale shark boat activity. Price, departure dates, seat capacity, and final-day logistics still need operator confirmation.',
+    packageOptions: [{ id: 'sumbawa-open-trip-3d2n', name: 'Sumbawa Open Trip · Shared', duration: '3 days · 2 nights', days: 3, nights: 2, price: 3500000, currency: 'IDR', pricingUnit: 'per person', demoOnly: true, includes: ['Shared open-trip departure', 'Package inclusions listed below; exact final-day logistics to be confirmed'] }],
+    demoBookingNotice: 'A shared departure is available for testing with the Sumbawa Demo Guide. The date, Rp3,500,000 per-person price, and seat count are demo values approved in this prototype—not a live operator offer. Day 3 timing and return logistics remain unconfirmed.',
+    description: 'A three-day Sumbawa open trip based on the supplied Instagram itinerary: travel from Lombok to Pulau Kenawa, explore Pulau Moyo and Mata Jitu Waterfall, and include the listed whale shark boat activity. A clearly labeled demo departure is available to test the app’s booking flow; the source post does not provide its price, confirmed dates, capacity, or complete final-day logistics.',
     location: 'Lombok Airport area · Kayangan · Poto Tano · Sumbawa',
     highlights: ['Pulau Kenawa and Pulau Pasir Bintang (tide-dependent alternative)', 'Pulau Moyo, Takad Sagele, and Mata Jitu Waterfall', 'Whale shark boat activity listed; schedule and sighting conditions to be confirmed'],
     packageIncludes: [
@@ -425,7 +427,7 @@ const sumbawaExperiences = [
       },
     ],
     itineraryNote: 'Day 3 timing and return logistics are not visible in the supplied source. The third-night Lombok hotel and airport transfer are explicitly excluded; confirm how and when the trip returns to Lombok before booking.',
-    availabilityNote: 'Preview only — no operator has confirmed the price, departure dates, seat capacity, Day 3 schedule, or return logistics. Booking is not open yet.',
+    availabilityNote: 'The displayed departure and Rp3,500,000 per-person price are demo data for testing, not a live operator offer. Day 3 schedule and return logistics still require confirmation.',
     sourceNote: 'Itinerary and package contents are transcribed from the user-provided Instagram screenshots. Confirm all details with the operator before selling or booking.',
   },
 ];

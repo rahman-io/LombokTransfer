@@ -80,6 +80,12 @@ export function travelerBookingsView() {
 
 export function guideDashboardView() {
   const guide = activeGuide(); const data = guideDemoData();
+  if (guide.demoAccount) {
+    const requests = data.requests.filter((request) => request.guideId === guide.id);
+    const pending = requests.filter((request) => request.status === 'pending');
+    const accepted = requests.filter((request) => request.status === 'accepted');
+    return mainLayout(`${header('Guide workspace')}<div class="page-pad guide-dashboard"><div class="guide-hero"><div><small>GUIDE DEMO</small><h1>Hello, ${esc(guide.name.split(' ')[0])}</h1><p>${esc(guide.area)} · ${esc(guide.languages)}</p><span class="guide-status guide-status-verified">Demo account · simulated approval</span></div><span class="guide-avatar guide-avatar-large">${esc(guide.initials)}</span></div><p class="guide-caption">This seeded guide, the shared departure, its date, Rp3,500,000 per-person price, and 14-seat capacity are demo data—not a real operator or live trip.</p><div class="guide-metrics"><div><strong>${pending.length}</strong><small>New requests</small></div><div><strong>${accepted.length}</strong><small>Accepted bookings</small></div><div><strong>${money(requests.filter((request) => request.paymentStatus === 'paid').reduce((sum, request) => sum + Number(request.finance?.guideShare || 0), 0))}</strong><small>Demo guide share paid</small></div></div><div class="guide-section-heading"><h2>Booking requests</h2><a href="#/guide/packages">Package details</a></div>${requests.length ? requests.map((request) => guideRequestCard(request, true)).join('') : '<div class="guide-empty">No Sumbawa requests yet. Switch to a traveler account and book the Sumbawa open trip to see the request here.</div>'}<div class="guide-dashboard-links"><a href="#/experience/sumbawa-open-trip-3d2n">View the Sumbawa open trip →</a><a href="#/guide/packages">Packages & pricing →</a><a href="#/profile">Traveler profile →</a></div></div>`, 'Profile', { hideNavigation: true, className: 'guide-shell' });
+  }
   const requests = data.requests.filter((request) => request.guideId === guide.id);
   const completed = requests.filter((request) => request.status === 'completed');
   const pending = requests.filter((request) => request.status === 'pending');
