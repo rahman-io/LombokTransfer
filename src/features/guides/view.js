@@ -76,7 +76,7 @@ export function travelerBookingDetailView(id) {
 
 export function travelerBookingsView() {
   const requests = guideDemoData().requests.filter((request) => request.travelerEmail === state.email.toLowerCase());
-  return mainLayout(`<div class="page-pad guide-bookings"><h1>Bookings</h1><p class="guide-caption">Payment records are stored only on this device. No real card is charged.</p>${requests.length ? requests.map((request) => guideRequestCard(request)).join('') : `<div class="guide-empty"><h2>No booking requests yet</h2><p>Choose a package and approved departure to send your first request.</p><a class="primary-button" href="#/">Explore experiences</a></div>`}</div>`, 'Bookings');
+  return mainLayout(`${header('Bookings', '', 'traveler-bookings-header')}<div class="page-pad guide-bookings"><p class="guide-caption">Payment records are stored only on this device. No real card is charged.</p>${requests.length ? requests.map((request) => guideRequestCard(request)).join('') : `<div class="guide-empty"><h2>No booking requests yet</h2><p>Choose a package and approved departure to send your first request.</p><a class="primary-button" href="#/">Explore experiences</a></div>`}</div>`, 'Bookings');
 }
 
 export function guideDashboardView() {
