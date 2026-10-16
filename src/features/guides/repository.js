@@ -221,6 +221,10 @@ export function switchGuide(id) {
 }
 export function packagePrice(guide, option) { const amount = guide?.priceAgreements?.[option?.id]?.approvedAmount; return Number.isInteger(amount) && amount >= 1000 ? amount : null; }
 export function publicPackagePrice(experienceId, option) { const prices = availableGuides(experienceId, option.id).map((guide) => packagePrice(guide, option)); return prices.length ? Math.min(...prices) : null; }
+export function publicStartingPackagePrice(experienceId, option) {
+  const offerPrices = publicTripOfferings(experienceId, option.id, '', 1).filter((offer) => offer.priceUnit === 'person').map((offer) => Number(offer.price)).filter((amount) => Number.isFinite(amount));
+  return offerPrices.length ? Math.min(...offerPrices) : publicPackagePrice(experienceId, option);
+}
 export function approvedPackageLabel(experienceId, option) { const amount = publicPackagePrice(experienceId, option); return amount === null ? 'Awaiting guide approval' : `Rp${amount.toLocaleString('id-ID')}`; }
 export function approvedExperienceLabel(item) { const prices = (item.packageOptions || []).map((option) => publicPackagePrice(item.id, option)).filter((amount) => amount !== null); return prices.length ? `Rp${Math.min(...prices).toLocaleString('id-ID')}` : 'Awaiting guide approval'; }
 export function packageStartTimes(experience, option) { return experience?.id === 'arena' || option?.id === 'pergasingan-sunrise' ? ['5:00 AM', '6:00 AM'] : ['8:00 AM', '9:00 AM']; }
