@@ -1,8 +1,59 @@
 // Plain, serializable demo documents. Local asset URLs are preview-only and are never stored as Storage paths.
 export const DATA_SCHEMA_VERSION = 1;
 
+const meetingPointPresets = {
+  'beach-3257784': { name: 'Tanjung Aan Beach main entrance', address: 'Tanjung Aan Beach, Kuta, Central Lombok', latitude: -8.8954, longitude: 116.3823 },
+  'beach-6894350': { name: 'Selong Belanak Beach public entrance', address: 'Selong Belanak Beach, West Lombok', latitude: -8.8673, longitude: 116.1589 },
+  'beach-3268159': { name: 'Senggigi Beach public access', address: 'Senggigi Beach, West Lombok', latitude: -8.4886, longitude: 116.0424 },
+  'beach-3801497': { name: 'Mawun Beach main entrance', address: 'Mawun Beach, Central Lombok', latitude: -8.9107, longitude: 116.2248 },
+  'beach-4010189': { name: 'Pink Beach public entrance', address: 'Pink Beach, Sekaroh, East Lombok', latitude: -8.8866, longitude: 116.5338 },
+  'beach-5113207': { name: 'Gili Meno harbour arrival point', address: 'Gili Meno, North Lombok', latitude: -8.3507, longitude: 116.0554 },
+  'waterfall-1723009': { name: 'Sendang Gile visitor entrance', address: 'Senaru, North Lombok', latitude: -8.3024, longitude: 116.4013 },
+  'waterfall-2314079': { name: 'Benang Stokel visitor entrance', address: 'Aik Berik, Central Lombok', latitude: -8.5473, longitude: 116.3382 },
+  'waterfall-3228954': { name: 'Tetebatu village meeting area', address: 'Tetebatu, East Lombok', latitude: -8.5287, longitude: 116.4302 },
+  'waterfall-12199913': { name: 'Mangku Sakti public entrance', address: 'Sajang, East Lombok', latitude: -8.3358, longitude: 116.5267 },
+  'volcano-386938': { name: 'Rinjani National Park Sembalun gate', address: 'Sembalun Lawang, East Lombok', latitude: -8.3045, longitude: 116.5338 },
+  'volcano-27997429': { name: 'Senaru Trek Centre', address: 'Senaru, North Lombok', latitude: -8.3011, longitude: 116.4028 },
+  'bukit-selong': { name: 'Bukit Selong public entrance', address: 'Sembalun Lawang, East Lombok', latitude: -8.3702, longitude: 116.5287 },
+  'desa-sade': { name: 'Sade Traditional Village entrance', address: 'Rembitan, Central Lombok', latitude: -8.8331, longitude: 116.2935 },
+  'desa-sembalun-lawang': { name: 'Sembalun Lawang village meeting area', address: 'Sembalun Lawang, East Lombok', latitude: -8.3695, longitude: 116.5301 },
+  'desa-sesaot': { name: 'Sesaot Tourism Village entrance', address: 'Sesaot, West Lombok', latitude: -8.5757, longitude: 116.1882 },
+  'desa-bonjeruk': { name: 'Bonjeruk Tourism Village entrance', address: 'Bonjeruk, Central Lombok', latitude: -8.6754, longitude: 116.2481 },
+  'pulau-kenawa': { name: 'Poto Tano Harbour public meeting area', address: 'Poto Tano, West Sumbawa', latitude: -8.4941, longitude: 117.4343 },
+  'pulau-moyo': { name: 'Labuan Aji harbour arrival point', address: 'Labuan Aji, Pulau Moyo, Sumbawa', latitude: -8.2187, longitude: 117.5946 },
+  'mata-jitu-waterfall': { name: 'Labuan Aji village meeting area', address: 'Labuan Aji, Pulau Moyo, Sumbawa', latitude: -8.2187, longitude: 117.5946 },
+  'sumbawa-whale-shark': { name: 'Public harbour meeting area', address: 'Sumbawa, West Nusa Tenggara', latitude: -8.4939, longitude: 117.4301 },
+  'sumbawa-open-trip-3d2n': { name: 'Lombok International Airport arrivals', address: 'Lombok International Airport, Central Lombok', latitude: -8.7573, longitude: 116.2761 },
+};
+
+function createMapLinks(point) {
+  const delta = 0.006;
+  const bbox = [point.longitude - delta, point.latitude - delta, point.longitude + delta, point.latitude + delta].map((value) => value.toFixed(6)).join('%2C');
+  return {
+    embedUrl: `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${point.latitude}%2C${point.longitude}`,
+    mapUrl: `https://www.openstreetmap.org/?mlat=${point.latitude}&mlon=${point.longitude}#map=16/${point.latitude}/${point.longitude}`,
+  };
+}
+
+function suggestedMeetingPoint(item) {
+  const title = String(item.title || '').toLowerCase();
+  const preset = meetingPointPresets[item.id]
+    || (title.includes('tanjung aan') ? meetingPointPresets['beach-3257784'] : null)
+    || (title.includes('selong belanak') ? meetingPointPresets['beach-6894350'] : null)
+    || (title.includes('senggigi') ? meetingPointPresets['beach-3268159'] : null)
+    || (title.includes('mawun') ? meetingPointPresets['beach-3801497'] : null)
+    || (title.includes('pink beach') ? meetingPointPresets['beach-4010189'] : null)
+    || (title.includes('gili meno') ? meetingPointPresets['beach-5113207'] : null)
+    || (item.category === 'Waterfall' ? meetingPointPresets['waterfall-1723009'] : null)
+    || (item.category === 'Volcano' ? meetingPointPresets['volcano-386938'] : null)
+    || (item.category === 'Culture' ? meetingPointPresets['desa-sade'] : null)
+    || meetingPointPresets['desa-sesaot'];
+  return { ...preset, ...createMapLinks(preset) };
+}
+
 export function toExperienceDocument(item, booking, organizationId = 'demo-operator') {
   const gallery = item.gallery?.length ? item.gallery : [item.image];
+  const suggestedPoint = suggestedMeetingPoint(item);
   return {
     id: item.id,
     schemaVersion: DATA_SCHEMA_VERSION,
@@ -23,7 +74,7 @@ export function toExperienceDocument(item, booking, organizationId = 'demo-opera
       knowBeforeYouGo: item.sourceNote || 'Please check the activity details and arrival instructions before your visit.',
     },
     cancellation: item.pricePending ? null : item.cancellation || { title: 'Free cancellation', text: 'Cancel up to 24 hours in advance for a full refund' },
-    meetingPoint: { description: item.pricePending ? item.availabilityNote || 'Exact meeting and transfer arrangements are pending operator confirmation.' : 'The guide sets the official public meeting point after booking. You can request a different suitable point in chat, but the guide must approve it before it changes.', latitude: null, longitude: null },
+    meetingPoint: { ...suggestedPoint, status: 'suggested_public_area', description: item.pricePending ? item.availabilityNote || 'A public meeting area is shown for planning; exact arrangements require operator confirmation.' : 'A suggested public meeting area is shown near the destination for planning. The guide confirms the official meeting point after booking, and you can request a suitable change in chat.' },
     pricing: item.pricePending ? {
       currency: item.listedPriceCurrency || 'IDR',
       adultBaseCents: null,
