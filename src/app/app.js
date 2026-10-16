@@ -157,7 +157,7 @@ function currentView() {
   if (path === '/login') return loginView();
   if (path === '/' || path === '') return homeView();
   if (path === '/search') return searchView();
-  if (path === '/results') { trackSearch(params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok', params.get('category') || ''); }
+  if (path === '/results') { const query = params.get('q') || ''; trackSearch(query || params.get('city') || 'Lombok'); return resultsView(params.get('city') || 'Lombok', params.get('category') || '', query); }
   if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
@@ -1032,7 +1032,7 @@ export function startApp() {
     document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = !item.textContent.toLowerCase().includes(state.search.toLowerCase()); });
   });
   root.addEventListener('keydown', (event) => {
-    if (event.target.id === 'place-search' && event.key === 'Enter') navigate('/results?city=' + encodeURIComponent(event.target.value.trim() || 'Lombok'));
+    if (event.target.id === 'place-search' && event.key === 'Enter') { const query = event.target.value.trim(); navigate(query ? '/results?q=' + encodeURIComponent(query) : '/results?city=Lombok'); }
     if (event.key === 'Escape' && state.modal) closeModal();
     if (event.target.matches('[data-gallery-track]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
       event.preventDefault();

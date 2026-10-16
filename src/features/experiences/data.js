@@ -305,7 +305,7 @@ export const experiences = [
   {
     id: 'arena', title: 'Lombok: Mount Rinjani National Park & Sembalun Tour',
     city: 'Lombok', duration: '2.5 - 3 hours', image: images.arena, rating: '4.5', reviews: '29,044',
-    price: 44, oldPrice: 87, listedPrice: 1691750, listedPriceCurrency: 'IDR', priceNote: 'Sembalun and Sindang Gile full-day tour starting price', badge: 'Certified', label: 'Skip the line',
+    price: 44, oldPrice: 87, listedPrice: 1691750, listedPriceCurrency: 'IDR', priceNote: 'Sembalun and Sindang Gile full-day tour starting price', badge: 'Certified', label: 'Skip the line', category: 'Volcano',
     packageType: 'Multi-day trek', packageOptions: [
       { id: 'rinjani-2d1n', name: 'Mount Rinjani 2D/1N hiking package', days: 2, nights: 1, duration: '2 days · 1 night', price: 2531969, currency: 'IDR', pricingUnit: 'per person', includes: ['Local trekking guide', 'Trekking route support', 'Booking confirmation'] },
       { id: 'rinjani-3d2n', name: 'Rinjani summit, lake & hot springs', days: 3, nights: 2, duration: '3 days · 2 nights', price: 4518806, currency: 'IDR', pricingUnit: 'per person', includes: ['Local trekking guide', 'Camping and route support', 'Booking confirmation'] },
@@ -395,7 +395,7 @@ export const experiences = [
 export const experienceCategories = [
   { id: 'pantai', name: 'Beach', description: 'Discover Lombok beaches and coastlines', image: beachCatalog[0].image, count: beachExperiences.length, value: 'Beach' },
   { id: 'air-terjun', name: 'Waterfall', description: 'Explore hidden waterfalls', image: waterfallCatalog[0].image, count: waterfallExperiences.length, value: 'Waterfall' },
-  { id: 'gunung-berapi', name: 'Volcano', description: 'Enjoy Rinjani’s volcanic landscapes', image: volcanoCatalog[0].image, count: volcanoExperiences.length, value: 'Volcano' },
+  { id: 'gunung-berapi', name: 'Volcano', description: 'Enjoy Rinjani’s volcanic landscapes', image: volcanoCatalog[0].image, count: experiences.filter((item) => item.category === 'Volcano' || item.categories?.includes('Volcano')).length, value: 'Volcano' },
   { id: 'alam', name: 'Nature', description: 'Find viewpoints, forests, and natural escapes', image: articleExperiences.find((item) => item.category === 'Nature').image, count: experiences.filter((item) => item.category === 'Nature' || item.categories?.includes('Nature')).length, value: 'Nature' },
   { id: 'budaya', name: 'Culture', description: 'Meet Lombok communities and traditions', image: experiences.find((item) => item.category === 'Culture').image, count: experiences.filter((item) => item.category === 'Culture' || item.categories?.includes('Culture')).length, value: 'Culture' },
 ];
@@ -406,6 +406,20 @@ export const getPackageOption = (item, optionId = '') => item?.packageOptions?.f
 export const getFeaturedExperiences = () => experiences.filter((item) => item.featured);
 export const getPopularExperiences = () => experiences.filter((item) => item.popularSearch);
 export const getExperiencesByCity = (city, category = '') => experiences.filter((item) => item.city.toLocaleLowerCase() === city.toLocaleLowerCase() && (!category || item.category === category || item.categories?.includes(category)));
+export const getExperiencesMatchingQuery = (query = '') => {
+  const normalizedQuery = String(query).trim().toLocaleLowerCase();
+  if (!normalizedQuery) return [];
+  return experiences.filter((item) => [
+    item.title,
+    item.city,
+    item.location,
+    item.category,
+    ...(item.categories || []),
+    item.description,
+    ...(item.highlights || []),
+    ...(item.packageOptions || []).map((option) => option.name),
+  ].filter(Boolean).join(' ').toLocaleLowerCase().includes(normalizedQuery));
+};
 export const demoFirebaseDocuments = {
   organizations: [{ id: 'demo-operator', schemaVersion: 1, name: 'Demo operator', status: 'draft' }],
   experiences: experiences.map((item) => toExperienceDocument(item, demoBookingData[item.id])),

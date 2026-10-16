@@ -1,4 +1,4 @@
-import { destinations, getExperiencesByCity, getPopularExperiences } from '../experiences/data.js';
+import { attractions, destinations, getExperiencesByCity, getExperiencesMatchingQuery, getPopularExperiences } from '../experiences/data.js';
 import { mapActivities, mapDestinations } from './map-data.js';
 import { experienceCard } from '../../components/cards.js';
 import { icon } from '../../components/icons.js';
@@ -17,20 +17,25 @@ export function searchView() {
       <div id="search-suggestions">
         <h2>Top destinations</h2>
         ${destinations.map((item) => `<a class="suggestion" href="#/results?city=${encodeURIComponent(item.name)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.count)}</small></span>${icon('chevron', 20)}</a>`).join('')}
+        <h2>Attractions</h2>
+        ${attractions.map((item) => `<a class="suggestion" href="${item.name === 'Mount Rinjani' ? '#/experience/arena' : `#/results?city=${encodeURIComponent(item.city)}`}" data-search-text="${escapeHtml(`${item.name} ${item.city}`)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.city)}</small></span>${icon('chevron', 20)}</a>`).join('')}
         <h2>Popular experiences</h2>
         ${getPopularExperiences().map((item) => `<a class="suggestion" href="#/experience/${encodeURIComponent(item.id)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.city)}</small></span>${icon('chevron', 20)}</a>`).join('')}
       </div>
     </div>
   `, 'Discover');
 }
-export function resultsView(city = 'Lombok', category = '') {
-  const resultItems = getExperiencesByCity(city, category);
+export function resultsView(city = 'Lombok', category = '', query = '') {
+  const searchQuery = query.trim();
+  const resultItems = searchQuery
+    ? getExperiencesMatchingQuery(searchQuery).filter((item) => !category || item.category === category || item.categories?.includes(category))
+    : getExperiencesByCity(city, category);
   return mainLayout(`
-    <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(category ? `${category} · ${city}` : city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
+    <div class="results-top"><div class="results-search"><a href="#/search" aria-label="Change search">${icon('arrow', 22)} <span>${escapeHtml(searchQuery ? `Search · ${searchQuery}` : category ? `${category} · ${city}` : city)}</span></a><button data-action="open-dates" class="text-button">${icon('calendar', 20)} Add dates</button></div>
       <div class="chip-row"><button class="chip round" data-action="filter-sheet">${icon('sliders', 20)}</button>${filters.map((filter) => `<button class="chip ${state.filter === filter ? 'selected' : ''}" data-action="set-filter" data-value="${filter}">${filter}</button>`).join('')}</div>
     </div>
     <div class="result-count">${resultItems.length} ${resultItems.length === 1 ? 'result' : 'results'} ${icon('info', 16)}</div>
-    <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>No ${escapeHtml(category || 'activities')} in ${escapeHtml(city)} yet</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
+    <div class="result-list">${resultItems.length ? resultItems.map((item) => experienceCard(item)).join('') : `<div class="empty-state"><h2>${searchQuery ? `No results for “${escapeHtml(searchQuery)}”` : `No ${escapeHtml(category || 'activities')} in ${escapeHtml(city)} yet`}</h2><p>Try another destination while we add more experiences.</p><a class="outline-button" href="#/search">Explore destinations</a></div>`}</div>
     ${Object.keys(mapDestinations).some((name) => name.toLocaleLowerCase() === city.toLocaleLowerCase()) && resultItems.length ? `<button class="floating-map" data-action="show-map">${icon('map', 21)} Open map</button>` : ''}
   `, 'Discover', { className: 'results-page' });
 }
