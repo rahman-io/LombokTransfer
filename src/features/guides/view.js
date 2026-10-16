@@ -3,7 +3,7 @@ import { header } from '../../components/Header.js';
 import { escapeHtml } from '../../utils/html.js';
 import { experiences, getExperience } from '../experiences/data.js';
 import { state } from '../../app/store.js';
-import { activeGuide, availableGuides, bookingQrPayload, financeBreakdown, financeConfig, financeSummary, guideById, guideDemoData, packagePrice, priceSplit, requestDateRange } from './repository.js';
+import { activeGuide, bookingQrPayload, financeBreakdown, financeConfig, financeSummary, guideById, guideDemoData, packagePrice, priceSplit, publicTripOfferings, requestDateRange, sharedTripReady, tripModeLabel, tripOfferingAvailability, tripOfferingQuote } from './repository.js';
 
 const esc = escapeHtml;
 const money = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
@@ -12,16 +12,17 @@ const verificationCodeDisplay = (code) => `<span class="booking-code-display" ar
 const packageCatalog = experiences.filter((item) => item.packageOptions?.length);
 const guidePackages = (guide) => packageCatalog.filter((item) => guide.experienceIds.includes(item.id)).flatMap((item) => item.packageOptions.map((option) => ({ item, option })));
 
-export function guidePicker(experience, option, date, travelers, selectedId) {
+export function tripOfferingPicker(experience, option, date, travelers, selectedId) {
   if (!option) return '';
-  const guides = availableGuides(experience.id, option.id, date, travelers);
-  return `<section class="guide-picker" id="guide-picker"><div class="guide-section-heading"><div><small>LOCAL GUIDE</small><h2>Choose your guide</h2></div><a href="#/guide">Guide dashboard</a></div><p>${date ? `Available for ${esc(date)} · ${travelers} traveler${travelers === 1 ? '' : 's'}` : 'Choose a date below to confirm availability.'}</p>${guides.length ? `<div class="guide-pick-list">${guides.map((guide) => { const price = packagePrice(guide, option); const reviews = guideDemoData().requests.filter((request) => request.guideId === guide.id && request.review); return `<button type="button" class="guide-pick ${selectedId === guide.id ? 'selected' : ''}" data-action="select-guide" data-id="${esc(guide.id)}" aria-pressed="${selectedId === guide.id}"><span class="guide-avatar">${esc(guide.initials)}</span><span class="guide-pick-copy"><strong>${esc(guide.name)}</strong><small>Demo-approved guide & price · ${esc(guide.languages)}</small><small>${esc(guide.area)} · ${reviews.length} review${reviews.length === 1 ? '' : 's'}</small></span><span class="guide-pick-price">${money(price)}<small>per person</small></span></button>`; }).join('')}</div>` : '<div class="guide-empty">No guide with an approved price is available for this date and group size. Try another date or guide.</div>'}</section>`;
+  const matchingDate = publicTripOfferings(experience.id, option.id, date, travelers);
+  const offers = matchingDate.length ? matchingDate : publicTripOfferings(experience.id, option.id, '', travelers);
+  return `<section class="guide-picker" id="guide-picker"><div class="guide-section-heading"><div><small>GUIDED DEPARTURES</small><h2>Choose your trip style</h2></div></div><p>${date && !matchingDate.length ? `No departure on ${esc(prettyDate(date))}; these upcoming dates fit your party.` : date ? `Available on ${esc(prettyDate(date))} for ${travelers} traveler${travelers === 1 ? '' : 's'}.` : 'Select a departure below or choose another date.'} Your assigned guide is introduced after booking confirmation.</p>${offers.length ? `<div class="guide-pick-list">${offers.map((offer) => { const availability = tripOfferingAvailability(offer.id); const quote = tripOfferingQuote(offer, travelers); return `<button type="button" class="guide-pick trip-offer-pick ${selectedId === offer.id ? 'selected' : ''}" data-action="select-trip-offer" data-id="${esc(offer.id)}" aria-pressed="${selectedId === offer.id}"><span class="guide-pick-copy"><strong>${esc(tripModeLabel(offer.mode))}</strong><small>${esc(prettyDate(offer.date))} · ${esc(offer.time)} · ${esc(option.duration)}</small><small>${offer.mode === 'shared' ? `${availability.seatsLeft} seats left · Minimum ${offer.minGuests} travelers to depart` : `${offer.minGuests}–${offer.maxGuests} travelers · Your party only`}</small></span><span class="guide-pick-price">${money(quote)}<small>${offer.priceUnit === 'group' ? 'per group' : `${money(offer.price)} per person`}</small></span></button>`; }).join('')}</div>` : '<div class="guide-empty">No approved departure fits this party size yet. Choose another package or ask for a new date.</div>'}</section>`;
 }
 
 function baseGuideRequestCard(request, guideMode = false) {
   const item = getExperience(request.experienceId);
   const option = item?.packageOptions?.find((entry) => entry.id === request.packageId);
-  const guide = guideById(request.guideId);
+  const guide = guideMode || request.paymentStatus === 'paid' ? guideById(request.guideId) : null;
   const finance = request.finance || financeBreakdown(request.travelerTotal);
   const dateRange = requestDateRange(request);
   const dateLabel = dateRange.days > 1 ? `${prettyDate(dateRange.start)} – ${prettyDate(dateRange.end)}` : prettyDate(dateRange.start);
@@ -30,7 +31,7 @@ function baseGuideRequestCard(request, guideMode = false) {
   const travelerLabel = `${adults} adult${adults === 1 ? '' : 's'}${children ? ` · ${children} child${children === 1 ? '' : 'ren'}` : ''}`;
   const paymentLabel = String(request.paymentStatus || 'unpaid').replace('_', ' ');
   const payoutLabel = String(request.payoutStatus || 'not due').replace('_', ' ');
-  const paymentAction = !guideMode && request.status === 'accepted' && request.paymentStatus === 'unpaid' ? `<div class="guide-card-actions"><button data-action="pay-guide-request" data-id="${esc(request.id)}">Pay now (demo)</button></div>` : '';
+  const paymentAction = !guideMode && request.status === 'accepted' && request.paymentStatus === 'unpaid' ? `<div class="guide-card-actions"><button data-action="pay-guide-request" data-id="${esc(request.id)}" ${sharedTripReady(request) ? '' : 'disabled'}>${sharedTripReady(request) ? 'Pay now (demo)' : 'Waiting for shared trip minimum'}</button></div>` : '';
   const bookingAction = !guideMode && request.paymentStatus === 'paid' ? `<div class="guide-card-actions"><a class="primary-button" href="#/bookings/${esc(request.id)}">Open booking workspace</a></div>` : '';
   const displayStatus = request.paymentStatus === 'paid' && request.status === 'accepted' ? 'confirmed' : request.status;
   const paymentHint = request.paymentStatus === 'refunded' ? 'Payment refunded after the request was declined.' : request.paymentStatus === 'paid' ? `Booking confirmed · payout ${payoutLabel}` : request.status === 'accepted' ? 'Payment is due before the tour starts.' : 'Payment is requested after the guide accepts.';
@@ -39,9 +40,9 @@ function baseGuideRequestCard(request, guideMode = false) {
 }
 
 function guideRequestCard(request, guideMode = false) {
-  const card = baseGuideRequestCard(request, guideMode).replace(/<button data-action="guide-request-complete"[^>]*>Mark tour completed<\/button>/, '');
+  const card = baseGuideRequestCard(request, guideMode).replace(/<button data-action="guide-request-complete"[^>]*>Mark tour completed<\/button>/, '').replace('</h3><p>', `</h3><p>${esc(tripModeLabel(request.tripMode))} · `);
   if (!['paid', 'refunded'].includes(request.paymentStatus)) return card;
-  return card.replace(/<\/article>$/, `<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(request.id)}/safety">Open Trip Safety Center</a></article>`);
+  return card.replace(/<\/article>$/, `${request.tripMode === 'shared' && request.paymentStatus === 'paid' ? `<button class="outline-button full guardian-entry" data-action="booking-shared-chat" data-id="${esc(request.id)}">Open shared trip chat</button>` : ''}<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(request.id)}/safety">Open Trip Safety Center</a></article>`);
 }
 
 function baseTravelerBookingDetailView(id) {
@@ -49,7 +50,7 @@ function baseTravelerBookingDetailView(id) {
   if (!request) return travelerBookingsView();
   const item = getExperience(request.experienceId);
   const option = item?.packageOptions?.find((entry) => entry.id === request.packageId);
-  const guide = guideById(request.guideId);
+  const guide = request.paymentStatus === 'paid' ? guideById(request.guideId) : null;
   const finance = request.finance || financeBreakdown(request.travelerTotal);
   const range = requestDateRange(request);
   const dateLabel = range.days > 1 ? `${prettyDate(range.start)} – ${prettyDate(range.end)}` : prettyDate(range.start);
@@ -61,14 +62,15 @@ function baseTravelerBookingDetailView(id) {
 }
 
 export function travelerBookingDetailView(id) {
-  const page = baseTravelerBookingDetailView(id);
+  let page = baseTravelerBookingDetailView(id);
   const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase());
+  if (request?.tripMode === 'shared' && request.paymentStatus === 'paid') page = page.replace('<section class="booking-workspace-card"><h2>What happens next?</h2>', `<section class="booking-workspace-card"><h2>Your shared departure</h2><p class="guide-caption">Meet other confirmed travelers and coordinate shared trip details. Your booking and payment remain private.</p><button class="primary-button full" data-action="booking-shared-chat" data-id="${esc(id)}">Open shared trip chat</button></section><section class="booking-workspace-card"><h2>What happens next?</h2>`);
   return ['paid', 'refunded'].includes(request?.paymentStatus) ? page.replace('<section class="booking-workspace-card"><h2>Your trip</h2>', `<a class="outline-button full guardian-entry" href="#/bookings/${encodeURIComponent(id)}/safety">Open Trip Safety Center</a><section class="booking-workspace-card"><h2>Your trip</h2>`) : page;
 }
 
 export function travelerBookingsView() {
   const requests = guideDemoData().requests.filter((request) => request.travelerEmail === state.email.toLowerCase());
-  return mainLayout(`<div class="page-pad guide-bookings"><h1>Bookings</h1><p class="guide-caption">Demo payment records are stored only on this device. No real card is charged.</p>${requests.length ? requests.map((request) => guideRequestCard(request)).join('') : `<div class="guide-empty"><h2>No booking requests yet</h2><p>Choose a package, guide and date to send your first request.</p><a class="primary-button" href="#/">Explore experiences</a></div>`}</div>`, 'Bookings');
+  return mainLayout(`<div class="page-pad guide-bookings"><h1>Bookings</h1><p class="guide-caption">Demo payment records are stored only on this device. No real card is charged.</p>${requests.length ? requests.map((request) => guideRequestCard(request)).join('') : `<div class="guide-empty"><h2>No booking requests yet</h2><p>Choose a package and approved departure to send your first request.</p><a class="primary-button" href="#/">Explore experiences</a></div>`}</div>`, 'Bookings');
 }
 
 export function guideDashboardView() {

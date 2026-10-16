@@ -15,12 +15,13 @@ import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, prepareSocialPhoto, recordSocialShare, reportSocialPost, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
-import { chatMessage, chatMessages, chatThread, editChatMessage, getOrCreateChatThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, sendChatSystemMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction, visibleChatThreads } from '../features/messaging/repository.js';
+import { chatMessage, chatMessages, chatThread, editChatMessage, getOrCreateChatThread, getOrCreateSharedTripThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, sendChatMessage, sendChatSystemMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction, visibleChatThreads } from '../features/messaging/repository.js';
 import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBookingOpen } from '../features/recommendations/repository.js';
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
+import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
-import { activeGuide, advanceBookingTrip, applyAsGuide, availableGuides, createGuideRequest, decideGuidePrice, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, reviewGuideRequest, saveBookingTrustedContact, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
+import { activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
 import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
@@ -163,8 +164,11 @@ function currentView() {
   if (path === '/bookings') return travelerBookingsView();
   if (/^\/bookings\/[^/]+\/safety$/.test(path)) return bookingSafetyView(path.split('/')[2]);
   if (path.startsWith('/bookings/')) return travelerBookingDetailView(path.split('/')[2]);
-  if (path === '/guide') return guideDashboardView();
-  if (path === '/guide/packages') return guidePackagesView();
+  if (path === '/guide') return guideDashboardView().replace('<div class="guide-dashboard-links">', '<div class="guide-dashboard-links"><a href="#/guide/offers">Dated trip offerings →</a><a href="#/guide/assignments">Team assignments →</a>');
+  if (path === '/guide/packages') return guidePackagesView().replace('<a class="guide-admin-link" href="#/admin/prices">', '<a class="guide-admin-link" href="#/guide/offers">Manage dated trip offerings →</a><a class="guide-admin-link" href="#/admin/prices">');
+  if (path === '/guide/offers') return guideOfferingsView().replace('<div class="guide-section-heading"><h2>Your departures</h2>', '<a class="guide-admin-link" href="#/guide/assignments">View team assignments →</a><div class="guide-section-heading"><h2>Your departures</h2>');
+  if (path === '/guide/assignments') return guideTeamAssignmentsView();
+  if (path === '/admin/offers') return tripOfferingApprovalsView();
   if (path === '/admin/prices') return guidePriceApprovalsView();
   if (path === '/admin/finance') return financeDashboardView();
   if (path === '/admin/safety') return bookingSafetyReviewView();
@@ -448,12 +452,12 @@ function clickAction(action, el) {
   switch (action) {
     case 'back': if (path.startsWith('/checkout/') && state.checkoutStep === 2) { state.checkoutStep = 1; render(); } else back(); break;
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
-    case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value }); render(); break;
-    case 'select-guide': update({ selectedGuideExperienceId: route().path.split('/')[2] || state.selectedExperience, selectedGuideId: id }); render(); break;
+    case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value, selectedOfferId: '' }); render(); break;
+    case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); render(); break; }
     case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
     case 'guide-request-accept':
     case 'guide-request-decline': { const status = action === 'guide-request-accept' ? 'accepted' : 'declined'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
-    case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) navigate(`/bookings/${encodeURIComponent(id)}`); else announce('Payment cannot be recorded for this booking'); break;
+    case 'pay-guide-request': if (markGuideRequestPaid(id, state.email)) { const request = guideDemoData().requests.find((entry) => entry.id === id); if (request?.tripMode === 'shared') getOrCreateSharedTripThread(request.offerId); navigate(`/bookings/${encodeURIComponent(id)}`); } else announce('Payment is available after guide acceptance and the shared minimum is met'); break;
     case 'verify-booking': { const code = el.closest('[data-booking-verification]')?.querySelector('[data-booking-code]')?.value || ''; if (activeSocialUser().role === 'guide' && verifyBooking(id, code, activeSocialUser().guideId || activeSocialUser().id)) { announce('Booking verified'); render(); } else announce('Booking code is invalid or payment is not confirmed'); break; }
     case 'booking-change-decision': if (value === 'accept') { state.confirmAction = { type: 'booking-change-decision', id, decision: value, message: 'Accept this change to the agreed trip details?' }; openModal('confirm-action'); } else if (respondBookingChange(id, activeBookingActor(), false)) { bookingChatSystemUpdate(id, 'A proposed trip change was declined.'); announce('Change declined'); } else announce('This change cannot be updated'); break;
     case 'booking-trip-step': if (value === 'check_in') performBookingTripStep(id, value); else { state.confirmAction = { type: 'booking-trip-step', id, step: value, message: value === 'traveler_finish' ? 'Confirm that the trip ended as agreed? If there is a problem, report it before completing.' : value === 'traveler_start' ? 'Confirm that you met the correct guide and are ready to start?' : value === 'guide_finish' ? 'Ask the traveler to confirm that the trip is complete?' : 'Request to start this trip after verifying the traveler?' }; openModal('confirm-action'); } break;
@@ -462,6 +466,7 @@ function clickAction(action, el) {
     case 'send-flagged-chat': { const pending = state.chatPendingUnsafe; state.chatPendingUnsafe = null; state.modal = ''; if (pending && chatThread(pending.threadId)?.participantIds.includes(activeSocialUser().id) && sendChatMessage(pending.threadId, pending.text, null, { replyTo: pending.replyTo })) { state.chatDraft = null; state.chatReplyMessageId = ''; render(); } else announce('Message could not be sent'); break; }
     case 'booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.travelerEmail === state.email.toLowerCase()); const threadId = request && getOrCreateChatThread(request.guideId, bookingChatContext(request)); if (threadId) { ensureBookingChat(threadId, request); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } else announce('Guide chat is unavailable'); break; }
     case 'guide-booking-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.guideId === activeGuide().id && entry.paymentStatus === 'paid'); const traveler = request && socialState().users.find((user) => user.accountEmail === request.travelerEmail || user.displayName === request.travelerName); const threadId = request && traveler && getOrCreateChatThread(traveler.id, bookingChatContext(request)); if (threadId) { ensureBookingChat(threadId, request); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); } else announce('Traveler chat is unavailable for this booking'); break; }
+    case 'booking-shared-chat': { const request = guideDemoData().requests.find((entry) => entry.id === id && entry.tripMode === 'shared' && entry.paymentStatus === 'paid' && (entry.travelerEmail === state.email.toLowerCase() || (entry.teamGuideIds || [entry.guideId]).includes(activeGuide().id) && activeSocialUser()?.role === 'guide')); const threadId = request && getOrCreateSharedTripThread(request.offerId); if (threadId) navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); else announce('Shared trip chat is available after confirmation'); break; }
     case 'booking-chat-action': {
       const thread = chatThread(id);
       const request = thread?.context?.requestId ? guideDemoData().requests.find((entry) => entry.id === thread.context.requestId) : null;
@@ -471,7 +476,10 @@ function clickAction(action, el) {
       if (messages[value] && sendChatMessage(id, messages[value])) announce(value === 'location' ? 'Location request sent' : 'Message sent');
       break;
     }
-    case 'admin-record-payment': announce(markGuideRequestPaid(id) ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break;
+    case 'admin-record-payment': { const paid = markGuideRequestPaid(id); const request = paid && guideDemoData().requests.find((entry) => entry.id === id); if (request?.tripMode === 'shared') getOrCreateSharedTripThread(request.offerId); announce(paid ? 'Payment recorded in the demo ledger' : 'Payment cannot be recorded'); break; }
+    case 'admin-approve-trip-offer': announce(reviewTripOffering(id, 'published') ? 'Departure approved and published' : 'Unable to approve departure'); break;
+    case 'admin-reject-trip-offer': announce(reviewTripOffering(id, 'rejected') ? 'Departure rejected' : 'Unable to reject departure'); break;
+    case 'guide-close-trip-offer': announce(closeTripOffering(id, activeGuide().id) ? 'Departure closed' : 'Cannot close a departure with active requests'); break;
     case 'admin-release-payout': announce(releaseGuidePayout(id) ? 'Guide payout released in the demo ledger' : 'Payout cannot be released yet'); break;
     case 'guide-unblock-date': if (toggleGuideDate(activeGuide().id, value)) announce('Availability updated'); else announce('This date cannot be changed'); break;
     case 'guide-toggle-experience': announce(toggleGuideExperience(activeGuide().id, id) ? 'Guide packages updated' : 'Cannot remove a package with an active request'); break;
@@ -482,9 +490,10 @@ function clickAction(action, el) {
       const item = getExperience(experienceId);
       const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : '';
       const option = item?.packageOptions?.find((entry) => entry.id === packageId) || item?.packageOptions?.[0];
-      const request = createGuideRequest({ experienceId, packageId: option?.id, guideId: state.selectedGuideExperienceId === experienceId ? state.selectedGuideId : '', date: state.date, time: state.selectedTime, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, notes: state.bookingNotes, expectedUnitPrice: el.dataset.unitPrice });
+      const offer = guideDemoData().offerings.find((entry) => entry.id === state.selectedOfferId && entry.experienceId === experienceId && entry.packageId === option?.id && entry.date === state.date);
+      const request = offer && createTripOfferRequest({ offerId: offer.id, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, notes: state.bookingNotes, expectedTotal: el.dataset.total });
       if (request) { state.bookingNotes = ''; state.checkoutStep = 1; navigate('/bookings'); }
-      else announce('Price or availability changed. Review the approved price and try again.');
+      else announce('Price or seats changed. Review the departure and try again.');
       break;
     }
     case 'open-dates': openModal('dates'); break;
@@ -518,8 +527,8 @@ function clickAction(action, el) {
     case 'chat-voice': toggleChatVoice(route().path.split('/')[3], el); break;
     case 'toggle-privacy': { const key = value; update({ privacy: { ...state.privacy, [key]: !state.privacy[key] } }); render(); break; }
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
-    case 'select-date': update({ date: value }); closeModal(); break;
-    case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10) }); closeModal(); break; }
+    case 'select-date': update({ date: value, selectedOfferId: '' }); closeModal(); break;
+    case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10), selectedOfferId: '' }); closeModal(); break; }
     case 'participants': openModal('participants'); break;
     case 'count': { const [key, amount] = value.split(':'); update({ [key]: Math.max(key === 'adults' ? 1 : 0, state[key] + Number(amount)) }); render(); break; }
     case 'language': state.modalTitle = 'Language'; state.modalMessage = 'English'; openModal('message'); break;
@@ -576,7 +585,7 @@ function clickAction(action, el) {
       const experienceId = route().path.split('/')[2];
       const experience = getExperience(experienceId);
       const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : experience?.packageOptions?.[0]?.id;
-      if (experience?.packageOptions?.length && (!state.date || !availableGuides(experienceId, packageId, state.date, state.adults + state.children).some((guide) => guide.id === state.selectedGuideId && state.selectedGuideExperienceId === experienceId))) { announce('Choose a date and an available guide first'); break; }
+      if (experience?.packageOptions?.length && (!state.date || !publicTripOfferings(experienceId, packageId, state.date, state.adults + state.children).some((offer) => offer.id === state.selectedOfferId))) { announce('Choose an available departure first'); break; }
       const name = document.getElementById('checkout-name');
       const email = document.getElementById('checkout-email');
       const phone = document.getElementById('checkout-phone');
@@ -1056,6 +1065,16 @@ export function startApp() {
       if (saveGuideProfile(guide.id, { name: form.elements.name?.value || guide.name, area: form.elements.area?.value || guide.area, languages: form.elements.languages?.value ?? guide.languages, bio: form.elements.bio?.value ?? guide.bio, capacity: form.elements.capacity?.value || guide.capacity })) announce('Guide profile saved'); else announce('Check the profile fields'); return;
     }
     if (event.target.id === 'guide-date-form') { event.preventDefault(); announce(toggleGuideDate(activeGuide().id, event.target.elements.date.value) ? 'Availability updated' : 'This date cannot be changed'); return; }
+    if (event.target.id === 'guide-trip-offer-form') {
+      event.preventDefault();
+      const form = event.target;
+      const [experienceId, packageId] = form.elements.package.value.split(':');
+      const [hour, minute] = form.elements.time.value.split(':').map(Number);
+      const time = `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
+      const offer = createTripOffering(activeGuide().id, { experienceId, packageId, date: form.elements.date.value, time, mode: form.elements.mode.value, minGuests: form.elements.minGuests.value, maxGuests: form.elements.maxGuests.value, price: form.elements.price.value, coGuideIds: [...form.querySelectorAll('input[name="coGuideIds"]:checked')].map((input) => input.value) });
+      announce(offer ? 'Departure submitted for demo admin review' : 'Check the date, group size and guide team capacity');
+      return;
+    }
     if (event.target.classList.contains('guide-price-form')) { event.preventDefault(); announce(proposeGuidePrice(activeGuide().id, event.target.dataset.packageId, event.target.elements.price.value) ? 'Price proposal sent for admin review' : 'Enter a new valid price'); return; }
     if (event.target.classList.contains('guide-review-form')) { event.preventDefault(); announce(reviewGuideRequest(event.target.dataset.requestId, state.email, event.target.elements.stars.value, event.target.elements.comment.value) ? 'Review submitted' : 'Review could not be saved'); return; }
     if (event.target.id === 'booking-change-form') { event.preventDefault(); const form = event.target; if (proposeBookingChange(form.dataset.bookingId, activeBookingActor(), form.elements.field.value, form.elements.value.value)) { bookingChatSystemUpdate(form.dataset.bookingId, 'A trip detail change was proposed. Open Safety Center to review it.'); announce('Change sent for approval'); } else announce('Check the new detail or resolve the pending change first'); return; }

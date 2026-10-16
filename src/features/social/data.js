@@ -11,6 +11,8 @@ export const demoSocialUsers = [
   { id: 'guide-adi', username: 'adi.rinjani', displayName: 'Adi Saputra', initials: 'AS', color: '#205785', bio: 'Local trekking guide focused on Rinjani and Sembalun routes.', location: 'Sembalun, East Lombok', role: 'guide', guideId: 'guide-adi', accountEmail: 'adi.demo@example.com', online: true },
   { id: 'guide-nur', username: 'nur.gilis', displayName: 'Nur Aisyah', initials: 'NA', color: '#8b5d45', bio: 'Island and waterfall guide who loves sharing local stories.', location: 'North Lombok & Gili Islands', role: 'guide', guideId: 'guide-nur', accountEmail: 'nur.demo@example.com', online: true },
   { id: 'guide-lalu', username: 'lalu.lombok', displayName: 'Lalu Pratama', initials: 'LP', color: '#5f6f54', bio: 'Cultural guide for village visits and local craft experiences.', location: 'Central Lombok', role: 'guide', guideId: 'guide-lalu', accountEmail: 'lalu.demo@example.com', online: false },
+  { id: 'guide-raka', username: 'raka.rinjani', displayName: 'Raka Pradana', initials: 'RP', color: '#526b87', bio: 'Rinjani trekking guide for shared and private hikes.', location: 'Sembalun, East Lombok', role: 'guide', guideId: 'guide-raka', accountEmail: 'raka.demo@example.com', online: true },
+  { id: 'guide-siti', username: 'siti.rinjani', displayName: 'Siti Mariani', initials: 'SM', color: '#74675b', bio: 'Rinjani trekking guide experienced with family and group trips.', location: 'Senaru, North Lombok', role: 'guide', guideId: 'guide-siti', accountEmail: 'siti.demo@example.com', online: true },
 ];
 
 const seedComment = (id, authorId, text, createdAt, parentId = null) => ({ id, authorId, text, createdAt, parentId });

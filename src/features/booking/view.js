@@ -5,15 +5,16 @@ import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { formatDate, escapeHtml } from '../../utils/html.js';
 import { calculateDemoQuote, formatDemoPrice, getDemoBooking } from '../experiences/booking-demo.js';
-import { availableGuides, financeBreakdown, packagePrice, packageStartTimes, priceSplit, publicPackagePrice } from '../guides/repository.js';
-import { guidePicker } from '../guides/view.js';
+import { publicTripOfferings, tripModeLabel, tripOfferingQuote } from '../guides/repository.js';
+import { tripOfferingPicker } from '../guides/view.js';
+const money = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
+const selectedTripOffer = (item, option) => option ? publicTripOfferings(item.id, option.id, state.date, state.adults + state.children).find((offer) => offer.id === state.selectedOfferId) : null;
 export function bookingView(id) {
   const item = getExperience(id);
   const selectedPackage = getPackageOption(item, state.selectedPackageExperienceId === item.id ? state.selectedPackageOptionId : '');
-  const selectedGuide = selectedPackage && state.selectedGuideExperienceId === item.id ? availableGuides(item.id, selectedPackage.id, state.date, state.adults + state.children).find((guide) => guide.id === state.selectedGuideId) : null;
-  const approvedUnitPrice = selectedPackage ? selectedGuide ? packagePrice(selectedGuide, selectedPackage) : publicPackagePrice(item.id, selectedPackage) : null;
-  const packageTotal = approvedUnitPrice === null ? 'Awaiting approved guide price' : `Rp${Math.round(approvedUnitPrice * (state.adults + state.children)).toLocaleString('id-ID')}`;
-  const timeOptions = selectedPackage ? packageStartTimes(item, selectedPackage) : getDemoBooking(item)?.timeOptions || ['9:00 AM'];
+  const selectedOffer = selectedTripOffer(item, selectedPackage);
+  const packageTotal = selectedOffer ? money(tripOfferingQuote(selectedOffer, state.adults + state.children)) : 'Choose a departure';
+  const timeOptions = selectedPackage ? selectedOffer ? [selectedOffer.time] : [] : getDemoBooking(item)?.timeOptions || ['9:00 AM'];
   const effectiveTime = timeOptions.includes(state.selectedTime) ? state.selectedTime : timeOptions[0];
   const dateText = state.date ? formatDate(state.date) : 'Select a date';
   const quote = calculateDemoQuote(item, state);
@@ -26,11 +27,11 @@ export function bookingView(id) {
         <button data-action="open-dates">${icon('calendar', 22)} ${state.date ? new Date(state.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date'}${icon('down', 20)}</button>
         <button data-action="language">${icon('user', 22)} English${icon('down', 20)}</button>
       </div>
-      ${selectedPackage ? guidePicker(item, selectedPackage, state.date, state.adults + state.children, selectedGuide?.id) : ''}
+      ${selectedPackage ? tripOfferingPicker(item, selectedPackage, state.date, state.adults + state.children, selectedOffer?.id) : ''}
       <h2>${selectedPackage ? 'Package request' : '1 option available'}</h2>
-      <article class="option-card"><h3>${selectedPackage?.name || item.title}</h3>${selectedPackage ? `<div class="option-fact">${icon('tickets', 21)} Admin-approved price: ${approvedUnitPrice === null ? 'awaiting approval' : `Rp${approvedUnitPrice.toLocaleString('id-ID')}`} ${escapeHtml(selectedPackage.pricingUnit || 'per person')}</div>` : ''}<div class="option-fact">${icon('clock', 21)} Duration: ${selectedPackage?.duration || item.duration}</div>${selectedPackage ? `<div class="option-fact">${icon('user', 21)} Guide: ${escapeHtml(selectedGuide?.name || 'Choose a guide')} · ${escapeHtml(selectedGuide?.languages || 'Languages available on selection')}</div>` : `<div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div>`}<button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
+      <article class="option-card"><h3>${selectedPackage?.name || item.title}</h3>${selectedPackage ? `<div class="option-fact">${icon('tickets', 21)} Approved ${escapeHtml(selectedOffer ? tripModeLabel(selectedOffer.mode) : 'departure')} price: ${selectedOffer ? money(selectedOffer.price) : 'choose above'} ${selectedOffer?.priceUnit === 'group' ? 'per group' : 'per person'}</div>` : ''}<div class="option-fact">${icon('clock', 21)} Duration: ${selectedPackage?.duration || item.duration}</div>${selectedPackage ? `<div class="option-fact">${icon('user', 21)} Your qualified guide is assigned after confirmation</div>` : `<div class="option-fact">${icon('user', 21)} Instructor: English</div><div class="option-fact">${icon('calendar', 21)} Cancel for free until Oct 14</div>`}<button class="text-link option-fact" data-action="meeting">${icon('pin', 21)} Meeting point</button>
         <hr /><h3>Starting time</h3><p>${dateText}</p>${timeOptions.map((time) => `<button class="time-button ${effectiveTime === time ? 'active' : ''}" data-action="select-time" data-value="${escapeHtml(time)}">${escapeHtml(time)}</button>`).join('')}
-        ${selectedPackage ? '' : `<p class="urgency">${icon('info', 17)} Only 21 hours left to book</p>`}<hr /><strong class="option-price">${selectedPackage ? packageTotal : `$${total}`}</strong><small>${selectedPackage ? `${state.adults + state.children} travelers · Guide: ${escapeHtml(selectedGuide?.name || 'choose a guide above')} · No payment yet` : `${state.adults} Adult × ${formatDemoPrice(quote.adultPrice)}${state.children ? `<br/>${state.children} Child × ${formatDemoPrice(quote.childPrice)}` : ''}<br/>Demo price · All taxes and fees included`}</small><a class="primary-button full" href="#/checkout/${item.id}">${selectedPackage ? 'Request this package' : 'Continue'}</a>
+        ${selectedPackage ? '' : `<p class="urgency">${icon('info', 17)} Only 21 hours left to book</p>`}<hr /><strong class="option-price">${selectedPackage ? packageTotal : `$${total}`}</strong><small>${selectedPackage ? `${state.adults + state.children} travelers · ${escapeHtml(selectedOffer ? tripModeLabel(selectedOffer.mode) : 'Choose a departure above')} · No payment yet` : `${state.adults} Adult × ${formatDemoPrice(quote.adultPrice)}${state.children ? `<br/>${state.children} Child × ${formatDemoPrice(quote.childPrice)}` : ''}<br/>Demo price · All taxes and fees included`}</small><a class="primary-button full" href="#/checkout/${item.id}">${selectedPackage ? 'Request this package' : 'Continue'}</a>
       </article>
       <details><summary>Meeting point</summary><p>Your exact meeting point will be confirmed after booking.</p></details>
       <details><summary>Important information</summary><p>Bring your booking confirmation and arrive before the selected time.</p></details>
@@ -43,17 +44,14 @@ function progress(step) {
 export function checkoutView(id) {
   const item = getExperience(id);
   const selectedPackage = getPackageOption(item, state.selectedPackageExperienceId === item.id ? state.selectedPackageOptionId : '');
-  const selectedGuide = selectedPackage && state.selectedGuideExperienceId === item.id ? availableGuides(item.id, selectedPackage.id, state.date, state.adults + state.children).find((guide) => guide.id === state.selectedGuideId) : null;
-  const times = selectedPackage ? packageStartTimes(item, selectedPackage) : getDemoBooking(item)?.timeOptions || ['9:00 AM'];
+  const selectedOffer = selectedTripOffer(item, selectedPackage);
+  const times = selectedPackage ? selectedOffer ? [selectedOffer.time] : [] : getDemoBooking(item)?.timeOptions || ['9:00 AM'];
   const effectiveTime = times.includes(state.selectedTime) ? state.selectedTime : times[0];
-  const approvedUnitPrice = selectedPackage ? selectedGuide ? packagePrice(selectedGuide, selectedPackage) : publicPackagePrice(item.id, selectedPackage) : null;
-  const packageTotal = approvedUnitPrice === null ? null : approvedUnitPrice * (state.adults + state.children);
-  const split = priceSplit(packageTotal || 0);
-  const finance = financeBreakdown(packageTotal || 0);
+  const packageTotal = selectedOffer ? tripOfferingQuote(selectedOffer, state.adults + state.children) : null;
   const idr = (amount) => `Rp${Math.round(amount).toLocaleString('id-ID')}`;
   const step = state.checkoutStep;
   const total = calculateDemoQuote(item, state).total.toFixed(2);
-  const summary = `<div class="checkout-summary"><strong>${selectedPackage?.name || item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${effectiveTime} · ${selectedPackage ? `Guide: ${escapeHtml(selectedGuide?.name || 'Choose a guide')} · ${packageTotal === null ? 'Awaiting approved price' : `${idr(packageTotal)} total`}` : 'Instructor: English · Demo price'}</small></div>`;
+  const summary = `<div class="checkout-summary"><strong>${selectedPackage?.name || item.title}</strong><img src="${item.image}" alt="" /><small>${state.adults} adult${state.children ? ` · ${state.children} child` : ''} · ${formatDate(state.date)} · ${effectiveTime || 'Choose departure'} · ${selectedPackage ? `${escapeHtml(selectedOffer ? tripModeLabel(selectedOffer.mode) : 'Choose a departure')} · ${packageTotal === null ? 'No price selected' : `${idr(packageTotal)} total`}` : 'Instructor: English · Demo price'}</small></div>`;
   const contact = `
     <h1>Enter your personal details</h1>
     <label class="form-label"><span>Full name</span><input id="checkout-name" autocomplete="name" placeholder="Full name" value="${escapeHtml(state.guestName)}" required /></label>
@@ -64,7 +62,7 @@ export function checkoutView(id) {
     <p class="muted">We'll only contact you with essential updates or changes to your booking</p>
     ${summary}
     <div class="checkout-total"><strong>${selectedPackage ? packageTotal === null ? 'Awaiting approved price' : idr(packageTotal) : `$${total}`}</strong><small>${selectedPackage ? 'Approved package estimate · no payment yet' : 'Total'}</small></div><button class="primary-button full" data-action="go-payment">${selectedPackage ? 'Review request' : 'Go to payment'}</button>`;
-  const packageReview = `<h1>Review your booking request</h1><p class="guide-caption">This request uses the admin-approved price. The guide will accept or decline it. Payment is recorded only after the guide accepts.</p>${summary}${selectedGuide && packageTotal !== null ? `<div class="guide-request-split"><span>Traveler price <strong>${idr(split.travelerTotal)}</strong></span><span>Guide receives <strong>${idr(finance.guideShare)}</strong></span><span>Platform gross <strong>${idr(finance.platformShare)}</strong></span><span>Payment fee est. <strong>${idr(finance.paymentFee)}</strong></span><span>Platform net est. <strong>${idr(finance.platformNet)}</strong></span></div>` : ''}<button class="primary-button full" data-action="send-guide-request" data-id="${escapeHtml(item.id)}" data-unit-price="${approvedUnitPrice ?? ''}" ${selectedGuide && state.date && packageTotal !== null ? '' : 'disabled'}>Send booking request</button>${!selectedGuide ? '<p class="guide-caption">Choose an available guide with an approved price to continue.</p>' : ''}`;
+  const packageReview = `<h1>Review your booking request</h1><p class="guide-caption">This request uses the approved departure price. The assigned guide may accept or decline. No payment is recorded until acceptance and, for shared trips, the minimum group size is met.</p>${summary}${packageTotal !== null ? `<div class="checkout-total"><strong>${idr(packageTotal)}</strong><small>Total for ${state.adults + state.children} traveler${state.adults + state.children === 1 ? '' : 's'}</small></div>` : ''}<button class="primary-button full" data-action="send-guide-request" data-id="${escapeHtml(item.id)}" data-total="${packageTotal ?? ''}" ${selectedOffer && state.date && packageTotal !== null ? '' : 'disabled'}>Send booking request</button>${!selectedOffer ? '<p class="guide-caption">Choose an approved departure with enough seats to continue.</p>' : ''}`;
   const payment = `
     <h2>Choose your currency</h2><p class="muted">Pay in your usual currency to avoid possible exchange rate fees from your bank.</p>
     <div class="radio-group"><label><input type="radio" name="currency" checked /> $${total}</label><label><input type="radio" name="currency" /> zł ${(Number(total) * 4).toFixed(2)} (demo)</label></div>
@@ -80,7 +78,7 @@ export function checkoutView(id) {
     <p class="muted terms">By continuing, you agree to GetYourGuide's general terms and conditions and your activity provider's terms and conditions.</p>
     <button class="primary-button full" data-action="card-details">${state.paymentMethod === 'card' ? 'Enter card details' : 'Continue'}</button>`;
   return mainLayout(`
-    ${header(selectedPackage ? 'Booking request' : 'Checkout')}<div class="page-pad checkout-page">${selectedPackage ? guidePicker(item, selectedPackage, state.date, state.adults + state.children, selectedGuide?.id) : progress(step)}
+    ${header(selectedPackage ? 'Booking request' : 'Checkout')}<div class="page-pad checkout-page">${selectedPackage ? tripOfferingPicker(item, selectedPackage, state.date, state.adults + state.children, selectedOffer?.id) : progress(step)}
     ${selectedPackage ? '' : '<div class="hold-banner">⏱ We\'ll hold your spot for 19:53 minutes</div>'}${step === 1 ? contact : selectedPackage ? packageReview : payment}</div>
   `, 'Discover', { className: 'checkout-shell' });
 }

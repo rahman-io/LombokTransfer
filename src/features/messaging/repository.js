@@ -1,6 +1,10 @@
 import { demoChatMessages, demoChatThreads } from './data.js';
-import { activeSocialUser, socialUser } from '../social/repository.js';
+import { activeSocialUser, socialState, socialUser } from '../social/repository.js';
 import { analyzeBookingMessage } from '../guides/safety.js';
+function tripData() {
+  try { return JSON.parse(localStorage.getItem('lombok-guide-demo-v1') || 'null'); }
+  catch { return null; }
+}
 
 const STORAGE_KEY = 'lombok-chat-demo-v1';
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -28,7 +32,14 @@ function persist() {
   catch { return false; }
 }
 
-export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active'); }
+function eligibleSharedTripMember(thread, userId) {
+  if (!thread.context?.offerId) return true;
+  const data = tripData();
+  const offer = data?.offerings?.find((item) => item.id === thread.context.offerId);
+  const user = socialUser(userId);
+  return !!offer && ((offer.teamGuideIds || [offer.guideId]).includes(userId) || data.requests.some((request) => request.offerId === offer.id && request.status === 'accepted' && request.paymentStatus === 'paid' && request.travelerEmail === user?.accountEmail?.toLowerCase()));
+}
+export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active' && eligibleSharedTripMember(thread, activeSocialUser().id)); }
 export function chatMessages(threadId) { return messagingState().messages.filter((message) => message.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); }
 export function chatParticipant(threadId) {
   const selfId = activeSocialUser().id;
@@ -45,7 +56,7 @@ export function isChatUserOnline(userId) { return Boolean(socialUser(userId)?.on
 export function visibleChatThreads() {
   const selfId = activeSocialUser().id;
   return messagingState().threads
-    .filter((thread) => thread.status === 'active' && thread.participantIds.includes(selfId))
+    .filter((thread) => thread.status === 'active' && thread.participantIds.includes(selfId) && eligibleSharedTripMember(thread, selfId))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 export function findChatThreadWith(userId) {
@@ -96,6 +107,28 @@ export function getOrCreateTravelGroupThread(experienceId, participantIds, label
   messagingState().threads.push(thread);
   messagingState().messages.push(welcomeMessage);
   return persist() ? thread.id : null;
+}
+export function getOrCreateSharedTripThread(offerId) {
+  const data = tripData();
+  const offer = data?.offerings?.find((item) => item.id === offerId && item.mode === 'shared');
+  if (!offer) return null;
+  const bookings = data.requests.filter((request) => request.offerId === offerId && request.status === 'accepted' && request.paymentStatus === 'paid');
+  const members = [...new Set([...(offer.teamGuideIds || [offer.guideId]), ...bookings.map((request) => socialState().users.find((user) => user.accountEmail?.toLowerCase() === request.travelerEmail)?.id).filter(Boolean)])];
+  const selfId = activeSocialUser().id;
+  if (!members.includes(selfId) || bookings.length === 0) return null;
+  const id = `trip-${offerId}`;
+  const existing = chatThread(id);
+  if (existing) {
+    existing.participantIds = members;
+    existing.unreadBy = Object.fromEntries(members.map((member) => [member, existing.unreadBy?.[member] || 0]));
+    return persist() ? id : null;
+  }
+  const createdAt = now();
+  const title = `Shared trip · ${offer.date}`;
+  const thread = { id, participantIds: members, group: true, title, context: { experienceId: offer.experienceId, offerId, label: title }, createdAt, updatedAt: createdAt, lastMessageId: null, unreadBy: Object.fromEntries(members.map((member) => [member, 0])), status: 'active' };
+  messagingState().threads.push(thread);
+  messagingState().messages.push({ id: `system-${crypto.randomUUID()}`, threadId: id, senderId: null, text: 'Welcome to this shared departure. Agree on the meeting point and preparation here. Each party keeps its booking and payment private.', createdAt, readBy: members, deliveredTo: members, system: true });
+  return persist() ? id : null;
 }
 export function leaveTravelGroupThread(threadId) {
   const selfId = activeSocialUser().id;

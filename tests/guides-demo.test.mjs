@@ -53,10 +53,10 @@ test('traveler requests reach the guide and keep the agreed price split through 
     assert.equal(verifyBooking(request.id, request.verificationCode, 'guide-adi'), true);
     assert.equal(guideDemoData().requests.find((entry) => entry.id === request.id).verificationStatus, 'verified');
     assert.equal(guideDemoData().requests[0].paymentStatus, 'paid');
-    assert.equal(availableGuides('arena', 'rinjani-2d1n', date, activeGuide().capacity).length, 0);
+    assert.equal(availableGuides('arena', 'rinjani-2d1n', date, activeGuide().capacity).some((entry) => entry.id === 'guide-adi'), false);
     assert.equal(toggleGuideDate('guide-adi', date), false);
     assert.equal(toggleGuideDate('guide-adi', nextDate), false);
-    assert.equal(availableGuides('arena', 'rinjani-2d1n', nextDate, activeGuide().capacity).length, 0);
+    assert.equal(availableGuides('arena', 'rinjani-2d1n', nextDate, activeGuide().capacity).some((entry) => entry.id === 'guide-adi'), false);
     assert.equal(updateGuideRequest(request.id, 'guide-adi', 'declined'), false);
     const guideActor = { role: 'guide', id: 'guide-adi' };
     const travelerActor = { role: 'traveler', email: 'traveler@example.com' };
