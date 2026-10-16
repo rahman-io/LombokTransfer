@@ -4,6 +4,7 @@ const storageKey = 'lombok-guide-demo-v1';
 const commissionRate = 0.10;
 const paymentRate = 0.03;
 const financeSchemaVersion = 1;
+const guideDemoSchemaVersion = 4;
 export function financeConfig() { return { platformRate: commissionRate, paymentRate, currency: 'IDR' }; }
 const initialAgreements = (guide) => Object.fromEntries(guide.experienceIds.flatMap((id) => (getExperience(id)?.packageOptions || []).map((option) => [option.id, { approvedAmount: Number(option.price), approvedAt: null, approvedBy: 'demo-admin', proposal: null }])));
 function bookingIdentity(id, createdAt = '') {
@@ -32,7 +33,7 @@ function seedOfferings() {
   const curated = [
     make('demo-rinjani-solo', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'solo', 2531969, 1),
     make('demo-rinjani-private', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'private', 4200000, 6),
-    make('demo-rinjani-shared', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'shared', 950000, 14, 2, ['guide-adi', 'guide-raka']),
+    { ...make('demo-rinjani-shared', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'shared', 950000, 14, 2, ['guide-adi', 'guide-raka']), promotion: { label: 'Early booking deal', originalPrice: 1150000 } },
     make('demo-rinjani-team', 'guide-adi', 'arena', 'rinjani-2d1n', october, 'group', 18000000, 22, 8, ['guide-adi', 'guide-raka', 'guide-siti']),
     make('demo-rinjani-raka', 'guide-raka', 'arena', 'rinjani-2d1n', october, 'shared', 1050000, 8, 2),
     make('demo-rinjani-siti', 'guide-siti', 'arena', 'rinjani-2d1n', october, 'private', 5000000, 8),
@@ -43,7 +44,7 @@ function seedOfferings() {
 }
 
 const emptyData = () => ({
-  schemaVersion: 3,
+  schemaVersion: guideDemoSchemaVersion,
   activeGuideId: 'guide-adi',
   guides: seedGuides.map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })),
   offerings: seedOfferings(),
@@ -56,9 +57,14 @@ function read() {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!data || !Array.isArray(data.guides) || !Array.isArray(data.requests)) return emptyData();
-    let migrated = data.schemaVersion !== 3;
-    data.schemaVersion = 3;
+    let migrated = data.schemaVersion !== guideDemoSchemaVersion;
+    data.schemaVersion = guideDemoSchemaVersion;
     if (!Array.isArray(data.offerings)) { data.offerings = seedOfferings(); migrated = true; }
+    const seededPromotions = new Map(seedOfferings().filter((offer) => offer.promotion).map((offer) => [offer.id, offer.promotion]));
+    data.offerings.forEach((offer) => {
+      const promotion = seededPromotions.get(offer.id);
+      if (promotion && !offer.promotion) { offer.promotion = { ...promotion }; migrated = true; }
+    });
     const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
     data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
     if (data.guides.some((guide) => !existingGuideIds.has(guide.id))) migrated = true;
@@ -267,6 +273,60 @@ export function tripOfferingAvailability(id, travelers = 1) {
 export function publicTripOfferings(experienceId, packageId, date = '', travelers = 1) {
   const data = read();
   return data.offerings.filter((offer) => offer.experienceId === experienceId && offer.packageId === packageId && (!date || offer.date === date) && offeringAvailabilityIn(data, offer, travelers).available).sort((a, b) => a.date.localeCompare(b.date) || a.price - b.price);
+}
+export function tripOfferingPriceDetails(offers, travelers) {
+  const count = Number(travelers);
+  const details = offers.map((offer) => {
+    const total = tripOfferingQuote(offer, count);
+    const originalPrice = Number(offer.promotion?.originalPrice || 0);
+    const multiplier = offer.priceUnit === 'group' ? 1 : count;
+    const originalTotal = originalPrice > Number(offer.price) ? originalPrice * multiplier : null;
+    return { offer, total, originalTotal, savings: originalTotal === null || total === null ? 0 : originalTotal - total, isPromo: originalTotal !== null };
+  }).filter((entry) => Number.isFinite(entry.total)).sort((a, b) => a.total - b.total || a.offer.time.localeCompare(b.offer.time));
+  if (!details.length) return details;
+  const minimum = details[0].total;
+  const maximum = details[details.length - 1].total;
+  return details.map((entry) => {
+    const position = maximum === minimum ? 0.5 : (entry.total - minimum) / (maximum - minimum);
+    return { ...entry, band: position <= 0.34 ? 'cheap' : position >= 0.67 ? 'premium' : 'mid' };
+  });
+}
+export function filterTripOfferingsByPrice(offers, travelers, filter = 'all') {
+  const selected = ['all', 'promo', 'cheap', 'mid', 'premium'].includes(filter) ? filter : 'all';
+  return tripOfferingPriceDetails(offers, travelers).filter((entry) => selected === 'all' || (selected === 'promo' ? entry.isPromo : entry.band === selected));
+}
+export function tripOfferingCalendar(experienceId) {
+  const data = read();
+  const today = new Date().toISOString().slice(0, 10);
+  const calendar = {};
+  const priority = { none: 0, completed: 1, available: 2, 'almost-full': 3, 'in-progress': 4 };
+  const set = (date, status, label) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (calendar[date] && priority[calendar[date].status] >= priority[status])) return;
+    calendar[date] = { status, label };
+  };
+  data.requests.filter((request) => request.experienceId === experienceId && request.status === 'completed').forEach((request) => {
+    requestDates(request).filter((date) => date <= today).forEach((date) => set(date, 'completed', 'Trip completed'));
+  });
+  data.requests.filter((request) => request.experienceId === experienceId && request.status === 'accepted' && request.paymentStatus === 'paid').forEach((request) => {
+    const safety = bookingSafety(request);
+    const underway = (safety.guideStartedAt || safety.travelerStartedAt) && !(safety.guideEndedAt && safety.travelerEndedAt);
+    if (underway && requestDates(request).includes(today)) set(today, 'in-progress', 'Trip in progress');
+  });
+  const departuresByDate = new Map();
+  data.offerings.filter((offer) => offer.experienceId === experienceId && offer.status === 'published' && offer.date >= today).forEach((offer) => {
+    const departures = departuresByDate.get(offer.date) || [];
+    departures.push(offer);
+    departuresByDate.set(offer.date, departures);
+  });
+  departuresByDate.forEach((offers, date) => {
+    const availability = offers.map((offer) => ({ offer, ...offeringAvailabilityIn(data, offer, 1) }));
+    const bookable = availability.filter((entry) => entry.available);
+    if (!bookable.length) { set(date, 'almost-full', 'Fully booked'); return; }
+    const bestSeatRatio = Math.max(...bookable.map((entry) => entry.seatsLeft / Math.max(1, entry.offer.maxGuests)));
+    const label = bestSeatRatio <= 0.25 ? 'Nearly full' : `${bookable.length} trip${bookable.length === 1 ? '' : 's'} available`;
+    set(date, bestSeatRatio <= 0.25 ? 'almost-full' : 'available', label);
+  });
+  return calendar;
 }
 export function createTripOffering(guideId, values) {
   const data = read();

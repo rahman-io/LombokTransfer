@@ -20,6 +20,16 @@ test('dated trip styles are approved, priced by party and booked without public 
     const picker = tripOfferingPicker(item, option, '', 20, '');
     assert.match(picker, /Private group/);
     assert.doesNotMatch(picker, /Adi Saputra|Raka Pradana|Siti Mariani/);
+    const sharedDeparture = repo.guideDemoData().offerings.find((entry) => entry.id === 'demo-rinjani-shared');
+    const dateOffers = repo.publicTripOfferings('arena', option.id, sharedDeparture.date, 1);
+    const promoOffers = repo.filterTripOfferingsByPrice(dateOffers, 1, 'promo');
+    assert.equal(promoOffers.length, 1);
+    assert.equal(promoOffers[0].offer.id, 'demo-rinjani-shared');
+    assert.ok(promoOffers[0].savings > 0);
+    assert.equal(repo.tripOfferingCalendar('arena')[sharedDeparture.date].status, 'available');
+    const filteredPicker = tripOfferingPicker(item, option, sharedDeparture.date, 1, '', { priceFilter: 'promo', showPriceFilters: true });
+    assert.match(filteredPicker, /All prices/);
+    assert.match(filteredPicker, /Promo · Save Rp/);
     Object.assign(state, { selectedPackageExperienceId: 'arena', selectedPackageOptionId: option.id, selectedOfferId: publicOffer.id, date: publicOffer.date, adults: 20, children: 0, checkoutStep: 1 });
     const { checkoutView } = await vite.ssrLoadModule('/src/features/booking/view.js');
     const checkout = checkoutView('arena');

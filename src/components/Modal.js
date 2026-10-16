@@ -1,4 +1,5 @@
 import { state } from '../app/store.js';
+import { route } from '../app/router.js';
 import { icon } from './icons.js';
 import { escapeHtml } from '../utils/html.js';
 import { getExperience, getExperienceGallery } from '../features/experiences/data.js';
@@ -7,8 +8,9 @@ import { activeSocialUser, socialPost, socialState, socialUser } from '../featur
 import { socialImage, socialImagesForPost } from '../features/social/media.js';
 import { chatMessages, chatThread } from '../features/messaging/repository.js';
 import { getInstallState, isInstalledApp } from '../features/onboarding/install.js';
+import { tripOfferingCalendar } from '../features/guides/repository.js';
 
-function monthGrid(year, month) {
+function monthGrid(year, month, tripCalendar = null) {
   const first = new Date(year, month, 1).getDay();
   const count = new Date(year, month + 1, 0).getDate();
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -16,7 +18,13 @@ function monthGrid(year, month) {
   for (let day = 1; day <= count; day++) {
     const date = new Date(year, month, day);
     const value = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    cells.push(`<button class="${state.date === value ? 'selected' : ''}" data-action="select-date" data-value="${value}" ${date < today ? 'disabled' : ''}>${day}</button>`);
+    const tripStatus = tripCalendar ? (tripCalendar[value] || { status: 'none', label: 'No open trip' }) : null;
+    const dateLabel = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+    const statusClass = tripStatus ? ` calendar-status-${tripStatus.status}` : '';
+    const statusLabel = tripStatus ? `: ${tripStatus.label}` : '';
+    const statusDot = tripStatus ? '<i aria-hidden="true"></i>' : '';
+    const statusTitle = tripStatus ? ` title="${escapeHtml(tripStatus.label)}"` : '';
+    cells.push(`<button class="calendar-date${statusClass} ${state.date === value ? 'selected' : ''}" data-action="select-date" data-value="${value}" aria-label="${escapeHtml(`${dateLabel}${statusLabel}`)}"${statusTitle} ${date < today ? 'disabled' : ''}><span>${day}</span>${statusDot}</button>`);
   }
   return `<div class="calendar-month"><h3>${new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(year, month, 1))}</h3><div class="calendar-grid">${cells.join('')}</div></div>`;
 }
@@ -31,7 +39,11 @@ export function modalView() {
   if (state.modal === 'dates') {
     title = 'Date';
     const now = new Date();
-    body = `<div class="calendar-content"><button class="chip" data-action="tomorrow">Tomorrow</button><div class="weekdays">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => `<span>${d}</span>`).join('')}</div>${monthGrid(now.getFullYear(), now.getMonth())}${monthGrid(now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear(), (now.getMonth() + 1) % 12)}<div class="date-help">${icon('calendar')}<span><strong>Dates not available?</strong><small>View this activity from other providers</small></span></div></div>`;
+    const experienceId = route().path.match(/^\/experience\/([^/]+)/)?.[1] || '';
+    const showTripStatus = Boolean(getExperience(experienceId)?.packageOptions?.length);
+    const tripCalendar = showTripStatus ? tripOfferingCalendar(experienceId) : null;
+    const legend = showTripStatus ? `<div class="calendar-status-legend" aria-label="Trip availability legend"><span><i class="calendar-status-available"></i>Available</span><span><i class="calendar-status-almost-full"></i>Nearly full</span><span><i class="calendar-status-in-progress"></i>In progress</span><span><i class="calendar-status-completed"></i>Completed</span><span><i class="calendar-status-none"></i>No open trip</span></div>` : '';
+    body = `<div class="calendar-content"><button class="chip" data-action="tomorrow">Tomorrow</button>${legend}<div class="weekdays">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => `<span>${d}</span>`).join('')}</div>${monthGrid(now.getFullYear(), now.getMonth(), tripCalendar)}${monthGrid(now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear(), (now.getMonth() + 1) % 12, tripCalendar)}<div class="date-help">${icon('calendar')}<span><strong>Dates not available?</strong><small>View this activity from other providers</small></span></div></div>`;
   } else if (state.modal === 'participants') {
     title = 'Participants';
     body = `<div class="participant-row"><span><strong>Adults</strong><small>Age 18+</small></span><div><button data-action="count" data-value="adults:-1">−</button><b>${state.adults}</b><button data-action="count" data-value="adults:1">+</button></div></div><div class="participant-row"><span><strong>Children</strong><small>Age 0–17</small></span><div><button data-action="count" data-value="children:-1">−</button><b>${state.children}</b><button data-action="count" data-value="children:1">+</button></div></div><button class="primary-button full" data-action="close-modal">Done</button>`;

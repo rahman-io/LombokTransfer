@@ -454,6 +454,7 @@ function clickAction(action, el) {
     case 'heart': trackWishlistChange(id, state.wishlist.includes(id) ? 'remove' : 'add', getExperience(id)); toggleWishlist(id); render(); break;
     case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value, selectedOfferId: '' }); render(); break;
     case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); render(); break; }
+    case 'set-trip-price-filter': update({ tripPriceFilter: value }); render(); break;
     case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
     case 'guide-request-accept':
     case 'guide-request-decline': { const status = action === 'guide-request-accept' ? 'accepted' : 'declined'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
@@ -527,8 +528,8 @@ function clickAction(action, el) {
     case 'chat-voice': toggleChatVoice(route().path.split('/')[3], el); break;
     case 'toggle-privacy': { const key = value; update({ privacy: { ...state.privacy, [key]: !state.privacy[key] } }); render(); break; }
     case 'check-availability': state.availabilityChecked = true; if (!state.date) openModal('dates'); else { render(); root.querySelector('#detail-availability-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } break;
-    case 'select-date': update({ date: value, selectedOfferId: '' }); closeModal(); break;
-    case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10), selectedOfferId: '' }); closeModal(); break; }
+    case 'select-date': update({ date: value, selectedOfferId: '', tripPriceFilter: 'all' }); closeModal(); break;
+    case 'tomorrow': { const d = new Date(); d.setDate(d.getDate() + 1); update({ date: d.toISOString().slice(0, 10), selectedOfferId: '', tripPriceFilter: 'all' }); closeModal(); break; }
     case 'participants': openModal('participants'); break;
     case 'count': { const [key, amount] = value.split(':'); update({ [key]: Math.max(key === 'adults' ? 1 : 0, state[key] + Number(amount)) }); render(); break; }
     case 'language': state.modalTitle = 'Language'; state.modalMessage = 'English'; openModal('message'); break;
