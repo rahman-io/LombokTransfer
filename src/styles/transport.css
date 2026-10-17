@@ -63,7 +63,7 @@
 .transport-summary-row.total{margin-top:4px;padding-top:11px;border-top:1px solid var(--line);color:var(--navy);font-weight:800;font-size:15px}
 .transport-payment-group{margin-bottom:12px}
 .transport-payment-group-label{display:block;margin-bottom:7px;font-size:12px;font-weight:700;color:var(--navy)}
-.transport-payment-option{position:relative;display:flex;align-items:center;gap:12px;padding:13px 14px;margin-bottom:9px;border:1.5px solid var(--line);border-radius:13px;background:var(--surface);cursor:pointer;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease}
+.transport-form .transport-payment-option{position:relative;display:flex;flex-direction:row;align-items:center;gap:12px;padding:13px 14px;margin-bottom:9px;border:1.5px solid var(--line);border-radius:13px;background:var(--surface);cursor:pointer;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease}
 .transport-payment-option input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .transport-payment-option:has(input:focus-visible){outline:2px solid var(--brand-gradient-middle);outline-offset:2px}
 .transport-payment-option:has(input:checked){border-color:transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--ai-gradient) border-box;box-shadow:0 4px 14px #305ee71f}
