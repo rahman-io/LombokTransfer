@@ -5,7 +5,7 @@ import { escapeHtml } from '../../utils/html.js';
 import { experiences, getExperience } from '../experiences/data.js';
 import { state } from '../../app/store.js';
 import { activeSocialUser, socialUser } from '../social/repository.js';
-import { activeGuide, bookingQrPayload, filterTripOfferingsByPrice, financeBreakdown, financeConfig, financeSummary, guideById, guideDemoData, packagePrice, priceSplit, publicTripOfferings, requestDateRange, sharedTripReady, tripModeLabel, tripOfferingAvailability, tripOfferingQuote } from './repository.js';
+import { activeGuide, bookingQrPayload, filterTripOfferingsByPrice, financeBreakdown, financeConfig, financeSummary, guideById, guideRatingSummary, guideDemoData, packagePrice, priceSplit, publicTripOfferings, requestDateRange, sharedTripReady, tripModeLabel, tripOfferingAvailability, tripOfferingQuote } from './repository.js';
 import { formatCurrency } from '../../services/currency.js';
 
 const esc = escapeHtml;
@@ -25,8 +25,12 @@ export function tripOfferingPicker(experience, option, date, travelers, selected
   const noResults = priceFilter === 'promo' ? 'No approved promo departure is available on this date.' : 'No departure matches this price range. Try another filter.';
   const offerCard = ({ offer, total, originalTotal, savings, isPromo, band }) => {
     const availability = tripOfferingAvailability(offer.id);
+    const guide = guideById(offer.guideId);
+    const rating = guideRatingSummary(offer.guideId);
+    const languages = guide?.languages ? esc(guide.languages) : '';
+    const trustLine = `${rating.count > 0 ? `<b>★ ${rating.average.toFixed(1)}</b> · ${rating.count} review${rating.count === 1 ? '' : 's'}` : 'New guide'}${languages ? ` · ${languages}` : ''}`;
     const unitLine = offer.priceUnit === 'group' ? `per group · ≈${money(Math.round(total / Math.max(1, travelers)))} per person` : `${money(offer.price)} per person`;
-    return `<button type="button" class="guide-pick trip-offer-pick ${selectedId === offer.id ? 'selected' : ''}" data-action="select-trip-offer" data-id="${esc(offer.id)}" aria-pressed="${selectedId === offer.id}"><span class="guide-pick-copy"><strong>${esc(tripModeLabel(offer.mode))}</strong><small>${esc(prettyDate(offer.date))} · ${esc(offer.time)} · ${esc(option.duration)}</small><small>${offer.mode === 'shared' ? `${availability.seatsLeft} seats left · Minimum ${offer.minGuests} travelers to depart` : `${offer.minGuests}–${offer.maxGuests} travelers · Your party only`}</small>${isPromo ? `<em class="trip-price-badge promo">Promo · Save ${money(savings)}</em>` : band === 'cheap' ? '<em class="trip-price-badge value">Lowest price</em>' : ''}</span><span class="guide-pick-price">${money(total)}${isPromo ? `<small><s>${money(originalTotal)}</s> · ${unitLine}</small>` : `<small>${unitLine}</small>`}</span></button>`;
+    return `<button type="button" class="guide-pick trip-offer-pick ${selectedId === offer.id ? 'selected' : ''}" data-action="select-trip-offer" data-id="${esc(offer.id)}" aria-pressed="${selectedId === offer.id}"><span class="guide-pick-copy"><strong>${esc(tripModeLabel(offer.mode))}</strong><small>${esc(prettyDate(offer.date))} · ${esc(offer.time)} · ${esc(option.duration)}</small><small>${offer.mode === 'shared' ? `${availability.seatsLeft} seats left · Minimum ${offer.minGuests} travelers to depart` : `${offer.minGuests}–${offer.maxGuests} travelers · Your party only`}</small><small class="guide-pick-trust">${trustLine}</small>${isPromo ? `<em class="trip-price-badge promo">Promo · Save ${money(savings)}</em>` : band === 'cheap' ? '<em class="trip-price-badge value">Lowest price</em>' : ''}</span><span class="guide-pick-price">${money(total)}${isPromo ? `<small><s>${money(originalTotal)}</s> · ${unitLine}</small>` : `<small>${unitLine}</small>`}</span></button>`;
   };
   const modeOrder = ['shared', 'private', 'solo', 'group'];
   const groupedLists = modeOrder.map((mode) => {

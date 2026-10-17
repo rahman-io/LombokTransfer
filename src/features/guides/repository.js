@@ -108,6 +108,11 @@ function read() {
 function write(data) { localStorage.setItem(storageKey, JSON.stringify(data)); return data; }
 export function guideDemoData() { return read(); }
 export function guideById(id) { return read().guides.find((guide) => guide.id === id) || null; }
+export function guideRatingSummary(guideId) {
+  const reviews = read().requests.filter((request) => request.guideId === guideId && request.review && Number.isInteger(Number(request.review.stars)));
+  if (!reviews.length) return { average: 0, count: 0 };
+  return { average: reviews.reduce((sum, request) => sum + Number(request.review.stars), 0) / reviews.length, count: reviews.length };
+}
 export function bookingSafety(request) {
   return request.safety || { meetingPoint: '', proposal: null, guideStartedAt: null, travelerStartedAt: null, guideEndedAt: null, travelerEndedAt: null, travelerCheckInAt: null, trustedContact: null, reports: [], events: [] };
 }
