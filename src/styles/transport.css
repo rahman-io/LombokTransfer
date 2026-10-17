@@ -30,6 +30,24 @@
 .transport-form .transport-check input{width:auto;min-height:0}
 .transport-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
+/* Destination search (step 0) — same box+live-list+tap-to-pick pattern as Discover's own
+   search (.search-field/.suggestion in global.css), rebuilt here with new, namespaced classes
+   so nothing shared with Discover is touched. No .transport-form label on this field, so the
+   .transport-form label{flex-direction:column} cascade bug from the payment cards can't recur. */
+.transport-destination-field{display:flex;align-items:center;gap:10px;height:47px;border:1px solid var(--line);border-radius:30px;padding:0 15px;background:var(--surface);color:var(--navy);margin-bottom:9px}
+.transport-destination-field-icon{display:grid;place-items:center;flex:none;color:var(--muted)}
+.transport-destination-field input{width:100%;border:0;outline:0;background:transparent;color:var(--navy);font-size:14px;font-weight:400}
+.transport-destination-results{margin:-2px 0 12px;max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.transport-destination-option{display:flex;width:100%;align-items:center;gap:12px;padding:11px 14px;border:0;border-bottom:1px solid var(--line);background:var(--surface);text-align:left;color:var(--navy);cursor:pointer}
+.transport-destination-option:last-child{border-bottom:0}
+.transport-destination-option:hover,.transport-destination-option:focus-visible{background:var(--soft)}
+.transport-destination-icon{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;background:var(--pale-blue);color:var(--blue)}
+.transport-destination-option strong{display:block;font-size:13px}
+.transport-destination-option small{display:block;margin-top:2px;color:var(--muted);font-size:11px}
+.transport-destination-empty,.transport-destination-outside{padding:14px;font-size:12px;text-align:center}
+.transport-destination-empty{color:var(--muted)}
+.transport-destination-outside{color:var(--warning);background:var(--warning-soft);border-radius:13px}
+
 .transport-stepper{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
 .transport-stepper span{font-size:13px;font-weight:700;color:var(--navy)}
 .transport-stepper small{display:block;margin-top:2px;color:var(--muted);font-size:10px;font-weight:400}

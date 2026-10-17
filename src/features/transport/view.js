@@ -10,9 +10,9 @@ import { escapeHtml } from '../../utils/html.js';
 import { state } from '../../app/store.js';
 import { formatCurrency } from '../../services/currency.js';
 import {
-  transportVehicleClasses, transportZones, transportMeetingPoints, transportMeetingPointById,
+  transportVehicleClasses, transportMeetingPoints, transportMeetingPointById,
   transportFerryRoutes, transportFerryRouteById, transportLocationById, transportDriverById,
-  transportVehicleClassByCode, transportPriceList,
+  transportVehicleClassByCode, transportPriceList, transportSearchDestinations,
 } from './data.js';
 import {
   TRANSPORT_STATUS_LABELS, TRANSPORT_FREE_WAITING_MINUTES, transportStatusTone,
@@ -53,13 +53,23 @@ export function transportLandingView() {
 // ---------------------------------------------------------------------------
 // Booking wizard
 // ---------------------------------------------------------------------------
+export function transportDestinationResultsHtml(query) {
+  const { matches, outOfCoverage } = transportSearchDestinations(query);
+  if (!matches.length) {
+    if (outOfCoverage) return `<div class="transport-destination-outside">${esc(outOfCoverage.name)} is in ${esc(outOfCoverage.city)} — outside our Lombok transfer coverage.</div>`;
+    return `<div class="transport-destination-empty">No destinations match “${esc(query)}”. Try a nearby town or landmark.</div>`;
+  }
+  return matches.map((location) => `<button type="button" class="transport-destination-option" data-action="select-transport-destination" data-id="${location.id}"><span class="transport-destination-icon">${icon('pin', 18)}</span><span><strong>${esc(location.name)}</strong><small>${esc(location.zoneName)} · ~${location.durationMinEst} min</small></span></button>`).join('');
+}
+
 function transportStepCriteria(t) {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const selectedLocation = t.destLocationId ? transportLocationById(t.destLocationId) : null;
   return `<form id="transport-step-0-form" class="transport-form">
-    <label>Destination<select name="destinationLocationId" required>
-      <option value="" disabled ${t.destLocationId ? '' : 'selected'}>Choose your destination</option>
-      ${transportZones.map((zone) => `<optgroup label="${esc(zone.name)}">${zone.locations.map((location) => `<option value="${location.id}" ${String(t.destLocationId || '') === String(location.id) ? 'selected' : ''}>${esc(location.name)} (~${location.durationMinEst} min)</option>`).join('')}</optgroup>`).join('')}
-    </select></label>
+    <span class="transport-payment-group-label" id="transport-destination-label">Destination</span>
+    <div class="transport-destination-field"><span class="transport-destination-field-icon">${icon('search', 20)}</span><input id="transport-destination-search" type="search" autocomplete="off" aria-labelledby="transport-destination-label" placeholder="Search a destination in Lombok" value="${esc(selectedLocation?.name || '')}" /></div>
+    <input type="hidden" name="destinationLocationId" id="transport-destination-value" value="${esc(t.destLocationId || '')}" />
+    <div id="transport-destination-results" class="transport-destination-results"${selectedLocation ? ' hidden' : ''}>${transportDestinationResultsHtml('')}</div>
     <div class="transport-field-row">
       <label>Pickup date<input type="date" name="date" value="${esc(t.date || tomorrow)}" required /></label>
       <label>Pickup time<input type="time" name="time" value="${esc(t.time || '05:30')}" required /></label>

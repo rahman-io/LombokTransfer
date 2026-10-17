@@ -22,9 +22,9 @@ import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBooki
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
-import { transportLandingView, transportWizardView, transportTicketView, transportFerryEstimateBanner } from '../features/transport/view.js';
+import { transportLandingView, transportWizardView, transportTicketView, transportFerryEstimateBanner, transportDestinationResultsHtml } from '../features/transport/view.js';
 import { quoteTransport, ferryPickupEstimate, ferryArrivalCheck, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
-import { transportDriverById } from '../features/transport/data.js';
+import { transportDriverById, transportLocationById } from '../features/transport/data.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
 import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
@@ -521,6 +521,17 @@ function clickAction(action, el) {
       state.transport.priceUpdated = false;
       state.transport.step = state.transport.useFerry ? 2 : 3;
       render();
+      break;
+    }
+    case 'select-transport-destination': {
+      const location = transportLocationById(id);
+      if (!location) break;
+      const input = document.getElementById('transport-destination-search');
+      const hiddenInput = document.getElementById('transport-destination-value');
+      const results = document.getElementById('transport-destination-results');
+      if (input) input.value = location.name;
+      if (hiddenInput) hiddenInput.value = String(location.id);
+      if (results) { results.hidden = true; results.innerHTML = ''; }
       break;
     }
     case 'transport-back-step': state.transport.step = Number(value); render(); break;
@@ -1085,6 +1096,12 @@ export function startApp() {
       if (event.target.name === 'caption') socialDraft.caption = event.target.value;
       if (event.target.name === 'location') socialDraft.location = event.target.value;
     }
+    if (event.target.id === 'transport-destination-search') {
+      const results = document.getElementById('transport-destination-results');
+      const hiddenInput = document.getElementById('transport-destination-value');
+      if (results) { results.hidden = false; results.innerHTML = transportDestinationResultsHtml(event.target.value); }
+      if (hiddenInput) hiddenInput.value = '';
+    }
     if (event.target.id === 'social-search') {
       const query = event.target.value.toLowerCase().trim();
       let shown = 0;
@@ -1146,6 +1163,16 @@ export function startApp() {
     const scrollTop = root.querySelector('.chat-messages')?.scrollTop ?? null;
     closeChatMenus();
     if (scrollTop !== null) scrollChatToLatest(scrollTop);
+  });
+  root.addEventListener('focusin', (event) => {
+    if (event.target.id !== 'transport-destination-search') return;
+    const results = document.getElementById('transport-destination-results');
+    if (results) { results.hidden = false; results.innerHTML = transportDestinationResultsHtml(event.target.value); }
+  });
+  root.addEventListener('focusout', (event) => {
+    if (event.target.id !== 'transport-destination-search') return;
+    const results = document.getElementById('transport-destination-results');
+    if (results && !event.relatedTarget?.closest?.('#transport-destination-results')) results.hidden = true;
   });
   root.addEventListener('change', (event) => {
     if (event.target.matches('[data-shared-decision-kind]')) {

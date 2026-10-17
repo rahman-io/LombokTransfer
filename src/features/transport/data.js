@@ -104,3 +104,61 @@ export function transportFerryRouteById(id) {
 export function transportDriverById(id) {
   return transportDrivers.find((entry) => entry.id === id) || null;
 }
+
+// Curated aliases for well-known Lombok landmarks that aren't already a zone location's exact
+// name (e.g. "Mount Rinjani" is climbed from the Sembalun Lawang pickup point). Each alias
+// resolves to a real transportZones location id, so price and duration always come from that
+// zone's own, already-verified tariff and estimate — no new fare is invented for the alias.
+// Well-known non-Lombok landmarks (kept as a small local list, not imported from Discover's
+// catalog, so this file stays free of Discover's image-asset imports — those can't be resolved
+// outside a bundler and would break every other feature's tests that happen to import this file).
+export const transportOutOfCoverageLandmarks = [
+  { name: 'Pulau Kenawa', city: 'Sumbawa' },
+  { name: 'Pulau Moyo', city: 'Sumbawa' },
+  { name: 'Mata Jitu Waterfall', city: 'Sumbawa' },
+  { name: 'Whale shark encounter', city: 'Sumbawa' },
+  { name: 'Sumbawa', city: 'Sumbawa' },
+];
+
+export const transportDestinationAliases = [
+  { alias: 'Mount Rinjani', locationId: 501 },
+  { alias: 'Rinjani summit', locationId: 501 },
+  { alias: 'Gili Trawangan', locationId: 401 },
+  { alias: 'Gili Air', locationId: 401 },
+  { alias: 'Gili Meno', locationId: 401 },
+  { alias: 'Mandalika', locationId: 201 },
+  { alias: 'Mandalika Circuit', locationId: 201 },
+  { alias: 'Bangsal Harbour crossing', locationId: 401 },
+  { alias: 'Lombok Airport', locationId: 302 },
+  { alias: 'LOP', locationId: 302 },
+];
+
+// Finds destinations matching free text: real zone locations first, then the curated aliases
+// above (both resolve to a priced, zoned location). An empty query returns every real location,
+// grouped by zone, matching what the old <select>'s full option list showed. If nothing in
+// Lombok matches, checks Discover's own attraction catalog for a same-name place outside Lombok
+// (Sumbawa) so the UI can explain why it isn't bookable here instead of just showing "no results".
+export function transportSearchDestinations(query) {
+  const normalized = String(query || '').trim().toLocaleLowerCase();
+  if (!normalized) {
+    return { matches: transportZones.flatMap((zone) => zone.locations.map((location) => ({ ...location, zoneId: zone.id, zoneName: zone.name }))), outOfCoverage: null };
+  }
+  const seen = new Set();
+  const matches = [];
+  const addMatch = (location, zone) => {
+    if (!location || seen.has(location.id)) return;
+    seen.add(location.id);
+    matches.push({ ...location, zoneId: zone.id, zoneName: zone.name });
+  };
+  transportZones.forEach((zone) => zone.locations.forEach((location) => {
+    if (location.name.toLocaleLowerCase().includes(normalized)) addMatch(location, zone);
+  }));
+  transportDestinationAliases.forEach((entry) => {
+    if (!entry.alias.toLocaleLowerCase().includes(normalized)) return;
+    const location = transportLocationById(entry.locationId);
+    if (location) addMatch(location, transportZones.find((zone) => zone.id === location.zoneId));
+  });
+  if (matches.length) return { matches, outOfCoverage: null };
+  const outside = transportOutOfCoverageLandmarks.find((item) => item.name.toLocaleLowerCase().includes(normalized));
+  return { matches: [], outOfCoverage: outside || null };
+}
