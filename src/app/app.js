@@ -203,6 +203,7 @@ function currentView() {
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
   if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
+  if (path.startsWith('/experience/') && path.endsWith('/guides')) return experienceView(path.split('/')[2], { marketplace: true });
   if (path.startsWith('/experience/')) { const experienceId = path.split('/')[2]; const experience = getExperience(experienceId); trackExperienceView(experienceId, experience); if (params.get('from') === 'vibes') trackSocialBookingOpen(experienceId, experience); return experienceView(experienceId); }
   if (path.startsWith('/booking/')) return bookingView(path.split('/')[2]);
   if (path.startsWith('/checkout/')) return checkoutView(path.split('/')[2]);
