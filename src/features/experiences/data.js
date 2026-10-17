@@ -554,16 +554,21 @@ export const getExperiencesByCity = (city, category = '') => experiences.filter(
 export const getExperiencesMatchingQuery = (query = '') => {
   const normalizedQuery = String(query).trim().toLocaleLowerCase();
   if (!normalizedQuery) return [];
-  return experiences.filter((item) => [
-    item.title,
-    item.city,
-    item.location,
-    item.category,
-    ...(item.categories || []),
-    item.description,
-    ...(item.highlights || []),
-    ...(item.packageOptions || []).map((option) => option.name),
-  ].filter(Boolean).join(' ').toLocaleLowerCase().includes(normalizedQuery));
+  const words = normalizedQuery.split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  return experiences.filter((item) => {
+    const haystack = [
+      item.title,
+      item.city,
+      item.location,
+      item.category,
+      ...(item.categories || []),
+      item.description,
+      ...(item.highlights || []),
+      ...(item.packageOptions || []).map((option) => option.name),
+    ].filter(Boolean).join(' ').toLocaleLowerCase();
+    return words.every((word) => haystack.includes(word));
+  });
 };
 export const demoFirebaseDocuments = {
   organizations: [{ id: 'demo-operator', schemaVersion: 1, name: 'Demo operator', status: 'draft' }],

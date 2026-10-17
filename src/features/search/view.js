@@ -30,6 +30,7 @@ export function searchView() {
         <h2>Popular experiences</h2>
         ${getPopularExperiences().map((item) => `<a class="suggestion" href="#/experience/${encodeURIComponent(item.id)}"><img src="${escapeHtml(item.image)}" alt="" /><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.city)}</small></span>${icon('chevron', 20)}</a>`).join('')}
       </div>
+      <div id="search-live-results" class="result-list" hidden></div>
     </div>
   `, 'Discover');
 }

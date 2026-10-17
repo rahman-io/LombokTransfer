@@ -11,9 +11,10 @@ import { continueWithDemoProvider, demoAuthMode, demoSession, loginTraveler, set
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
 import { experienceView, guideOfferView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
-import { attractions, destinations, experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
+import { attractions, destinations, experiences, getExperience, getExperienceGallery, getExperiencesMatchingQuery } from '../features/experiences/data.js';
 import { getDemoBooking } from '../features/experiences/booking-demo.js';
 import { modalView } from '../components/Modal.js';
+import { experienceCard } from '../components/cards.js';
 import { socialFeedView, socialExploreView, socialSavedView, socialProfileView, socialPostView, socialCreateView, socialEditView, socialDraft, clearSocialDraft } from '../features/social/view.js';
 import { activeSocialUser, addSocialComment, createSocialPost, deleteSocialComment, deleteSocialPost, editSocialPost, linkGuideApplication, prepareSocialPhoto, recordSocialShare, reportSocialPost, setSocialUserGuideRole, socialPost, socialState, socialUser, switchSocialUser, toggleSocialFollow, toggleSocialLike, toggleSocialSave, visibleSocialPosts } from '../features/social/repository.js';
 import { chatMessage, chatMessages, chatThread, editChatMessage, getOrCreateChatThread, getOrCreateSharedTripThread, getOrCreateTravelGroupThread, leaveTravelGroupThread, deleteChatMessage, refreshSharedTripThread, sendChatMessage, sendChatSystemMessage, toggleChatFavorite, toggleChatPin, toggleChatReaction, visibleChatThreads } from '../features/messaging/repository.js';
@@ -1050,10 +1051,24 @@ export function startApp() {
     }
     if (event.target.id !== 'place-search') return;
     state.search = event.target.value;
-    document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = !item.textContent.toLowerCase().includes(state.search.toLowerCase()); });
+    const searchQuery = state.search.trim().toLowerCase();
+    const suggestionsEl = document.getElementById('search-suggestions');
+    const liveResultsEl = document.getElementById('search-live-results');
+    if (!liveResultsEl) { document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = !item.textContent.toLowerCase().includes(searchQuery); }); return; }
+    if (searchQuery.length < 2) {
+      suggestionsEl.hidden = false;
+      liveResultsEl.hidden = true;
+      liveResultsEl.innerHTML = '';
+      document.querySelectorAll('#search-suggestions .suggestion').forEach((item) => { item.hidden = searchQuery ? !item.textContent.toLowerCase().includes(searchQuery) : false; });
+    } else {
+      suggestionsEl.hidden = true;
+      const results = getExperiencesMatchingQuery(searchQuery);
+      liveResultsEl.hidden = false;
+      liveResultsEl.innerHTML = results.length ? results.map((item) => experienceCard(item)).join('') : '<div class="empty-state"><h2>No results for \u201c' + escapeHtml(searchQuery) + '\u201d</h2><p>Try different keywords or press Enter.</p></div>';
+    }
   });
   root.addEventListener('keydown', (event) => {
-    if (event.target.id === 'place-search' && event.key === 'Enter') { const query = event.target.value.trim(); navigate(query ? '/results?q=' + encodeURIComponent(query) : '/results?city=Lombok'); }
+    if (event.target.id === 'place-search' && event.key === 'Enter') { const query = event.target.value.trim(); state.filter = ''; navigate(query ? '/results?q=' + encodeURIComponent(query) : '/results?city=Lombok'); }
     if (event.key === 'Escape' && state.modal) closeModal();
     if (event.target.matches('[data-gallery-track]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
       event.preventDefault();
