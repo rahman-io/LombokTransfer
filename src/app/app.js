@@ -48,13 +48,10 @@ let chatMessageSwipe = null;
 let suppressChatMessageClick = false;
 let chatGalleryHistoryEntry = false;
 let chatGalleryReturnScrollTop = null;
-let mainSwipe = null;
-let mainTouchSwipe = null;
 let chatRecorder = null;
 let chatAudioStream = null;
 let chatAudioChunks = [];
 let chatViewportFrame = 0;
-let suppressMainSwipeClick = false;
 let suppressSocialHorizontalClick = false;
 let homeDestinationAutoScroll = null;
 let homeDestinationResume = null;
@@ -86,18 +83,6 @@ function setButtonLoading(button) {
   button.innerHTML = `<span class="loading-spinner" aria-hidden="true"></span><span>${escapeHtml(label)}</span>`;
 }
 function mainNavigationIndex() { return mainNavigationPaths.indexOf(route().path); }
-function canStartMainSwipe(target) {
-  return mainNavigationIndex() >= 0 && target.closest('.main-content') && !target.closest('input,textarea,select,button,.tile-row,.chip-row,.social-stories,.social-topic-row,.social-people-row,[data-gallery-track],[data-social-carousel],[data-social-zoom-stage]');
-}
-function navigateMainSwipe(distance) {
-  const currentIndex = mainNavigationIndex();
-  if (currentIndex < 0) return;
-  const nextIndex = currentIndex + (distance < 0 ? 1 : -1);
-  if (nextIndex < 0 || nextIndex >= mainNavigationPaths.length) return;
-  suppressMainSwipeClick = true;
-  setTimeout(() => { suppressMainSwipeClick = false; }, 0);
-  navigate(mainNavigationPaths[nextIndex]);
-}
 function mainNavigationTransition(path) {
   const currentIndex = mainNavigationIndex();
   const previousIndex = mainNavigationPaths.indexOf(path);
@@ -796,7 +781,6 @@ export function startApp() {
   window.visualViewport?.addEventListener('resize', syncChatViewport, { passive: true });
   window.visualViewport?.addEventListener('scroll', syncChatViewport, { passive: true });
   root.addEventListener('click', (event) => {
-    if (suppressMainSwipeClick) { event.preventDefault(); suppressMainSwipeClick = false; return; }
     if (suppressSocialHorizontalClick) { event.preventDefault(); suppressSocialHorizontalClick = false; return; }
     if (!event.target.closest('.chat-message-menu')) closeChatMenus();
     const chatImage = event.target.closest('.chat-image-attachment');
@@ -888,11 +872,6 @@ export function startApp() {
   }, true);
   root.addEventListener('pointerdown', (event) => {
     if (!event.target.closest('.chat-message-menu')) closeChatMenus();
-    const mainIndex = mainNavigationIndex();
-    const swipeTarget = event.target.closest('.main-content');
-    if (mainIndex >= 0 && swipeTarget && event.pointerType !== 'touch' && canStartMainSwipe(event.target)) {
-      mainSwipe = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
-    }
     const track = event.target.closest('[data-gallery-track]');
     if (track && event.pointerType === 'mouse') galleryDrag = { track, pointerId: event.pointerId, x: event.clientX, left: track.scrollLeft, moved: false };
     const carousel = event.target.closest('[data-social-carousel]');
@@ -937,14 +916,6 @@ export function startApp() {
       const distanceY = event.clientY - chatMessageSwipe.y;
       if (Math.abs(distanceX) > 10 && Math.abs(distanceX) > Math.abs(distanceY)) {
         chatMessageSwipe.moved = true;
-        event.preventDefault();
-      }
-    }
-    if (mainSwipe?.pointerId === event.pointerId) {
-      const distanceX = event.clientX - mainSwipe.x;
-      const distanceY = event.clientY - mainSwipe.y;
-      if (Math.abs(distanceX) > 8 && Math.abs(distanceX) > Math.abs(distanceY)) {
-        mainSwipe.moved = true;
         event.preventDefault();
       }
     }
@@ -1009,15 +980,6 @@ export function startApp() {
     if (galleryDrag.moved) galleryDrag.track.scrollLeft = galleryDrag.left - distance;
   });
   const endGalleryDrag = (event) => {
-    if (mainSwipe?.pointerId === event.pointerId) {
-      if (mainSwipe.moved) {
-        suppressMainSwipeClick = true;
-        setTimeout(() => { suppressMainSwipeClick = false; }, 0);
-        const distance = event.clientX - mainSwipe.x;
-        navigateMainSwipe(distance);
-      }
-      mainSwipe = null;
-    }
     socialPinchPointers.delete(event.pointerId);
     if (!socialPinchPointers.size) socialZoom.pinchStart = null;
     chatPinchPointers.delete(event.pointerId);
@@ -1069,30 +1031,6 @@ export function startApp() {
   };
   root.addEventListener('pointerup', endGalleryDrag);
   root.addEventListener('pointercancel', endGalleryDrag);
-  root.addEventListener('touchstart', (event) => {
-    const touch = event.touches[0];
-    if (touch && canStartMainSwipe(event.target)) mainTouchSwipe = { x: touch.clientX, y: touch.clientY, moved: false };
-  }, { passive: true });
-  root.addEventListener('touchmove', (event) => {
-    const touch = event.touches[0];
-    if (!mainTouchSwipe || !touch) return;
-    const distanceX = touch.clientX - mainTouchSwipe.x;
-    const distanceY = touch.clientY - mainTouchSwipe.y;
-    if (Math.abs(distanceX) > 8 && Math.abs(distanceX) > Math.abs(distanceY)) {
-      mainTouchSwipe.moved = true;
-      event.preventDefault();
-    }
-  }, { passive: false });
-  root.addEventListener('touchend', (event) => {
-    const touch = event.changedTouches[0];
-    if (!mainTouchSwipe || !touch) return;
-    if (mainTouchSwipe.moved) {
-      suppressMainSwipeClick = true;
-      setTimeout(() => { suppressMainSwipeClick = false; }, 0);
-      navigateMainSwipe(touch.clientX - mainTouchSwipe.x);
-    }
-    mainTouchSwipe = null;
-  }, { passive: true });
   root.addEventListener('input', (event) => {
     if (event.target.closest('#social-compose-form')) {
       if (event.target.name === 'caption') socialDraft.caption = event.target.value;
