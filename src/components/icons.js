@@ -34,6 +34,11 @@ const paths = {
   bookmark: '<path d="M5 3.5h14v17l-7-4-7 4v-17Z"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
   send: '<path d="m21 3-7.5 18-3.5-7-7-3.5L21 3Z"/><path d="M10 14 21 3"/>',
+  navHome: '<path d="M4 10.2 12 4l8 6.2V18a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z"/><path d="M10 21v-4.5a2 2 0 0 1 4 0V21"/>',
+  navBookings: '<rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10.5h17"/><path d="m9 15.2 2 2 4-4"/>',
+  navVibes: '<circle cx="12" cy="8" r="5.2"/><path d="M6.8 8h10.4M12 2.8c1.4 1.4 2 3.1 2 5.2s-.6 3.8-2 5.2c-1.4-1.4-2-3.1-2-5.2s.6-3.8 2-5.2Z" stroke-width="1.5"/><circle cx="4.8" cy="15.2" r="1.9"/><path d="M1.8 21.2a3 3 0 0 1 6 0"/><circle cx="19.2" cy="15.2" r="1.9"/><path d="M16.2 21.2a3 3 0 0 1 6 0"/><path d="M9.5 20.5c1.6.7 3.4.7 5 0" stroke-width="1.5"/>',
+  navChat: '<path d="M20 11.5c0 4.1-3.6 7.5-8 7.5-1.2 0-2.3-.2-3.3-.6L4 20l1.3-3.7A7.2 7.2 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5Z"/>',
+  navProfile: '<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
 };
 export function icon(name, size = 24, extra = '') {
   return `<svg class="icon ${extra}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.info}</svg>`;

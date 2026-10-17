@@ -1,7 +1,7 @@
 import { icon } from './icons.js';
 import { chatBadge } from '../features/inbox/repository.js';
 export function bottomNavigation(active = 'Discover') {
-  const items = [['Discover', '/', 'home'], ['Bookings', '/bookings', 'calendar'], ['Vibes', '/social', 'community'], ['Chat', '/chat', 'comment'], ['Profile', '/profile', 'user']];
+  const items = [['Discover', '/', 'navHome'], ['Bookings', '/bookings', 'navBookings'], ['Vibes', '/social', 'navVibes'], ['Chat', '/chat', 'navChat'], ['Profile', '/profile', 'navProfile']];
   const current = active === 'Community' ? 'Vibes' : active;
   return `<nav class="bottom-nav" aria-label="Main navigation">
     <svg class="bottom-nav-defs" width="0" height="0" aria-hidden="true" focusable="false">
