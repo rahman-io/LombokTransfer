@@ -58,9 +58,9 @@ function bookingIdentity(id, createdAt = '') {
 function computeBreakdown(base, vehicleClassCode, pickupAt, { childSeats = 0, needsRoofRack = false } = {}) {
   const items = [];
   const hour = witaHour(pickupAt);
-  if (hour >= 22 || hour < 6) { const s = transportSurcharges.find((entry) => entry.code === 'night'); if (s) items.push({ code: s.code, label: s.label, amount: s.amount }); }
+  if (hour >= 22 || hour < 6) { const s = transportSurcharges.find((entry) => entry.code === 'night'); const amount = s?.amountByClass?.[vehicleClassCode]; if (Number.isFinite(amount)) items.push({ code: s.code, label: s.label, amount }); }
   if (isTransportHoliday(pickupAt)) { const s = transportSurcharges.find((entry) => entry.code === 'holiday'); if (s) items.push({ code: s.code, label: s.label, amount: s.calcType === 'percent' ? Math.round(base * s.amount / 100) : s.amount }); }
-  if (childSeats > 0) { const s = transportSurcharges.find((entry) => entry.code === 'child_seat'); if (s) items.push({ code: s.code, label: s.label, amount: s.amount * childSeats, qty: childSeats }); }
+  if (childSeats > 0) { const s = transportSurcharges.find((entry) => entry.code === 'child_seat'); if (s) items.push({ code: s.code, label: s.label, amount: s.amount, qty: childSeats }); }
   if (needsRoofRack) { const s = transportSurcharges.find((entry) => entry.code === 'roof_rack'); if (s) items.push({ code: s.code, label: s.label, amount: s.amount }); }
   const surchargeTotal = items.reduce((sum, item) => sum + item.amount, 0);
   return { base, surcharges: items, surchargeTotal, total: roundUpTo1000(base + surchargeTotal), currency: 'IDR' };
@@ -96,16 +96,16 @@ function seedOrders() {
       paymentProofAt: null, payoutStatus: 'not_due', rating: null, events: [], createdAt, updatedAt: createdAt };
     return { ...base, ...overrides, bookingId, verificationCode };
   };
-  const giliBreakdown = computeBreakdown(transportTariffFor(4, 'mpv_premium'), 'mpv_premium', witaToIso(soon, '06:30'), {});
-  const kutaBreakdown = computeBreakdown(transportTariffFor(2, 'van'), 'van', witaToIso(later, '14:00'), { childSeats: 1 });
-  const sembalunBreakdown = computeBreakdown(transportTariffFor(5, 'mpv_standard'), 'mpv_standard', witaToIso(past, '09:00'), {});
+  const giliBreakdown = computeBreakdown(transportTariffFor(6, 'mpv_premium'), 'mpv_premium', witaToIso(soon, '06:30'), {});
+  const kutaBreakdown = computeBreakdown(transportTariffFor(5, 'minibus_12'), 'minibus_12', witaToIso(later, '14:00'), { childSeats: 1 });
+  const sembalunBreakdown = computeBreakdown(transportTariffFor(8, 'mpv_standard'), 'mpv_standard', witaToIso(past, '09:00'), {});
   return [
-    make({ id: 'demo-transport-gili-assigned', destinationLocationId: 401, zoneId: 4, vehicleClassCode: 'mpv_premium', pickupAt: witaToIso(soon, '06:30'), passengers: 3, luggageUnits: 3, childSeats: 0, needsRoofRack: false,
+    make({ id: 'demo-transport-gili-assigned', destinationLocationId: 601, zoneId: 6, vehicleClassCode: 'mpv_premium', pickupAt: witaToIso(soon, '06:30'), passengers: 3, luggageUnits: 3, childSeats: 0, needsRoofRack: false,
       ferry: { routeId: 1, departureAt: witaToIso(soon, '02:00'), etaMinAt: witaToIso(soon, '06:00'), etaMaxAt: witaToIso(soon, '07:30'), dockedAt: null },
       priceBreakdown: giliBreakdown, total: giliBreakdown.total, paymentMethod: 'cash', paymentStatus: 'unpaid', status: 'assigned', driverId: 'driver-made' }),
-    make({ id: 'demo-transport-kuta-upcoming', destinationLocationId: 201, zoneId: 2, vehicleClassCode: 'van', pickupAt: witaToIso(later, '14:00'), passengers: 8, luggageUnits: 6, childSeats: 1, needsRoofRack: false,
+    make({ id: 'demo-transport-kuta-upcoming', destinationLocationId: 501, zoneId: 5, vehicleClassCode: 'minibus_12', pickupAt: witaToIso(later, '14:00'), passengers: 8, luggageUnits: 6, childSeats: 1, needsRoofRack: false,
       priceBreakdown: kutaBreakdown, total: kutaBreakdown.total, paymentMethod: 'bank_transfer', paymentStatus: 'paid', paymentProofAt: new Date().toISOString(), status: 'assigned', driverId: 'driver-ketut' }),
-    make({ id: 'demo-transport-sembalun-completed', destinationLocationId: 501, zoneId: 5, vehicleClassCode: 'mpv_standard', pickupAt: witaToIso(past, '09:00'), passengers: 2, luggageUnits: 2, childSeats: 0, needsRoofRack: false,
+    make({ id: 'demo-transport-sembalun-completed', destinationLocationId: 802, zoneId: 8, vehicleClassCode: 'mpv_standard', pickupAt: witaToIso(past, '09:00'), passengers: 2, luggageUnits: 2, childSeats: 0, needsRoofRack: false,
       priceBreakdown: sembalunBreakdown, total: sembalunBreakdown.total, paymentMethod: 'cash', paymentStatus: 'unpaid', payoutStatus: 'paid', status: 'completed', driverId: 'driver-wayan',
       rating: { score: 5, comment: 'Smooth ride straight to Sembalun, driver was on time.', createdAt: new Date(Date.now() - 4 * 86400000).toISOString() } }),
   ];

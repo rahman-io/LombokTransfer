@@ -91,7 +91,7 @@ function transportStepVehicles(t) {
   <div class="transport-vehicle-list">${quote.options.map((option) => `<div class="transport-vehicle-card ${t.vehicleClass === option.vehicleClass ? 'selected' : ''}${option.fits ? '' : ' unavailable'}">
       <div class="transport-vehicle-top"><div><strong>${esc(option.name)}</strong><small>${esc(option.exampleVehicles)} · up to ${option.maxPassengers} pax, ${option.maxLuggage} bags</small></div><div class="transport-vehicle-price"><strong>${money(option.total)}</strong><small>fixed fare</small></div></div>
       ${option.priceBreakdown.surcharges.length ? `<div class="transport-vehicle-meta">${option.priceBreakdown.surcharges.map((surcharge) => `<span class="surcharge">${esc(surcharge.label)}</span>`).join('')}</div>` : ''}
-      ${option.fits ? `<button type="button" class="transport-select-button" data-action="select-transport-vehicle" data-id="${esc(option.vehicleClass)}">${t.vehicleClass === option.vehicleClass ? 'Selected' : 'Choose this vehicle'}</button>` : `<p class="transport-vehicle-reason">${esc(option.reasons.join(' · '))}${option.suggestTwoVehicles ? ' — consider two vehicles, or choose the Van.' : ''}</p>`}
+      ${option.fits ? `<button type="button" class="transport-select-button" data-action="select-transport-vehicle" data-id="${esc(option.vehicleClass)}">${t.vehicleClass === option.vehicleClass ? 'Selected' : 'Choose this vehicle'}</button>` : `<p class="transport-vehicle-reason">${esc(option.reasons.join(' · '))}${option.suggestTwoVehicles ? ' — consider two vehicles, or choose a Minibus.' : ''}</p>`}
     </div>`).join('')}</div>
   <button class="outline-button full" style="margin-top:14px" type="button" data-action="transport-back-step" data-value="0">Edit trip details</button>`;
 }
