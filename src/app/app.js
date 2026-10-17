@@ -1177,7 +1177,7 @@ export function startApp() {
       const [experienceId, packageId] = form.elements.package.value.split(':');
       const [hour, minute] = form.elements.time.value.split(':').map(Number);
       const time = `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
-      const offer = createTripOffering(activeGuide().id, { experienceId, packageId, date: form.elements.date.value, time, mode: form.elements.mode.value, minGuests: form.elements.minGuests.value, maxGuests: form.elements.maxGuests.value, price: form.elements.price.value, coGuideIds: [...form.querySelectorAll('input[name="coGuideIds"]:checked')].map((input) => input.value) });
+      const offer = createTripOffering(activeGuide().id, { experienceId, packageId, date: form.elements.date.value, time, mode: form.elements.mode.value, minGuests: form.elements.minGuests.value, maxGuests: form.elements.maxGuests.value, price: form.elements.price.value, meetingPoint: form.elements['meetingPoint']?.value, includes: form.elements['includes']?.value, itinerary: form.elements['itinerary']?.value, coGuideIds: [...form.querySelectorAll('input[name="coGuideIds"]:checked')].map((input) => input.value) });
       announce(offer ? 'Departure submitted for demo admin review' : 'Check the date, group size and guide team capacity');
       return;
     }
