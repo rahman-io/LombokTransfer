@@ -16,9 +16,9 @@
   display: grid;
   gap: 7px;
   padding: 10px;
-  border: 1px solid #d5e2ef;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .shared-meeting-point>strong {
@@ -59,9 +59,9 @@
   width: 100%;
   min-height: 38px;
   padding: 8px 10px;
-  border: 1px solid #cbd8e6;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--navy);
   font: inherit;
   font-size: 11px;
@@ -77,9 +77,9 @@
 .chat-booking-info {
   flex: none;
   margin: 0 17px 8px;
-  border: 1px solid #d8e4f1;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f4f8fc;
+  background: var(--surface-subtle);
   color: var(--navy);
   overflow: hidden;
 }
@@ -136,9 +136,9 @@
 .chat-booking-info-control {
   min-height: 32px;
   padding: 6px 9px;
-  border: 1px solid #b8a6e9;
+  border: 1px solid var(--accent-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   font-size: 11px;
 }
 
