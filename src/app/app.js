@@ -22,8 +22,8 @@ import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBooki
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
-import { transportLandingView, transportWizardView, transportTicketView } from '../features/transport/view.js';
-import { quoteTransport, ferryPickupEstimate, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
+import { transportLandingView, transportWizardView, transportTicketView, transportFerryEstimateBanner } from '../features/transport/view.js';
+import { quoteTransport, ferryPickupEstimate, ferryArrivalCheck, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
 import { transportDriverById } from '../features/transport/data.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
 import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
@@ -1155,6 +1155,18 @@ export function startApp() {
         const input = field.querySelector('input,select');
         if (input) input.required = visible;
       });
+    }
+    if (event.target.closest('#transport-step-2-form') && ['ferryRouteId', 'ferryDepDate', 'ferryDepTime'].includes(event.target.name)) {
+      const form = event.target.closest('form');
+      const routeId = form.elements.ferryRouteId?.value;
+      const date = form.elements.ferryDepDate?.value;
+      const time = form.elements.ferryDepTime?.value;
+      const banner = document.getElementById('transport-ferry-estimate');
+      if (banner && routeId && date && time) {
+        const check = ferryArrivalCheck(routeId, witaToIso(date, time));
+        banner.hidden = !check?.overnight;
+        banner.innerHTML = transportFerryEstimateBanner(check);
+      }
     }
     if (event.target.id === 'social-photo-input' && event.target.files?.length) {
       Promise.all([...event.target.files].slice(0, 10).map((file) => prepareSocialPhoto(file))).then((dataUrls) => { socialDraft.media = dataUrls.map((dataUrl) => ({ imageKey: null, localImage: dataUrl })); socialDraft.localImage = dataUrls[0] || null; socialDraft.imageKey = null; render(); }).catch((error) => announce(error.message));

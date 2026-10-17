@@ -153,6 +153,14 @@ export function ferryPickupEstimate(routeId, departureAt) {
   return { etaMinAt: new Date(departure + route.crossingMinMin * 60000).toISOString(), etaMaxAt: new Date(departure + route.crossingMinMax * 60000).toISOString() };
 }
 
+// Flags when the estimated docking time falls on a different WITA calendar day than the
+// departure, so the ferry step can warn the customer their actual arrival day is the next day.
+export function ferryArrivalCheck(routeId, departureAt) {
+  const estimate = ferryPickupEstimate(routeId, departureAt);
+  if (!estimate) return null;
+  return { ...estimate, overnight: witaDate(estimate.etaMinAt) !== witaDate(departureAt) };
+}
+
 export function createTransportOrder(input) {
   const { destinationLocationId, pickupAt, vehicleClassCode, passengers, luggageUnits = 0, childSeats = 0, needsRoofRack = false, ferry = null, meetingPointId, notes = '', paymentMethod, customerEmail, customerName, customerPhone } = input;
   const location = transportLocationById(destinationLocationId);

@@ -16,7 +16,7 @@ import {
 } from './data.js';
 import {
   TRANSPORT_STATUS_LABELS, TRANSPORT_FREE_WAITING_MINUTES, transportStatusTone,
-  transportOrderByCode, transportCancellationPreview,
+  transportOrderByCode, transportCancellationPreview, ferryArrivalCheck, witaToIso,
 } from './repository.js';
 
 const esc = escapeHtml;
@@ -86,15 +86,25 @@ function transportStepVehicles(t) {
   <button class="outline-button full" style="margin-top:14px" type="button" data-action="transport-back-step" data-value="0">Edit trip details</button>`;
 }
 
+export function transportFerryEstimateBanner(check) {
+  if (!check?.overnight) return '';
+  return `<strong>Overnight crossing — arrives the next day. Please confirm your arrival date.</strong><br />Arrival date: <b>${witaDateLabel(check.etaMinAt)}</b> · Estimated docking: <b>${witaTimeLabel(check.etaMinAt)}–${witaTimeLabel(check.etaMaxAt)} WITA</b>`;
+}
+
 function transportStepFerry(t) {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const ferryDate = t.ferryDepDate || t.date || tomorrow;
+  const ferryTime = t.ferryDepTime || '23:00';
+  const routeId = t.ferryRouteId || transportFerryRoutes[0]?.id;
+  const check = routeId ? ferryArrivalCheck(routeId, witaToIso(ferryDate, ferryTime)) : null;
   return `<form id="transport-step-2-form" class="transport-form">
     <div class="transport-alert">Tell us your ferry crossing so we can confirm the exact pickup time and re-check your fare for any night surcharge.</div>
     <label>Ferry route<select name="ferryRouteId" required>${transportFerryRoutes.map((route) => `<option value="${route.id}" ${String(t.ferryRouteId || '') === String(route.id) ? 'selected' : ''}>${esc(route.name)} · ${esc(route.operator)}</option>`).join('')}</select></label>
     <div class="transport-field-row">
-      <label>Departure date<input type="date" name="ferryDepDate" value="${esc(t.ferryDepDate || t.date || tomorrow)}" required /></label>
-      <label>Departure time<input type="time" name="ferryDepTime" value="${esc(t.ferryDepTime || '23:00')}" required /></label>
+      <label>Departure date<input type="date" name="ferryDepDate" value="${esc(ferryDate)}" required /></label>
+      <label>Departure time<input type="time" name="ferryDepTime" value="${esc(ferryTime)}" required /></label>
     </div>
+    <div class="transport-alert transport-alert-warn" id="transport-ferry-estimate"${check?.overnight ? '' : ' hidden'}>${transportFerryEstimateBanner(check)}</div>
     <label>Meeting point at Lembar Port<select name="meetingPointId">${transportMeetingPoints.map((point) => `<option value="${point.id}" ${String(t.meetingPointId || '') === String(point.id) ? 'selected' : ''}>${esc(point.name)}</option>`).join('')}</select></label>
     <button class="primary-button full" type="submit">Confirm ferry & continue</button>
   </form>
