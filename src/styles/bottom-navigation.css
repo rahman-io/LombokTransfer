@@ -1,5 +1,6 @@
 :root {
   --bottom-navigation-space: calc(150px + env(safe-area-inset-bottom));
+  --bottom-navigation-cta-space: calc(134px + env(safe-area-inset-bottom));
 }
 
 .bottom-nav {
@@ -105,7 +106,7 @@
 }
 
 .app-shell:has(> .bottom-nav) > .detail-cta {
-  bottom: var(--bottom-navigation-space);
+  bottom: var(--bottom-navigation-cta-space);
 }
 
 .app-shell:has(> .bottom-nav) .floating-map {
