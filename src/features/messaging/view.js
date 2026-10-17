@@ -174,7 +174,7 @@ export function inboxView() { return notificationsView(); }
 export function chatInboxView() {
   const threads = visibleChatThreads();
   return mainLayout(`
-    <div class="page-pad inbox-page"><div class="inbox-top"><button class="icon-button" data-action="back">${icon('arrow')}</button><h1>Chat</h1><a class="icon-button" href="#/inbox" aria-label="Notifications">${icon('bell')}</a></div>
+    <div class="page-pad inbox-page"><div class="inbox-top"><span></span><h1>Chat</h1><a class="icon-button" href="#/inbox" aria-label="Notifications">${icon('bell')}</a></div>
       ${threads.length ? `<section class="inbox-section"><h2>Your conversations</h2>${threads.map(chatRow).join('')}</section>` : '<div class="empty-state"><h2>No conversations yet</h2><p>Your private and public travel chats will appear here.</p><a class="primary-button" href="#/">Discover experiences</a></div>'}
     </div>
   `, 'Chat', { className: 'inbox-shell' });
