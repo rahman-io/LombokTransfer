@@ -65,6 +65,7 @@
 .transport-vehicle-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left}
 .transport-vehicle-card.selected{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-shadow)}
 .transport-vehicle-card.unavailable{background:var(--surface-subtle);opacity:.75}
+.transport-vehicle-img{display:block;width:100%;max-height:140px;object-fit:contain;margin-bottom:10px}
 .transport-vehicle-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .transport-vehicle-top strong{font-size:14px}
 .transport-vehicle-top small{display:block;margin-top:2px;color:var(--muted);font-size:11px}

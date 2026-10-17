@@ -8,10 +8,10 @@
 // style rather than copied as a literal UI.
 
 export const transportVehicleClasses = [
-  { code: 'mpv_standard', name: 'Standard MPV', exampleVehicles: 'Avanza, Xenia, Ertiga', maxPassengers: 4, maxLuggage: 3, sortOrder: 1 },
-  { code: 'mpv_premium', name: 'Premium MPV', exampleVehicles: 'Innova Reborn, Innova Zenix', maxPassengers: 5, maxLuggage: 4, sortOrder: 2 },
-  { code: 'minibus_12', name: 'Minibus 12 seats', exampleVehicles: 'Hiace Commuter, Elf short', maxPassengers: 12, maxLuggage: 12, sortOrder: 3 },
-  { code: 'minibus_16', name: 'Minibus 16 seats', exampleVehicles: 'Hiace Premio, Elf long', maxPassengers: 16, maxLuggage: 14, sortOrder: 4 },
+  { code: 'mpv_standard', name: 'Standard MPV', exampleVehicles: 'Avanza, Xenia, Ertiga', maxPassengers: 4, maxLuggage: 3, sortOrder: 1, image: '/images/vehicle-mpv.webp' },
+  { code: 'mpv_premium', name: 'Premium MPV', exampleVehicles: 'Innova Reborn, Innova Zenix', maxPassengers: 5, maxLuggage: 4, sortOrder: 2, image: '/images/vehicle-mpv.webp' },
+  { code: 'minibus_12', name: 'Minibus 12 seats', exampleVehicles: 'Hiace Commuter, Elf short', maxPassengers: 12, maxLuggage: 12, sortOrder: 3, image: '/images/vehicle-minibus.webp' },
+  { code: 'minibus_16', name: 'Minibus 16 seats', exampleVehicles: 'Hiace Premio, Elf long', maxPassengers: 16, maxLuggage: 14, sortOrder: 4, image: '/images/vehicle-minibus.webp' },
 ];
 
 export const transportZones = [
