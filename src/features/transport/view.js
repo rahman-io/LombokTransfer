@@ -119,10 +119,21 @@ function transportStepPayment(t) {
   <form id="transport-step-3-form" class="transport-form">
     <label>Contact name<input type="text" name="customerName" value="${esc(state.guestName)}" maxlength="80" required /></label>
     <label>Contact phone<input type="tel" name="customerPhone" placeholder="+62 812 3456 7890" maxlength="30" required /></label>
-    <label>Payment method
-      <div class="transport-payment-option"><input type="radio" name="paymentMethod" value="cash" id="transport-pm-cash" checked /><span><strong>Cash to driver</strong><small>Pay in Rupiah when you meet your driver</small></span></div>
-      <div class="transport-payment-option"><input type="radio" name="paymentMethod" value="bank_transfer" id="transport-pm-bank" /><span><strong>Bank transfer</strong><small>We'll confirm your order once you've sent the transfer</small></span></div>
-    </label>
+    <div class="transport-payment-group">
+      <span class="transport-payment-group-label">Payment method</span>
+      <label class="transport-payment-option">
+        <input type="radio" name="paymentMethod" value="cash" checked />
+        <span class="transport-payment-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 10h.01M18 14h.01"/></svg></span>
+        <span class="transport-payment-copy"><strong>Cash to driver</strong><small>Pay in Rupiah when you meet your driver</small></span>
+        <span class="transport-payment-check">${icon('check', 14)}</span>
+      </label>
+      <label class="transport-payment-option">
+        <input type="radio" name="paymentMethod" value="bank_transfer" />
+        <span class="transport-payment-icon">${icon('credit', 22)}</span>
+        <span class="transport-payment-copy"><strong>Bank transfer</strong><small>We'll confirm your order once you've sent the transfer</small></span>
+        <span class="transport-payment-check">${icon('check', 14)}</span>
+      </label>
+    </div>
     <label>Notes for your driver (optional)<textarea name="notes" maxlength="500" placeholder="Flight number, extra stop, etc."></textarea></label>
     <button class="primary-button full" type="submit">Confirm transfer · ${money(t.vehicleTotal)}</button>
   </form>
