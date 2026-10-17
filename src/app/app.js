@@ -22,6 +22,8 @@ import { trackExperienceView, trackSearch, trackWishlistChange, trackSocialBooki
 import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
+import { transportLandingView, transportWizardView, transportTicketView } from '../features/transport/view.js';
+import { quoteTransport, ferryPickupEstimate, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
 import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
@@ -29,7 +31,7 @@ import { markInboxItemRead } from '../features/inbox/repository.js';
 import { claimTravelMission } from '../features/travel-intelligence/repository.js';
 import { escapeHtml } from '../utils/html.js';
 import QRCode from 'qrcode';
-import { refreshExchangeRates } from '../services/currency.js';
+import { refreshExchangeRates, formatCurrency } from '../services/currency.js';
 import { refreshDetailWeather } from '../services/weather.js';
 
 const root = document.getElementById('app');
@@ -175,7 +177,10 @@ function currentView() {
   if (path === '/map') return mapView(params.get('city') || 'Lombok');
   if (path === '/wishlist') return wishlistView();
   if (path === '/wishlist/favourites') return favouritesView();
-  if (path === '/bookings') return travelerBookingsView(params.get('tab'));
+  if (path === '/bookings') return travelerBookingsView(params.get('tab'), params.get('category') || 'all');
+  if (path === '/transport') return transportLandingView();
+  if (path === '/transport/book') return transportWizardView();
+  if (path.startsWith('/transport/orders/')) return transportTicketView(path.split('/')[3]);
   if (/^\/bookings\/[^/]+\/safety$/.test(path)) return bookingSafetyView(path.split('/')[2]);
   if (path.startsWith('/bookings/')) return travelerBookingDetailView(path.split('/')[2]);
   if (path === '/guide') return guideDashboardView().replace('<div class="guide-dashboard-links">', '<div class="guide-dashboard-links"><a href="#/guide/offers">Dated trip offerings →</a><a href="#/guide/assignments">Team assignments →</a>');
@@ -500,6 +505,28 @@ function clickAction(action, el) {
     case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value, selectedOfferId: '' }); render(); break;
     case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); navigate(`/experience/${encodeURIComponent(offer.experienceId)}/guides/${encodeURIComponent(id)}`); break; }
     case 'set-trip-price-filter': update({ tripPriceFilter: value }); render(); break;
+    case 'select-transport-vehicle': {
+      const option = state.transport?.quote?.options.find((entry) => entry.vehicleClass === id);
+      if (!option || !option.fits) { announce('This vehicle is not available for your party'); break; }
+      state.transport.vehicleClass = option.vehicleClass;
+      state.transport.vehicleTotal = option.total;
+      state.transport.vehiclePriceBreakdown = option.priceBreakdown;
+      state.transport.priceUpdated = false;
+      state.transport.step = state.transport.useFerry ? 2 : 3;
+      render();
+      break;
+    }
+    case 'transport-back-step': state.transport.step = Number(value); render(); break;
+    case 'mark-transport-docked': { const result = markTransportDocked(id); if (result.error) announce(result.error); else { announce('Docked confirmed. Free waiting time has started.'); render(); } break; }
+    case 'confirm-transport-payment': { const result = submitTransportPaymentProof(id); if (result.error) announce(result.error); else { announce('Payment confirmed — a driver has been assigned.'); render(); } break; }
+    case 'cancel-transport-order': {
+      const order = transportOrderByCode(id);
+      if (!order) break;
+      const preview = transportCancellationPreview(order);
+      state.confirmAction = { type: 'cancel-transport-order', id, message: preview.fee > 0 ? `Cancel this transfer? A cancellation fee of ${formatCurrency(preview.fee, 'IDR')} (${preview.feePercent}%) applies.` : 'Cancel this transfer? No cancellation fee applies.' };
+      openModal('confirm-action');
+      break;
+    }
     case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
     case 'guide-request-accept':
     case 'guide-request-decline': { const status = action === 'guide-request-accept' ? 'accepted' : 'declined'; if (updateGuideRequest(id, activeGuide().id, status)) announce(`Request ${status}`); else announce('Unable to update this request'); break; }
@@ -658,6 +685,7 @@ function clickAction(action, el) {
       else if (confirmation?.type === 'booking-change-decision') { if (respondBookingChange(confirmation.id, activeBookingActor(), true)) { bookingChatSystemUpdate(confirmation.id, 'A proposed trip change was accepted.'); announce('Trip detail updated'); render(); } else announce('This change cannot be accepted'); }
       else if (confirmation?.type === 'shared-trip-complete') { if (finishSharedTrip(confirmation.offerId, activeBookingActor())) { sharedTripSystemUpdate(confirmation.offerId, 'The guide marked the shared trip work complete. Each traveler should confirm completion in their Safety Center.'); announce('Waiting for traveler completion confirmations'); } else announce('All paid travelers must confirm the trip started, and safety reports must be resolved first'); }
       else if (confirmation?.type === 'social-delete' && deleteSocialPost(confirmation.id)) navigate('/social');
+      else if (confirmation?.type === 'cancel-transport-order') { const result = cancelTransportOrder(confirmation.id); if (result.error) announce(result.error); else { announce('Transfer cancelled.'); render(); } }
       else render();
       break;
     }
@@ -1231,6 +1259,69 @@ export function startApp() {
       const postId = route().path.split('/')[3];
       const { caption, location } = event.target.elements;
       if (editSocialPost(postId, { caption: caption.value, location: location.value })) navigate(`/social/post/${encodeURIComponent(postId)}`);
+    }
+    if (event.target.id === 'transport-step-0-form') {
+      event.preventDefault();
+      const form = event.target;
+      const destinationLocationId = form.elements.destinationLocationId.value;
+      const date = form.elements.date.value;
+      const time = form.elements.time.value;
+      const passengers = Number(form.elements.passengers.value) || 1;
+      const luggageUnits = Number(form.elements.luggageUnits.value) || 0;
+      const childSeats = Number(form.elements.childSeats.value) || 0;
+      const needsRoofRack = form.elements.needsRoofRack.checked;
+      const useFerry = form.elements.useFerry.checked;
+      const pickupAt = witaToIso(date, time);
+      const quote = quoteTransport({ destinationLocationId, pickupAt, passengers, luggageUnits, childSeats, needsRoofRack });
+      if (!quote) { announce('Choose a valid destination to continue'); return; }
+      state.transport = { ...state.transport, destLocationId: destinationLocationId, date, time, pax: passengers, luggage: luggageUnits, childSeats, roofRack: needsRoofRack, useFerry, pickupAt, quote, vehicleClass: '', vehicleTotal: 0, vehiclePriceBreakdown: null, priceUpdated: false, ferry: null, step: 1 };
+      render();
+      return;
+    }
+    if (event.target.id === 'transport-step-2-form') {
+      event.preventDefault();
+      const form = event.target;
+      const t = state.transport;
+      const ferryRouteId = Number(form.elements.ferryRouteId.value);
+      const ferryDepDate = form.elements.ferryDepDate.value;
+      const ferryDepTime = form.elements.ferryDepTime.value;
+      const meetingPointId = Number(form.elements.meetingPointId.value);
+      const departureAt = witaToIso(ferryDepDate, ferryDepTime);
+      const estimate = ferryPickupEstimate(ferryRouteId, departureAt);
+      if (!estimate) { announce('Choose a ferry route to continue'); return; }
+      const pickupAt = estimate.etaMaxAt;
+      const requote = quoteTransport({ destinationLocationId: t.destLocationId, pickupAt, passengers: t.pax, luggageUnits: t.luggage, childSeats: t.childSeats, needsRoofRack: t.roofRack });
+      const matched = requote?.options.find((entry) => entry.vehicleClass === t.vehicleClass);
+      const priceUpdated = Boolean(matched && matched.total !== t.vehicleTotal);
+      state.transport = { ...t, ferryRouteId, ferryDepDate, ferryDepTime, meetingPointId, pickupAt, ferry: { routeId: ferryRouteId, departureAt, etaMinAt: estimate.etaMinAt, etaMaxAt: estimate.etaMaxAt }, quote: requote || t.quote, vehicleTotal: matched ? matched.total : t.vehicleTotal, vehiclePriceBreakdown: matched ? matched.priceBreakdown : t.vehiclePriceBreakdown, priceUpdated, step: 3 };
+      render();
+      return;
+    }
+    if (event.target.id === 'transport-step-3-form') {
+      event.preventDefault();
+      const form = event.target;
+      const t = state.transport;
+      const customerName = form.elements.customerName.value.trim();
+      const customerPhone = form.elements.customerPhone.value.trim();
+      const paymentMethod = form.elements.paymentMethod.value;
+      const notes = form.elements.notes.value.trim();
+      const result = createTransportOrder({ destinationLocationId: t.destLocationId, pickupAt: t.pickupAt, vehicleClassCode: t.vehicleClass, passengers: t.pax, luggageUnits: t.luggage, childSeats: t.childSeats, needsRoofRack: t.roofRack, ferry: t.ferry, meetingPointId: t.meetingPointId, notes, paymentMethod, customerEmail: state.email, customerName, customerPhone });
+      if (result.error) { announce(result.error); return; }
+      update({ guestName: customerName || state.guestName });
+      state.transport = { step: 0, destLocationId: '', date: '', time: '05:30', pax: 2, luggage: 2, childSeats: 0, roofRack: false, vehicleClass: '', quote: null, useFerry: true, ferryRouteId: '', ferryDepDate: '', ferryDepTime: '23:00', pickupAt: null, ferry: null, meetingPointId: '', vehicleTotal: 0, vehiclePriceBreakdown: null, priceUpdated: false };
+      announce('Transfer booked');
+      navigate(`/transport/orders/${encodeURIComponent(result.order.bookingId)}`);
+      return;
+    }
+    if (event.target.matches?.('.transport-rate-form')) {
+      event.preventDefault();
+      const form = event.target;
+      const code = form.dataset.orderCode;
+      const score = Number(form.elements.score.value);
+      const comment = form.elements.comment.value;
+      const result = rateTransportOrder(code, score, comment);
+      if (result.error) announce(result.error); else { announce('Thanks for rating your transfer'); render(); }
+      return;
     }
     if (event.target.id === 'chat-photo-input') return;
   });

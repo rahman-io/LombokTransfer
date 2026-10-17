@@ -7,6 +7,8 @@ import { state } from '../../app/store.js';
 import { activeSocialUser, socialUser } from '../social/repository.js';
 import { activeGuide, bookingQrPayload, filterTripOfferingsByPrice, financeBreakdown, financeConfig, financeSummary, guideById, guideRatingSummary, guideDemoData, packagePrice, priceSplit, publicTripOfferings, requestDateRange, sharedTripReady, tripModeLabel, tripOfferingAvailability, tripOfferingQuote } from './repository.js';
 import { formatCurrency } from '../../services/currency.js';
+import { transportOrders } from '../transport/repository.js';
+import { transportBookingListCard } from '../transport/view.js';
 
 const esc = escapeHtml;
 const money = (amount) => formatCurrency(amount, 'IDR');
@@ -106,11 +108,24 @@ function travelerBookingListCard(request) {
   return `<a class="traveler-booking-card${closed ? ' is-closed' : ''}" href="#/bookings/${encodeURIComponent(request.id)}" aria-label="View booking ${esc(request.bookingId || request.id)}: ${esc(title)}, ${esc(label)}"><span class="traveler-booking-card-top"><span>Booking status</span><span>${esc(request.bookingId || request.id)}</span></span><span class="traveler-booking-card-main"><span class="traveler-booking-card-icon">${icon('tickets', 27)}</span><span class="traveler-booking-card-copy"><strong>${esc(title)}</strong><span>${esc(date)} · ${esc(item?.city || 'Destination')}</span><em>${esc(label)}</em></span></span><span class="traveler-booking-progress" role="progressbar" aria-label="Booking progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span><span class="traveler-booking-card-bottom"><span>View booking details</span><span class="traveler-booking-card-arrow">${icon('chevron', 18)}</span></span></a>`;
 }
 
-export function travelerBookingsView(tab = 'active') {
-  const requests = guideDemoData().requests.filter((request) => request.travelerEmail === state.email.toLowerCase());
+export function travelerBookingsView(tab = 'active', category = 'all') {
+  const guideRequests = guideDemoData().requests.filter((request) => request.travelerEmail === state.email.toLowerCase());
+  const transportOrdersList = transportOrders(state.email);
   const history = tab === 'history';
-  const visible = requests.filter((request) => (request.status === 'completed' || ['declined', 'cancelled'].includes(request.status) || request.paymentStatus === 'refunded') === history);
-  return mainLayout(`<header class="screen-header traveler-bookings-header"><strong class="screen-header-title"><span class="screen-header-brand">FMG</span><span>Bookings</span></strong></header><div class="page-pad guide-bookings traveler-bookings-list"><nav class="traveler-bookings-tabs" aria-label="Booking lists"><a href="#/bookings" class="${history ? '' : 'active'}" ${history ? '' : 'aria-current="page"'}>Active</a><a href="#/bookings?tab=history" class="${history ? 'active' : ''}" ${history ? 'aria-current="page"' : ''}>History</a></nav>${visible.length ? `<div class="traveler-booking-cards">${visible.map(travelerBookingListCard).join('')}</div>` : `<div class="guide-empty"><h2>${history ? 'No past bookings yet' : 'No active bookings yet'}</h2><p>${history ? 'Completed and cancelled trips will appear here.' : 'Choose a package and approved departure to send your first request.'}</p>${history ? '' : '<a class="primary-button" href="#/">Explore experiences</a>'}</div>`}</div>`, 'Bookings');
+  const closedGuide = (request) => request.status === 'completed' || ['declined', 'cancelled'].includes(request.status) || request.paymentStatus === 'refunded';
+  const closedTransport = (order) => ['completed', 'cancelled', 'expired', 'no_show'].includes(order.status);
+  const visibleGuide = guideRequests.filter((request) => closedGuide(request) === history);
+  const visibleTransport = transportOrdersList.filter((order) => closedTransport(order) === history);
+  const showGuide = category !== 'transport';
+  const showTransport = category !== 'guides';
+  const visibleCount = (showGuide ? visibleGuide.length : 0) + (showTransport ? visibleTransport.length : 0);
+  const cards = `${showGuide ? visibleGuide.map(travelerBookingListCard).join('') : ''}${showTransport ? visibleTransport.map(transportBookingListCard).join('') : ''}`;
+  const tabQuery = history ? '?tab=history' : '';
+  const categoryHref = (value) => `#/bookings${tabQuery}${value === 'all' ? '' : `${tabQuery ? '&' : '?'}category=${value}`}`;
+  const categoryTab = (value, label) => `<a href="${categoryHref(value)}" class="${category === value ? 'active' : ''}" ${category === value ? 'aria-current="page"' : ''}>${label}</a>`;
+  const categoryNav = `<nav class="traveler-bookings-tabs" aria-label="Booking category">${categoryTab('all', 'All')}${categoryTab('guides', 'Guides')}${categoryTab('transport', 'Transport')}</nav>`;
+  const emptyAction = history ? '' : category === 'transport' ? '<a class="primary-button" href="#/transport/book">Book a transfer</a>' : '<a class="primary-button" href="#/">Explore experiences</a>';
+  return mainLayout(`<header class="screen-header traveler-bookings-header"><strong class="screen-header-title"><span class="screen-header-brand">FMG</span><span>Bookings</span></strong></header><div class="page-pad guide-bookings traveler-bookings-list"><nav class="traveler-bookings-tabs" aria-label="Booking lists"><a href="#/bookings" class="${history ? '' : 'active'}" ${history ? '' : 'aria-current="page"'}>Active</a><a href="#/bookings?tab=history" class="${history ? 'active' : ''}" ${history ? 'aria-current="page"' : ''}>History</a></nav>${categoryNav}${visibleCount ? `<div class="traveler-booking-cards">${cards}</div>` : `<div class="guide-empty"><h2>${history ? 'No past bookings yet' : 'No active bookings yet'}</h2><p>${history ? 'Completed and cancelled trips will appear here.' : 'Choose a package and approved departure, or book a transfer, to see it here.'}</p>${emptyAction}</div>`}</div>`, 'Bookings');
 }
 
 export function guideDashboardView() {

@@ -52,6 +52,7 @@ export const state = {
   chatCollectionKind: '',
   chatGalleryThreadId: '',
   chatGalleryIndex: 0,
+  transport: { step: 0, destLocationId: '', date: '', time: '05:30', pax: 2, luggage: 2, childSeats: 0, roofRack: false, vehicleClass: '', quote: null, useFerry: true, ferryRouteId: '', ferryDepDate: '', ferryDepTime: '23:00', pickupAt: null, ferry: null, meetingPointId: '', vehicleTotal: 0, vehiclePriceBreakdown: null, priceUpdated: false },
 };
 
 export function update(patch) {
