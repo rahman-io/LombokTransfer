@@ -1,12 +1,13 @@
 import { activityFilters, attractions, destinations, getExperiencesByCity, getExperiencesMatchingQuery, getPopularExperiences } from '../experiences/data.js';
-import { mapActivities, mapDestinations } from './map-data.js';
+import { inBounds, mapActivities, mapDestinations } from './map-data.js';
+import { experienceMapCoordinates } from '../experiences/firebase-documents.js';
 import { experienceCard } from '../../components/cards.js';
 import { icon } from '../../components/icons.js';
 import { mainLayout } from '../../layouts/MainLayout.js';
 import { header } from '../../components/Header.js';
 import { escapeHtml } from '../../utils/html.js';
 import { state } from '../../app/store.js';
-import { publicStartingPackagePrice } from '../guides/repository.js';
+import { approvedExperienceLabel, publicStartingPackagePrice } from '../guides/repository.js';
 
 function matchesActivityFilter(item, filter) {
   if (!filter || filter === 'All') return true;
@@ -54,8 +55,14 @@ export function mapView(city = 'Lombok') {
   const destination = Object.keys(mapDestinations).find((name) => name.toLowerCase() === city.toLowerCase());
   if (!destination) return mainLayout(`${header('Map')}<div class="empty-state"><h2>Map unavailable for this destination</h2><p>Choose a supported destination to explore its map.</p><a class="outline-button" href="#/search">Choose destination</a></div>`, 'Discover');
   const config = mapDestinations[destination];
-  const mapItems = getExperiencesByCity(destination).filter((item) => mapActivities[item.id]);
-  const points = mapItems.map((item) => ({ id: item.id, title: item.title, city: item.city, price: item.price, listedPrice: item.listedPrice, listedPriceCurrency: item.listedPriceCurrency, displayPrice: item.packageOptions?.length ? approvedExperienceLabel(item) : null, ...mapActivities[item.id] }));
+  const mapItems = getExperiencesByCity(destination).filter((item) => mapActivities[item.id] || experienceMapCoordinates(item));
+  const points = mapItems.map((item) => {
+    const curated = mapActivities[item.id];
+    const coordinates = curated?.coordinates || experienceMapCoordinates(item);
+    const area = curated?.area || config.areas.find((entry) => inBounds(coordinates, entry.bounds))?.id;
+    const category = curated?.category || (item.packageOptions?.length ? 'tour' : 'ticket');
+    return { id: item.id, title: item.title, city: item.city, price: item.price, listedPrice: item.listedPrice, listedPriceCurrency: item.listedPriceCurrency, displayPrice: item.packageOptions?.length ? approvedExperienceLabel(item) : null, coordinates, area, category };
+  });
   return mainLayout(`
     <div class="map-controls">
       <div class="map-toolbar"><button class="round-white" data-action="back" aria-label="Close map">${icon('close', 22)}</button><a href="#/search" class="map-search">${icon('search', 19)}<span><strong>${escapeHtml(destination)}</strong><small>Change destination</small></span></a></div>

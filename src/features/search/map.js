@@ -31,7 +31,10 @@ export function createDiscoverMap(root) {
   const selectedArea = () => config.areas.find((entry) => entry.id === area);
   const popup = (item) => `<div class="map-popup"><strong>${escapeHtml(item.title || item.name)}</strong><small>${item.type ? (item.type === 'hotel' ? 'Hotel' : 'Restaurant') : `${escapeHtml(item.city)} · From ${escapeHtml(item.displayPrice || formatListedPrice(item))}`}</small><small>${distance(item.coordinates) || 'Use My location to see distance'}${position ? ' · straight-line estimate' : ''}</small>${item.type ? '' : `<a href="#/experience/${encodeURIComponent(item.id)}">View activity</a>`}</div>`;
   const markerIcon = (type, text) => {
-    const size = type === 'activity' ? [44, 32] : type === 'cluster' ? [30, 30] : [24, 24];
+    if (type === 'activity') {
+      return L.divIcon({ className: 'map-pin map-pin-activity', html: `<span class="map-pin-badge">${escapeHtml(text)}</span>`, iconSize: [0, 0], iconAnchor: [0, 0], popupAnchor: [0, -38] });
+    }
+    const size = type === 'cluster' ? [30, 30] : [24, 24];
     return L.divIcon({ className: `map-pin map-pin-${type}`, html: `<span>${escapeHtml(text)}</span>`, iconSize: size, iconAnchor: [size[0] / 2, size[1]], popupAnchor: [0, -size[1]] });
   };
 

@@ -36,15 +36,23 @@ function createMapLinks(point) {
   };
 }
 
-function suggestedMeetingPoint(item) {
+function matchMeetingPreset(item) {
   const title = String(item.title || '').toLowerCase();
-  const preset = meetingPointPresets[item.id]
+  return meetingPointPresets[item.id]
     || (title.includes('tanjung aan') ? meetingPointPresets['beach-3257784'] : null)
     || (title.includes('selong belanak') ? meetingPointPresets['beach-6894350'] : null)
     || (title.includes('senggigi') ? meetingPointPresets['beach-3268159'] : null)
     || (title.includes('mawun') ? meetingPointPresets['beach-3801497'] : null)
     || (title.includes('pink beach') ? meetingPointPresets['beach-4010189'] : null)
     || (title.includes('gili meno') ? meetingPointPresets['beach-5113207'] : null)
+    || null;
+}
+export function experienceMapCoordinates(item) {
+  const preset = matchMeetingPreset(item);
+  return preset ? [preset.latitude, preset.longitude] : null;
+}
+function suggestedMeetingPoint(item) {
+  const preset = matchMeetingPreset(item)
     || (item.category === 'Waterfall' ? meetingPointPresets['waterfall-1723009'] : null)
     || (item.category === 'Volcano' ? meetingPointPresets['volcano-386938'] : null)
     || (item.category === 'Culture' ? meetingPointPresets['desa-sade'] : null)
