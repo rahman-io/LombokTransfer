@@ -113,6 +113,7 @@ export function guideRatingSummary(guideId) {
   if (!reviews.length) return { average: 0, count: 0 };
   return { average: reviews.reduce((sum, request) => sum + Number(request.review.stars), 0) / reviews.length, count: reviews.length };
 }
+export function offeringById(id) { return read().offerings.find((offer) => offer.id === id) || null; }
 export function bookingSafety(request) {
   return request.safety || { meetingPoint: '', proposal: null, guideStartedAt: null, travelerStartedAt: null, guideEndedAt: null, travelerEndedAt: null, travelerCheckInAt: null, trustedContact: null, reports: [], events: [] };
 }

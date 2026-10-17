@@ -7,7 +7,7 @@ import { experienceCard } from '../../components/cards.js';
 import { escapeHtml } from '../../utils/html.js';
 import { calculateDemoQuote, formatDemoPrice, formatListedPrice, getDemoBooking } from '../experiences/booking-demo.js';
 import { tripOfferingPicker } from '../guides/view.js';
-import { publicStartingPackagePrice, publicTripOfferings, tripModeLabel, tripOfferingQuote } from '../guides/repository.js';
+import { offeringById, publicStartingPackagePrice, publicTripOfferings, tripModeLabel, tripOfferingQuote } from '../guides/repository.js';
 import { toExperienceDocument } from '../experiences/firebase-documents.js';
 import { getDemoReviews } from '../experiences/demo-engagement.js';
 import { socialImage } from '../social/media.js';
@@ -124,4 +124,26 @@ export function experienceView(id, opts = {}) {
     </div>`;
   const footer = '';
   return mainLayout(detail, 'Discover', { className: 'detail-page', overlayHeader, footer });
+}
+
+export function guideOfferView(experienceId, offerId) {
+  const item = getExperience(experienceId);
+  const offer = offeringById(offerId);
+  if (!item || !offer || offer.experienceId !== item.id) return mainLayout(`${header('Guide departure')}<div class="page-pad"><div class="guide-empty"><h2>Departure unavailable</h2><p>This departure is no longer available. Choose another from the marketplace.</p><a class="primary-button" href="#/experience/${encodeURIComponent(experienceId)}/guides">Back to marketplace</a></div></div>`, 'Discover', {});
+  const option = getPackageOption(item, offer.packageId);
+  const document = toExperienceDocument(item, getDemoBooking(item));
+  const meetingPoint = document.meetingPoint;
+  const travelers = state.adults + state.children;
+  const currency = option?.currency || 'IDR';
+  const unitPrice = formatListedPrice({ listedPrice: offer.price, listedPriceCurrency: currency });
+  const total = formatListedPrice({ listedPrice: tripOfferingQuote(offer, travelers) || offer.price, listedPriceCurrency: currency });
+  const dateText = offer.date ? new Date(offer.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date to be confirmed';
+  const meetingMap = meetingPoint?.embedUrl ? `<div class="meeting-map"><iframe title="Suggested meeting area map" src="${escapeHtml(meetingPoint.embedUrl)}" loading="lazy" referrerpolicy="no-referrer"></iframe></div>` : `<div class="meeting-map meeting-map-fallback"><span>${icon('pin', 24)}</span></div>`;
+  const meetingPointSection = meetingPoint ? `<details class="detail-section detail-accordion" data-detail-section="meeting" open><summary><h2>Meeting point</h2>${icon('down')}</summary>${meetingMap}<div class="meeting-point-copy"><strong>${escapeHtml(meetingPoint.name)}</strong><small>${escapeHtml(meetingPoint.address)}</small><p>${escapeHtml(meetingPoint.description)}</p><div class="meeting-point-actions"><button type="button" class="outline-button" data-action="copy-meeting-point" data-value="${escapeHtml(meetingPoint.address)}">Copy address</button><a class="primary-button" href="${escapeHtml(meetingPoint.googleMapUrl)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a></div></div></details>` : '';
+  const includesSection = document.content.includes?.length ? `<details class="detail-section detail-accordion" data-detail-section="includes"><summary><h2>Includes</h2>${icon('down')}</summary><ul class="check-list">${document.content.includes.map((entry) => `<li>${icon('check', 19)} ${escapeHtml(entry)}</li>`).join('')}</ul></details>` : '';
+  const itinerarySection = item.packageItinerary?.length ? `<details class="detail-section detail-accordion open-trip-itinerary" data-detail-section="itinerary"><summary><h2>Itinerary</h2>${icon('down')}</summary>${item.packageItinerary.map((day) => `<article class="open-trip-day"><div class="open-trip-day-heading"><strong>${escapeHtml(day.day)}</strong><h3>${escapeHtml(day.title)}</h3></div><ol>${day.items.map((entry) => `<li><time>${escapeHtml(entry.time)}</time><span>${escapeHtml(entry.text)}</span></li>`).join('')}</ol></article>`).join('')}</details>` : '';
+  const importantSection = `<details class="detail-section detail-accordion" data-detail-section="important" open><summary><h2>Important information</h2>${icon('down')}</summary><h3>What to bring</h3><ul class="bullet-list">${document.content.whatToBring.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('')}</ul><h3>Not allowed</h3><ul class="bullet-list">${document.content.notAllowed.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('')}</ul><h3>Know before you go</h3><p>${escapeHtml(document.content.knowBeforeYouGo)}</p></details>`;
+  const summaryCard = `<article class="option-card"><h3>${escapeHtml(option?.name || item.title)}</h3><div class="option-fact">${icon('tickets', 21)} ${escapeHtml(tripModeLabel(offer.mode))} · ${escapeHtml(unitPrice)} ${offer.priceUnit === 'group' ? 'per group' : 'per person'}</div><div class="option-fact">${icon('calendar', 21)} ${escapeHtml(dateText)}</div><div class="option-fact">${icon('clock', 21)} Starts ${escapeHtml(offer.time)} · ${escapeHtml(option?.duration || item.duration)}</div><div class="option-fact">${icon('user', 21)} Your guide is introduced after booking confirmation</div></article>`;
+  const ctaCard = `<article class="option-card"><strong class="option-price">${escapeHtml(total)}</strong><small>${travelers} traveler${travelers === 1 ? '' : 's'} · ${escapeHtml(tripModeLabel(offer.mode))} · No payment yet</small><a class="primary-button full" href="#/checkout/${encodeURIComponent(item.id)}">Request this departure</a></article>`;
+  return mainLayout(`${header('Guide departure')}<div class="page-pad guide-offer-page"><div class="package-builder-heading"><div><small>GUIDE DEPARTURE</small><h2>Trip details</h2></div></div>${summaryCard}${meetingPointSection}${includesSection}${itinerarySection}${importantSection}${ctaCard}</div>`, 'Discover', {});
 }

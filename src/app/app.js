@@ -9,7 +9,7 @@ import { notificationsView, chatInboxView, chatView } from '../features/messagin
 import { loginView } from '../features/authentication/view.js';
 import { continueWithDemoProvider, demoAuthMode, demoSession, loginTraveler, setDemoSessionUser, signOutDemoAccount, registerTraveler } from '../features/authentication/repository.js';
 import { getInstallState, isInstalledApp, requestInstallation, watchInstallation } from '../features/onboarding/install.js';
-import { experienceView } from '../features/experience-detail/view.js';
+import { experienceView, guideOfferView } from '../features/experience-detail/view.js';
 import { bookingView, checkoutView, cardDetailsView } from '../features/booking/view.js';
 import { attractions, destinations, experiences, getExperience, getExperienceGallery } from '../features/experiences/data.js';
 import { getDemoBooking } from '../features/experiences/booking-demo.js';
@@ -203,6 +203,7 @@ function currentView() {
   if (path.startsWith('/social/edit/')) return socialEditView(path.split('/')[3]);
   if (path.startsWith('/social/user/')) return socialProfileView(path.split('/')[3]);
   if (path.startsWith('/social/post/')) return socialPostView(path.split('/')[3]);
+  if (path.startsWith('/experience/') && path.split('/')[3] === 'guides' && path.split('/')[4]) return guideOfferView(path.split('/')[2], path.split('/')[4]);
   if (path.startsWith('/experience/') && path.endsWith('/guides')) return experienceView(path.split('/')[2], { marketplace: true });
   if (path.startsWith('/experience/')) { const experienceId = path.split('/')[2]; const experience = getExperience(experienceId); trackExperienceView(experienceId, experience); if (params.get('from') === 'vibes') trackSocialBookingOpen(experienceId, experience); return experienceView(experienceId); }
   if (path.startsWith('/booking/')) return bookingView(path.split('/')[2]);
@@ -496,7 +497,7 @@ function clickAction(action, el) {
       break;
     }
     case 'select-package-option': update({ selectedPackageExperienceId: id, selectedPackageOptionId: value, selectedOfferId: '' }); render(); break;
-    case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); render(); break; }
+    case 'select-trip-offer': { const offer = guideDemoData().offerings.find((entry) => entry.id === id); if (!offer || !publicTripOfferings(offer.experienceId, offer.packageId, offer.date, state.adults + state.children).some((entry) => entry.id === id)) { announce('This departure is no longer available'); break; } update({ selectedOfferId: id, selectedPackageExperienceId: offer.experienceId, selectedPackageOptionId: offer.packageId, date: offer.date, selectedTime: offer.time }); navigate(`/experience/${encodeURIComponent(offer.experienceId)}/guides/${encodeURIComponent(id)}`); break; }
     case 'set-trip-price-filter': update({ tripPriceFilter: value }); render(); break;
     case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
     case 'guide-request-accept':
