@@ -563,14 +563,16 @@ function clickAction(action, el) {
       break;
     }
     case 'send-guide-request': {
-      const experienceId = route().path.split('/')[2];
-      const item = getExperience(experienceId);
-      const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : '';
-      const option = item?.packageOptions?.find((entry) => entry.id === packageId) || item?.packageOptions?.[0];
-      const offer = guideDemoData().offerings.find((entry) => entry.id === state.selectedOfferId && entry.experienceId === experienceId && entry.packageId === option?.id && entry.date === state.date);
-      const request = offer && createTripOfferRequest({ offerId: offer.id, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, notes: state.bookingNotes, expectedTotal: el.dataset.total });
-      if (request) { state.bookingNotes = ''; state.checkoutStep = 1; navigate('/bookings'); }
-      else announce('Price or seats changed. Review the departure and try again.');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const experienceId = route().path.split('/')[2];
+        const item = getExperience(experienceId);
+        const packageId = state.selectedPackageExperienceId === experienceId ? state.selectedPackageOptionId : '';
+        const option = item?.packageOptions?.find((entry) => entry.id === packageId) || item?.packageOptions?.[0];
+        const offer = guideDemoData().offerings.find((entry) => entry.id === state.selectedOfferId && entry.experienceId === experienceId && entry.packageId === option?.id && entry.date === state.date);
+        const request = offer && createTripOfferRequest({ offerId: offer.id, adults: state.adults, children: state.children, travelerName: state.guestName, travelerEmail: state.email, notes: state.bookingNotes, expectedTotal: el.dataset.total });
+        if (request) { state.bookingNotes = ''; state.checkoutStep = 1; navigate('/bookings'); }
+        else announce('Price or seats changed. Review the departure and try again.');
+      }));
       break;
     }
     case 'open-dates': openModal('dates'); break;

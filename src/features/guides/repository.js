@@ -61,8 +61,9 @@ function read() {
     if (!data || !Array.isArray(data.guides) || !Array.isArray(data.requests)) return emptyData();
     let migrated = data.schemaVersion !== guideDemoSchemaVersion;
     data.schemaVersion = guideDemoSchemaVersion;
-    if (!Array.isArray(data.offerings)) { data.offerings = seedOfferings(); migrated = true; }
-    const seededPromotions = new Map(seedOfferings().filter((offer) => offer.promotion).map((offer) => [offer.id, offer.promotion]));
+    const freshOfferings = seedOfferings();
+    if (!Array.isArray(data.offerings)) { data.offerings = freshOfferings; migrated = true; }
+    const seededPromotions = new Map(freshOfferings.filter((offer) => offer.promotion).map((offer) => [offer.id, offer.promotion]));
     data.offerings.forEach((offer) => {
       const promotion = seededPromotions.get(offer.id);
       if (promotion && !offer.promotion) { offer.promotion = { ...promotion }; migrated = true; }
@@ -72,7 +73,7 @@ function read() {
       if (offer.mode === 'shared' && offer.sharedMeetingPoint && !offer.sharedMeetingPoint.acknowledgements) { offer.sharedMeetingPoint.acknowledgements = {}; migrated = true; }
     });
     const existingOfferIds = new Set(data.offerings.map((offer) => offer.id));
-    const newDemoOffers = seedOfferings().filter((offer) => offer.id === 'demo-sumbawa-open-trip-3d2n' && !existingOfferIds.has(offer.id));
+    const newDemoOffers = freshOfferings.filter((offer) => offer.id === 'demo-sumbawa-open-trip-3d2n' && !existingOfferIds.has(offer.id));
     if (newDemoOffers.length) { data.offerings.push(...newDemoOffers); migrated = true; }
     const existingGuideIds = new Set(data.guides.map((guide) => guide.id));
     data.guides.push(...seedGuides.filter((guide) => !existingGuideIds.has(guide.id)).map((guide) => ({ ...guide, blockedDates: [...guide.blockedDates], prices: { ...guide.prices }, experienceIds: [...guide.experienceIds], priceAgreements: initialAgreements(guide) })));
