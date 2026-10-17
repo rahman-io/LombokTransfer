@@ -107,7 +107,7 @@ function transportStepPayment(t) {
   const vehicle = transportVehicleClassByCode(t.vehicleClass);
   const location = transportLocationById(t.destLocationId);
   return `${t.priceUpdated ? `<div class="transport-alert transport-alert-warn">Your fare was updated to ${money(t.vehicleTotal)} based on your confirmed ferry arrival time.</div>` : ''}
-  <div class="transport-card">
+  <div class="transport-card" style="margin-bottom:14px">
     <strong>${esc(vehicle?.name || t.vehicleClass)} to ${esc(location?.name || '')}</strong>
     <div class="transport-summary-row"><span>Pickup</span><span>${witaFullLabel(t.pickupAt)}</span></div>
     <div class="transport-summary-row"><span>Passengers</span><span>${t.pax} pax · ${t.luggage} bags${t.childSeats ? ` · ${t.childSeats} child seat${t.childSeats === 1 ? '' : 's'}` : ''}</span></div>
