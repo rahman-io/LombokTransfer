@@ -89,9 +89,12 @@ function transportStepVehicles(t) {
   if (!quote) return transportStepCriteria(t);
   return `<div class="transport-card" style="margin-bottom:14px"><strong>${esc(quote.destination.name)}</strong><br /><small style="color:var(--muted)">${witaFullLabel(quote.pickupAt)} (estimate) · ${t.pax} passenger${t.pax === 1 ? '' : 's'}</small></div>
   <div class="transport-vehicle-list">${quote.options.map((option) => `<div class="transport-vehicle-card ${t.vehicleClass === option.vehicleClass ? 'selected' : ''}${option.fits ? '' : ' unavailable'}">
-      ${transportVehicleClassByCode(option.vehicleClass)?.image ? `<img class="transport-vehicle-img" src="${transportVehicleClassByCode(option.vehicleClass).image}" alt="${esc(option.name)}" />` : ''}<div class="transport-vehicle-top"><div><strong>${esc(option.name)}</strong><small>${esc(option.exampleVehicles)} · up to ${option.maxPassengers} pax, ${option.maxLuggage} bags</small></div><div class="transport-vehicle-price"><strong>${money(option.total)}</strong><small>fixed fare</small></div></div>
+      ${transportVehicleClassByCode(option.vehicleClass)?.image ? `<div class="transport-vehicle-hero"><img class="transport-vehicle-img" src="${transportVehicleClassByCode(option.vehicleClass).image}" alt="${esc(option.name)}" /></div>` : ''}
+      <strong class="transport-vehicle-name">${esc(option.name)}</strong>
+      <small class="transport-vehicle-examples">${esc(option.exampleVehicles)}</small>
+      <div class="transport-vehicle-specs"><span>${option.maxPassengers} passengers</span><span>${option.maxLuggage} bags</span></div>
       ${option.priceBreakdown.surcharges.length ? `<div class="transport-vehicle-meta">${option.priceBreakdown.surcharges.map((surcharge) => `<span class="surcharge">${esc(surcharge.label)}</span>`).join('')}</div>` : ''}
-      ${option.fits ? `<button type="button" class="transport-select-button" data-action="select-transport-vehicle" data-id="${esc(option.vehicleClass)}">${t.vehicleClass === option.vehicleClass ? 'Selected' : 'Choose this vehicle'}</button>` : `<p class="transport-vehicle-reason">${esc(option.reasons.join(' · '))}${option.suggestTwoVehicles ? ' — consider two vehicles, or choose a Minibus.' : ''}</p>`}
+      <div class="transport-vehicle-footer"><div class="transport-vehicle-price"><small>fixed fare</small><strong>${money(option.total)}</strong></div>${option.fits ? `<button type="button" class="transport-select-button" data-action="select-transport-vehicle" data-id="${esc(option.vehicleClass)}">${t.vehicleClass === option.vehicleClass ? 'Selected' : 'Choose this vehicle'}</button>` : `<p class="transport-vehicle-reason">${esc(option.reasons.join(' · '))}${option.suggestTwoVehicles ? ' — consider two vehicles, or choose a Minibus.' : ''}</p>`}</div>
     </div>`).join('')}</div>
   <button class="outline-button full" style="margin-top:14px" type="button" data-action="transport-back-step" data-value="0">Edit trip details</button>`;
 }
