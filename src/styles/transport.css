@@ -13,7 +13,7 @@
 .transport-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 8px 24px #172e4b0d}
 .transport-card+.transport-card{margin-top:14px}
 
-.transport-steps{position:sticky;top:calc(env(safe-area-inset-top) + 68px);z-index:12;background:var(--surface);display:flex;list-style:none;margin:4px 0 22px;padding:0;gap:0}
+.transport-steps{position:sticky;top:calc(env(safe-area-inset-top) + 68px);z-index:12;background:var(--surface);display:flex;list-style:none;margin:0;padding:12px 0 14px;gap:0}
 .transport-steps li{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:10px;font-weight:700;line-height:1.2;text-align:center}
 .transport-steps li.done,.transport-steps li.active{color:var(--navy)}
 .transport-steps li+li::before{content:'';position:absolute;top:14px;right:50%;left:-50%;height:2px;background:var(--line);z-index:0}
