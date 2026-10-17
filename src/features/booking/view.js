@@ -79,7 +79,7 @@ export function checkoutView(id) {
     <p class="muted terms">By continuing, you agree to FindMyGuide's general terms and conditions and your activity provider's terms and conditions.</p>
     <button class="primary-button full" data-action="card-details">${state.paymentMethod === 'card' ? 'Enter card details' : 'Continue'}</button>`;
   return mainLayout(`
-    ${header(selectedPackage ? 'Booking request' : 'Checkout')}<div class="page-pad checkout-page">${selectedPackage ? tripOfferingPicker(item, selectedPackage, state.date, state.adults + state.children, selectedOffer?.id) : progress(step)}
+    ${header(selectedPackage ? 'Booking request' : 'Checkout')}<div class="page-pad checkout-page">${selectedPackage ? '' : progress(step)}
     ${selectedPackage ? '' : '<div class="hold-banner">⏱ We\'ll hold your spot for 19:53 minutes</div>'}${step === 1 ? contact : selectedPackage ? packageReview : payment}</div>
   `, 'Discover', { className: 'checkout-shell' });
 }
