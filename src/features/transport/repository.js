@@ -44,6 +44,19 @@ function witaHour(iso) { return (new Date(iso).getUTCHours() + 8) % 24; }
 function witaDate(iso) { return new Date(new Date(iso).getTime() + 8 * 3600000).toISOString().slice(0, 10); }
 function isTransportHoliday(iso) { return transportHolidayDates.includes(witaDate(iso)); }
 function roundUpTo1000(amount) { return Math.ceil(amount / 1000) * 1000; }
+// Indonesian schedule timezones -> fixed UTC offset. A ferry's departure time is entered in the
+// clock of its origin port, which is not always WITA (e.g. Surabaya/Jakarta are WIB), so the
+// departure must be anchored with the route's own offset, not Lombok's. Unknown values fall back
+// to WITA so a new route with a blank/typo'd timezone still produces a sane (Lombok-local) time.
+const TRANSPORT_TZ_OFFSETS = { WIB: '+07:00', WITA: '+08:00', WIT: '+09:00' };
+function zonedToIso(date, time, timezone) { return new Date(`${date}T${time}:00${TRANSPORT_TZ_OFFSETS[timezone] || '+08:00'}`).toISOString(); }
+// Builds the absolute (ISO) departure instant for a ferry route from the date/time the customer
+// typed, reading the route's scheduleTimezone so WIB/WIT origins are converted correctly.
+export function ferryDepartureToIso(routeId, date, time) {
+  if (!date || !time) return null;
+  const route = transportFerryRouteById(routeId);
+  return zonedToIso(date, time, route?.scheduleTimezone);
+}
 export { witaToIso, witaHour, witaDate };
 
 function bookingIdentity(id, createdAt = '') {

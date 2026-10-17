@@ -16,7 +16,7 @@ import {
 } from './data.js';
 import {
   TRANSPORT_STATUS_LABELS, TRANSPORT_FREE_WAITING_MINUTES, transportStatusTone,
-  transportOrderByCode, transportCancellationPreview, ferryArrivalCheck, witaToIso,
+  transportOrderByCode, transportCancellationPreview, ferryArrivalCheck, ferryDepartureToIso,
 } from './repository.js';
 
 const esc = escapeHtml;
@@ -106,13 +106,14 @@ function transportStepFerry(t) {
   const ferryDate = t.ferryDepDate || t.date || tomorrow;
   const ferryTime = t.ferryDepTime || '23:00';
   const routeId = t.ferryRouteId || transportFerryRoutes[0]?.id;
-  const check = routeId ? ferryArrivalCheck(routeId, witaToIso(ferryDate, ferryTime)) : null;
+  const ferryTz = transportFerryRouteById(routeId)?.scheduleTimezone || 'WITA';
+  const check = routeId ? ferryArrivalCheck(routeId, ferryDepartureToIso(routeId, ferryDate, ferryTime)) : null;
   return `<form id="transport-step-2-form" class="transport-form">
     <div class="transport-alert">Tell us your ferry crossing so we can confirm the exact pickup time and re-check your fare for any night surcharge.</div>
     <label>Ferry route<select name="ferryRouteId" required>${transportFerryRoutes.map((route) => `<option value="${route.id}" ${String(t.ferryRouteId || '') === String(route.id) ? 'selected' : ''}>${esc(route.name)} · ${esc(route.operator)}</option>`).join('')}</select></label>
     <div class="transport-field-row">
       <label>Departure date<input type="date" name="ferryDepDate" value="${esc(ferryDate)}" required /></label>
-      <label>Departure time<input type="time" name="ferryDepTime" value="${esc(ferryTime)}" required /></label>
+      <label><span>Departure time <small class="transport-field-hint">(<span id="transport-ferry-tz">${esc(ferryTz)}</span>)</small></span><input type="time" name="ferryDepTime" value="${esc(ferryTime)}" required /></label>
     </div>
     <div class="transport-alert transport-alert-warn" id="transport-ferry-estimate"${check?.overnight ? '' : ' hidden'}>${transportFerryEstimateBanner(check)}</div>
     <label>Meeting point at Lembar Port<select name="meetingPointId">${transportMeetingPoints.map((point) => `<option value="${point.id}" ${String(t.meetingPointId || '') === String(point.id) ? 'selected' : ''}>${esc(point.name)}</option>`).join('')}</select></label>

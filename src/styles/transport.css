@@ -24,6 +24,7 @@
 .transport-steps li.active .transport-step-label{background-image:var(--ai-gradient);background-clip:text;-webkit-background-clip:text;color:transparent}
 
 .transport-form label{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy)}
+.transport-field-hint{font-weight:400;color:var(--muted)}
 .transport-form input,.transport-form select,.transport-form textarea{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--navy);font-size:14px;font-weight:400}
 .transport-form textarea{min-height:76px;resize:vertical}
 .transport-form .transport-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-size:13px;font-weight:600}

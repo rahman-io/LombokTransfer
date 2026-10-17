@@ -23,8 +23,8 @@ import { tripPlannerView } from '../features/trip-intelligence/view.js';
 import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, guidePackagesView, guidePriceApprovalsView, guideAvailabilityView, guideProfileView, guideApplyView, travelerBookingsView, travelerBookingDetailView } from '../features/guides/view.js';
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { transportLandingView, transportWizardView, transportTicketView, transportFerryEstimateBanner, transportDestinationResultsHtml } from '../features/transport/view.js';
-import { quoteTransport, ferryPickupEstimate, ferryArrivalCheck, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
-import { transportDriverById, transportLocationById } from '../features/transport/data.js';
+import { quoteTransport, ferryPickupEstimate, ferryArrivalCheck, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso, ferryDepartureToIso } from '../features/transport/repository.js';
+import { transportDriverById, transportLocationById, transportFerryRouteById } from '../features/transport/data.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
 import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
@@ -1189,8 +1189,10 @@ export function startApp() {
       const date = form.elements.ferryDepDate?.value;
       const time = form.elements.ferryDepTime?.value;
       const banner = document.getElementById('transport-ferry-estimate');
+      const tzHint = document.getElementById('transport-ferry-tz');
+      if (tzHint && routeId) tzHint.textContent = transportFerryRouteById(routeId)?.scheduleTimezone || 'WITA';
       if (banner && routeId && date && time) {
-        const check = ferryArrivalCheck(routeId, witaToIso(date, time));
+        const check = ferryArrivalCheck(routeId, ferryDepartureToIso(routeId, date, time));
         banner.hidden = !check?.overnight;
         banner.innerHTML = transportFerryEstimateBanner(check);
       }
@@ -1341,7 +1343,7 @@ export function startApp() {
       const ferryDepDate = form.elements.ferryDepDate.value;
       const ferryDepTime = form.elements.ferryDepTime.value;
       const meetingPointId = Number(form.elements.meetingPointId.value);
-      const departureAt = witaToIso(ferryDepDate, ferryDepTime);
+      const departureAt = ferryDepartureToIso(ferryRouteId, ferryDepDate, ferryDepTime);
       const estimate = ferryPickupEstimate(ferryRouteId, departureAt);
       if (!estimate) { announce('Choose a ferry route to continue'); return; }
       const pickupAt = estimate.etaMaxAt;
