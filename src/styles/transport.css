@@ -74,7 +74,6 @@
 .transport-driver-contact{display:flex;align-items:center;gap:12px}
 .transport-driver-contact strong{display:block;font-size:14px}
 .transport-driver-contact small{color:var(--muted);font-size:12px}
-.transport-driver-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
 
 .transport-meeting-copy strong{display:block;margin-bottom:5px;font-size:14px}
 .transport-meeting-copy p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}

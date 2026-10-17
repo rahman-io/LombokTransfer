@@ -1,5 +1,6 @@
 import { demoChatMessages, demoChatThreads } from './data.js';
 import { activeSocialUser, socialState, socialUser } from '../social/repository.js';
+import { transportDriverById } from '../transport/data.js';
 import { analyzeBookingMessage } from '../guides/safety.js';
 function tripData() {
   try { return JSON.parse(localStorage.getItem('lombok-guide-demo-v1') || 'null'); }
@@ -59,20 +60,30 @@ function eligibleSharedTripMember(thread, userId) {
   const user = socialUser(userId);
   return offers.some((offer) => (offer.teamGuideIds || [offer.guideId]).includes(userId)) || Boolean(data?.requests?.some((request) => offerIds.includes(request.offerId) && request.travelerEmail === user?.accountEmail?.toLowerCase() && (['accepted', 'completed'].includes(request.status) && request.paymentStatus === 'paid' || request.status === 'cancelled' && request.paymentStatus === 'refunded')));
 }
+// Resolves a thread's other side to a displayable profile: a real social user (traveler/guide)
+// or, for a transport driver thread, a lightweight profile built from the driver record so
+// the same chat UI (avatar, name, online status, composer) works without the driver needing
+// a social account.
+function chatPersonProfile(id) {
+  const person = socialUser(id);
+  if (person) return person;
+  const driver = transportDriverById(id);
+  return driver ? { id: driver.id, displayName: driver.name, username: `${driver.id.replace('driver-', '')}.driver`, initials: driver.initials, color: '#305ee7', online: true, role: 'driver' } : null;
+}
 export function chatThread(threadId) { return messagingState().threads.find((thread) => thread.id === threadId && thread.status === 'active' && (!thread.group || thread.participantIds.includes(activeSocialUser().id)) && eligibleSharedTripMember(thread, activeSocialUser().id)); }
 export function chatMessages(threadId) { return messagingState().messages.filter((message) => message.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); }
 export function chatParticipant(threadId) {
   const selfId = activeSocialUser().id;
   const thread = chatThread(threadId);
-  return socialUser(thread?.participantIds.find((id) => id !== selfId));
+  return chatPersonProfile(thread?.participantIds.find((id) => id !== selfId));
 }
 export function chatParticipants(threadId) {
   const selfId = activeSocialUser().id;
   const thread = chatThread(threadId);
-  return (thread?.participantIds || []).filter((id) => id !== selfId).map((id) => socialUser(id)).filter(Boolean);
+  return (thread?.participantIds || []).filter((id) => id !== selfId).map((id) => chatPersonProfile(id)).filter(Boolean);
 }
 export function chatMessage(threadId, messageId) { return messagingState().messages.find((message) => message.threadId === threadId && message.id === messageId); }
-export function isChatUserOnline(userId) { return Boolean(socialUser(userId)?.online); }
+export function isChatUserOnline(userId) { return Boolean(chatPersonProfile(userId)?.online); }
 export function visibleChatThreads() {
   const selfId = activeSocialUser().id;
   return messagingState().threads
@@ -85,7 +96,7 @@ export function findChatThreadWith(userId) {
 }
 export function getOrCreateChatThread(userId, context = null) {
   const selfId = activeSocialUser().id;
-  if (!socialUser(userId) || userId === selfId) return null;
+  if (!chatPersonProfile(userId) || userId === selfId) return null;
   const existing = findChatThreadWith(userId);
   if (existing) {
     if (context) { existing.context = { ...(existing.context || {}), ...context }; existing.updatedAt = now(); persist(); }

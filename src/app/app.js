@@ -24,6 +24,7 @@ import { financeDashboardView, guideApplicationsAdminView, guideDashboardView, g
 import { guideOfferingsView, guideTeamAssignmentsView, tripOfferingApprovalsView } from '../features/guides/offerings-view.js';
 import { transportLandingView, transportWizardView, transportTicketView } from '../features/transport/view.js';
 import { quoteTransport, ferryPickupEstimate, createTransportOrder, submitTransportPaymentProof, markTransportDocked, cancelTransportOrder, transportCancellationPreview, transportOrderByCode, rateTransportOrder, witaToIso } from '../features/transport/repository.js';
+import { transportDriverById } from '../features/transport/data.js';
 import { bookingSafetyReviewView, bookingSafetyView } from '../features/guides/safety-view.js';
 import { acknowledgeSharedDepartureMeetingPoint, activeGuide, advanceBookingTrip, applyAsGuide, closeTripOffering, createTripOffering, createTripOfferRequest, decideGuidePrice, finishSharedTrip, guideDemoData, markGuideRequestPaid, proposeBookingChange, proposeGuidePrice, proposeSharedDepartureDecision, publicTripOfferings, releaseGuidePayout, reportBookingIssue, resolveBookingIssue, respondBookingChange, respondSharedDepartureDecision, reviewGuideApplication, reviewGuideRequest, reviewTripOffering, saveBookingTrustedContact, saveGuideProfile, setBookingMeetingPoint, setSharedDepartureMeetingPoint, startSharedTrip, switchGuide, toggleGuideDate, toggleGuideExperience, updateGuideRequest, verifyBooking } from '../features/guides/repository.js';
 import { analyzeBookingMessage } from '../features/guides/safety.js';
@@ -467,6 +468,12 @@ function ensureBookingChat(threadId, request) {
   if (!hasWelcome) sendChatSystemMessage(threadId, `Booking ${request.bookingId} is ready. Use this chat to coordinate the trip and keep payments inside FindMyGuide.`, { bookingId: request.bookingId });
   return threadId;
 }
+function ensureTransportChat(threadId, order, driver) {
+  if (!threadId || !order) return threadId;
+  const hasWelcome = chatMessages(threadId).some((message) => message.system && message.orderCode === order.bookingId);
+  if (!hasWelcome) sendChatSystemMessage(threadId, `${driver.name} is your driver for transfer ${order.bookingId}. Chat here to coordinate your pickup — for your safety and data privacy, please keep communication inside FindMyGuide.`, { orderCode: order.bookingId });
+  return threadId;
+}
 function activeBookingActor() {
   const account = activeSocialUser();
   return account?.role === 'guide' ? { role: 'guide', id: account.guideId || account.id } : { role: 'traveler', email: account?.accountEmail || state.email };
@@ -525,6 +532,15 @@ function clickAction(action, el) {
       const preview = transportCancellationPreview(order);
       state.confirmAction = { type: 'cancel-transport-order', id, message: preview.fee > 0 ? `Cancel this transfer? A cancellation fee of ${formatCurrency(preview.fee, 'IDR')} (${preview.feePercent}%) applies.` : 'Cancel this transfer? No cancellation fee applies.' };
       openModal('confirm-action');
+      break;
+    }
+    case 'transport-driver-chat': {
+      const order = transportOrderByCode(id);
+      const driver = order?.driverId ? transportDriverById(order.driverId) : null;
+      if (!order || !driver) { announce('Driver chat is unavailable yet'); break; }
+      const threadId = getOrCreateChatThread(driver.id);
+      if (threadId) { ensureTransportChat(threadId, order, driver); navigate(`/inbox/chat/${encodeURIComponent(threadId)}`); }
+      else announce('Driver chat is unavailable');
       break;
     }
     case 'show-guide-picker': root.querySelector('#guide-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
