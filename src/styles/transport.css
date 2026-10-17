@@ -13,10 +13,15 @@
 .transport-card{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 8px 24px #172e4b0d}
 .transport-card+.transport-card{margin-top:14px}
 
-.transport-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:18px;font-size:11px}
-.transport-steps li{padding:7px 2px;border-radius:8px;background:var(--soft);color:var(--muted);text-align:center;font-weight:700}
-.transport-steps li.done{background:var(--pale-blue);color:var(--blue)}
-.transport-steps li.active{background:var(--blue);color:var(--surface)}
+.transport-steps{position:relative;display:flex;list-style:none;margin:4px 0 22px;padding:0;gap:0}
+.transport-steps li{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:10px;font-weight:700;line-height:1.2;text-align:center}
+.transport-steps li.done,.transport-steps li.active{color:var(--navy)}
+.transport-steps li+li::before{content:'';position:absolute;top:14px;right:50%;left:-50%;height:2px;background:var(--line);z-index:0}
+.transport-steps li.done+li::before{background-image:var(--ai-gradient)}
+.transport-step-bullet{position:relative;z-index:1;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface);border:2px solid var(--line);color:var(--muted);font-size:12px;font-weight:800}
+.transport-steps li.done .transport-step-bullet{background-image:var(--ai-gradient);border-color:transparent;color:var(--surface)}
+.transport-steps li.active .transport-step-bullet{background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--ai-gradient) border-box;border:2px solid transparent;color:var(--brand-gradient-middle)}
+.transport-steps li.active .transport-step-label{background-image:var(--ai-gradient);background-clip:text;-webkit-background-clip:text;color:transparent}
 
 .transport-form label{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--navy)}
 .transport-form input,.transport-form select,.transport-form textarea{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--navy);font-size:14px;font-weight:400}

@@ -137,7 +137,11 @@ export function transportWizardView() {
   if (step === 3 && !t.vehiclePriceBreakdown) step = t.vehicleClass ? (t.useFerry ? 2 : 1) : 1;
 
   const stepLabels = ['Trip details', 'Choose vehicle', 'Ferry schedule', 'Payment'];
-  const stepsNav = `<ol class="transport-steps">${stepLabels.map((label, index) => `<li class="${index < step ? 'done' : index === step ? 'active' : ''}">${index + 1}. ${esc(label)}</li>`).join('')}</ol>`;
+  const stepsNav = `<ol class="transport-steps">${stepLabels.map((label, index) => {
+    const stateClass = index < step ? 'done' : index === step ? 'active' : '';
+    const bullet = index < step ? icon('check', 14) : String(index + 1);
+    return `<li class="${stateClass}"><span class="transport-step-bullet">${bullet}</span><span class="transport-step-label">${esc(label)}</span></li>`;
+  }).join('')}</ol>`;
   const body = step === 0 ? transportStepCriteria(t) : step === 1 ? transportStepVehicles(t) : step === 2 ? transportStepFerry(t) : transportStepPayment(t);
   return mainLayout(`${header('Book a transfer')}<div class="page-pad transport-page">${stepsNav}${body}</div>`, 'Bookings');
 }
